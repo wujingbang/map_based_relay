@@ -2,7 +2,7 @@
 #define DEBUG_H
 
 
-#include "relay.h"
+#include "mbr.h"
 
 enum MBR_DEBUG {
 	MBR_DBG_RESET		= 0x00000001,
