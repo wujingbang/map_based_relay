@@ -7,6 +7,7 @@
 //
 
 #include "graph.h"
+#include <linux/string.h>
 
 int compare_edges(const void *aa, const void *bb);
 void vertex_free(void *data);
@@ -190,4 +191,17 @@ bool graph_is_balanced(Graph *g) {
 void graph_free(Graph *graph) {
     list_free(graph->vertices);
     kfree(graph);
+}
+
+Vertex * getVertex(Graph *graph, unsigned char* idStr) {
+    Node *n = graph->vertices->head;
+    Node *prev_n = NULL;
+    while (n) {
+        if (!strcmp((Vertex*)n->data->idStr, idStr) {
+            return (Vertex*)n->data;
+        }
+        prev_n = n;
+        n = n->next;
+    }
+    return NULL;
 }

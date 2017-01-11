@@ -48,6 +48,10 @@ void vertex_add_edge_to_vertex_sorted(Vertex *from, Vertex *to, double weight);
 void vertex_remove_edge_to_vertex(Vertex *from, Vertex *to);
 
 /**
+ * Tools
+ */
+Vertex * getVertex(Graph *graph, unsigned char* idStr);
+/**
  * API for undirect graph
  */
 void graph_remove_vertex_undirect(Graph *graph, Vertex *vertex);

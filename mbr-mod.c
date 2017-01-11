@@ -22,7 +22,7 @@ struct nf_hook_ops input_filter;
 struct nf_hook_ops output_filter;
 
 //Shared memory
-unsigned char *mem_msg_buf = NULL;
+unsigned char *shared_mem_neighbor = NULL;
 
 static unsigned char * malloc_reserved_mem(unsigned int size){
     unsigned char *p = kmalloc(size, GFP_KERNEL);
@@ -94,7 +94,7 @@ static int __init init_relay_module(void)
 	/**
 	 * Initial shared memory for neighbor.
 	 */
-	mem_msg_buf = malloc_reserved_mem(SHARED_MEM_SIZE);
+	shared_mem_neighbor = malloc_reserved_mem(SHARED_MEM_SIZE);
 	ret = misc_register(&shared_mem_misc);
 	mbr_dbg(debug_level, ANY, SHARED_MEM_DEVNAME" initialized\n");
 
