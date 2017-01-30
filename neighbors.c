@@ -12,8 +12,8 @@ neighbor_table	**neigh_data;
  * 	0: not busy
  * 	1: busy
  */
-uint8_t 		*neigh_status;
-u_int32_t		*neigh_count;
+u8 		*neigh_status;
+u32		*neigh_count;
 
 
 int neigh_list_init()
@@ -30,10 +30,9 @@ inline void wait_neigh_available()
 /**
  * Search node's geohash from it's ip addr.
  * return
- * 	0: Search succeed. Result stored in the resGeoHash.
- * 	-1: Search failed.
+ *
  */
-uint8_t * search_neigh_for_geohash(u_int32_t ip)
+u64 neighbor_getgeohash_fromip(u32 ip)
 {
 	int i;
 	wait_neigh_available();
@@ -41,6 +40,6 @@ uint8_t * search_neigh_for_geohash(u_int32_t ip)
 		if(neigh_data[i]->ip == ip)
 			return neigh_data[i]->geoHash;
 	}
-	return NULL;
+	return 0;
 }
 

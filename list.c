@@ -5,6 +5,8 @@
 //  Created by Sam Goldman on 6/21/11.
 //  Copyright 2011 Sam Goldman. All rights reserved.
 //
+//  Customized by Wu Jingbang on 2017
+//
 
 #include "list.h"
 #include <stdlib.h>
@@ -12,7 +14,7 @@
 Node *node_create(void *data);
 
 List *list_create(node_data_free_callback_t node_data_free_callback) {
-    List *list = malloc(sizeof(List));
+    List *list = (List*)malloc(sizeof(List));
     list->head = NULL;
     list->count = 0;
     list->node_data_free_callback = node_data_free_callback;
@@ -20,7 +22,7 @@ List *list_create(node_data_free_callback_t node_data_free_callback) {
 }
 
 Node *node_create(void *data) {
-    Node *node = malloc(sizeof(Node));
+    Node *node = (Node*)malloc(sizeof(Node));
     node->data = data;
     node->next = NULL;
     return node;
@@ -146,3 +148,4 @@ void list_sort(List *list, int(*cmp)(const void *a, const void *b)) {
         insize *= 2;
     }
 }
+

@@ -5,11 +5,13 @@
 #include "graph.h"
 #include "geohash.h"
 
+#define GEOHASH_STEP_BIT	24
+
 struct relay_table_list_ {
-	uint8_t geoHash_this[3];
-	uint8_t geoHash_nexthop[3];
-	uint8_t geoHash_dst[3];
-	int		isvalid;
+	u64 geoHash_this;
+	u64 geoHash_nexthop;
+	u64 geoHash_dst;
+	int	isvalid;
 
 	struct list_head	ptr;
 };

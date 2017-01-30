@@ -5,6 +5,8 @@
 //  Created by Sam Goldman on 6/21/11.
 //  Copyright 2011 Sam Goldman. All rights reserved.
 //
+//  Customized by Wu Jingbang on 2017
+//
 
 #include "list.h"
 
@@ -20,7 +22,7 @@ typedef struct Edge {
 typedef struct Vertex {
 	//int id;
 	unsigned char idStr[25];
-	unsigned char geoHash[3];
+	u64 geoHash;
     void *data;
     struct List *edges;
     int indegree;
@@ -57,6 +59,11 @@ Vertex * getVertex(Graph *graph, unsigned char* idStr);
 void graph_remove_vertex_undirect(Graph *graph, Vertex *vertex);
 void vertex_add_edge_to_vertex_undirect(Vertex *from, Vertex *to, double weight);
 void vertex_remove_edge_to_vertex_undirect(Vertex *from, Vertex *to);
+
+/**
+ * mbr API
+ */
+Vertex* find_Vertex_by_VehiclePosition(Graph *g, u64 geoHash);
 
 //void graph_sort_vertices(Graph *graph, int(*cmp)(const void *a, const void *b));
 //void vertex_sort_edges(Vertex *vertex);

@@ -1,48 +1,61 @@
 //
-//  graph.c
+//  graph.h
 //  adjacencylist
 //
 //  Created by Sam Goldman on 6/21/11.
 //  Copyright 2011 Sam Goldman. All rights reserved.
 //
+//  Customized by Wu Jingbang on 2017
+//
+
+//#include "graph.h"
+//#include <linux/string.h>
+
 
 #include "graph.h"
-#include <linux/string.h>
+//#include <linux/string.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 int compare_edges(const void *aa, const void *bb);
 void vertex_free(void *data);
 
 int compare_edges(const void *aa, const void *bb) {
-    const Edge *a = aa;
-    const Edge *b = bb;
-    return (a->weight > b->weight) - (a->weight < b->weight);
+    const Edge *a = (Edge*)aa;
+    const Edge *b = (Edge*)bb;
+    return (a->road_id > b->road_id) - (a->road_id < b->road_id);
 }
 
 void vertex_free(void *data) {
-    Vertex *vertex = data;
+    Vertex *vertex = (Vertex*)data;
     list_free(vertex->edges);
-    kfree(vertex);
+    //kfree(vertex);
+    free(vertex);
 }
 
-Graph *graph_create(void) {
-    Graph *graph = malloc(sizeof(Graph));
+Graph *graph_create() {
+    Graph *graph = (Graph*)malloc(sizeof(Graph));
     graph->vertices = list_create(vertex_free);
     return graph;
 }
 
-Vertex *vertex_create(void *data) {
-    Vertex *vertex = malloc(sizeof(Vertex));
-    vertex->data = data;
-    vertex->edges = list_create(kfree);
+Vertex *vertex_create(char *idStr) {
+    Vertex *vertex = (Vertex*)malloc(sizeof(Vertex));
+    strcpy(vertex->idStr, idStr);
+    vertex->data = NULL;
+    //vertex->edges = list_create(kfree);
+    vertex->edges = list_create(free);
     vertex->indegree = 0;
     vertex->outdegree = 0;
     return vertex;
 }
 
-Edge *edge_create(Vertex *vertex, double weight) {
-    Edge *edge = kmalloc(sizeof(Edge), GFP_KERNEL);
+Edge *edge_create(Vertex *vertex, int road_id) {
+    //Edge *edge = kmalloc(sizeof(Edge), GFP_KERNEL);
+    Edge *edge = (Edge*)malloc(sizeof(Edge));
     edge->vertex = vertex;
-    edge->weight = weight;
+    edge->road_id = road_id;
     return edge;
 }
 
@@ -69,7 +82,7 @@ void graph_remove_vertex(Graph *graph, Vertex *vertex) {
             free(n);
         }
         else {
-            vertex_remove_edge_to_vertex(n->data, vertex);
+            vertex_remove_edge_to_vertex((Vertex*)n->data, vertex);
         }
         prev_n = n;
         n = n->next;
@@ -92,7 +105,7 @@ void graph_remove_vertex_undirect(Graph *graph, Vertex *vertex) {
             free(n);
         }
         else {
-            vertex_remove_edge_to_vertex_undirect(n->data, vertex);
+            vertex_remove_edge_to_vertex_undirect((Vertex*)n->data, vertex);
         }
         prev_n = n;
         n = n->next;
@@ -118,15 +131,15 @@ void vertex_remove_edge(Vertex *vertex, Edge *edge) {
     vertex->outdegree--;
 }
 
-void vertex_add_edge_to_vertex(Vertex *from, Vertex *to, double weight) {
-    Edge *edge = edge_create(to, weight);
+void vertex_add_edge_to_vertex(Vertex *from, Vertex *to, int road_id) {
+    Edge *edge = edge_create(to, road_id);
     list_add_data(from->edges, edge);
     to->indegree++;
     from->outdegree++;
 }
 
-void vertex_add_edge_to_vertex_sorted(Vertex *from, Vertex *to, double weight) {
-    Edge *edge = edge_create(to, weight);
+void vertex_add_edge_to_vertex_sorted(Vertex *from, Vertex *to, int road_id) {
+    Edge *edge = edge_create(to, road_id);
     list_add_data_sorted(from->edges, edge, compare_edges);
     to->indegree++;
     from->outdegree++;
@@ -146,8 +159,10 @@ void vertex_remove_edge_to_vertex(Vertex *from, Vertex *to) {
             }
             to->indegree--;
             from->outdegree--;
-            kfree(e->data);
-            kfree(e);
+            //kfree(e->data);
+            //kfree(e);
+            free(e->data);
+            free(e);
             break;
         }
         prev_e = e;
@@ -156,9 +171,9 @@ void vertex_remove_edge_to_vertex(Vertex *from, Vertex *to) {
 }
 
 
-void vertex_add_edge_to_vertex_undirect(Vertex *from, Vertex *to, double weight) {
-	vertex_add_edge_to_vertex(from, to, weight);
-	vertex_add_edge_to_vertex(to, from, weight);
+void vertex_add_edge_to_vertex_undirect(Vertex *from, Vertex *to, int road_id) {
+	vertex_add_edge_to_vertex(from, to, road_id);
+	vertex_add_edge_to_vertex(to, from, road_id);
 }
 
 void vertex_remove_edge_to_vertex_undirect(Vertex *from, Vertex *to) {
@@ -178,7 +193,7 @@ bool graph_is_balanced(Graph *g) {
     Node *n = g->vertices->head;
     Node *prev_n;
     while (n) {
-        Vertex *v = n->data;
+        Vertex *v = (Vertex*)n->data;
         if (v->indegree != v->outdegree) {
             return false;
         }
@@ -190,18 +205,156 @@ bool graph_is_balanced(Graph *g) {
 
 void graph_free(Graph *graph) {
     list_free(graph->vertices);
-    kfree(graph);
+    //kfree(graph);
+    free(graph);
 }
 
-Vertex * getVertex(Graph *graph, unsigned char* idStr) {
+Vertex * getVertex(Graph *graph, const char* idStr) {
     Node *n = graph->vertices->head;
     Node *prev_n = NULL;
-    while (n) {
-        if (!strcmp((Vertex*)n->data->idStr, idStr) {
+    while (n)
+    {
+        if (!strcmp(((Vertex*)n->data)->idStr, idStr))
+        {
             return (Vertex*)n->data;
         }
         prev_n = n;
         n = n->next;
     }
     return NULL;
+}
+
+void graph_print(Graph *g)
+{
+    Node *p=g->vertices->head;
+    while(p)
+    {
+        Vertex *v = (Vertex*)p->data;
+        printf("%s ",v->idStr);
+        Node *q = v->edges->head;
+        while(q)
+        {
+            printf("%s ",((Edge*)q->data)->vertex->idStr);
+            q=q->next;
+        }
+        printf("\n");
+        p=p->next;
+    }
+}
+
+u64 abs(u64 a, u64 b)	//计算两个geoHash差值的绝对值；
+{
+	if(a>b)
+		return a-b;
+	else
+		return b-a;
+}
+Vertex* find_Vertex_by_VehiclePosition(Graph *g, u64 geoHash)
+{
+	u64 min=UINT64_MAX,temp;
+	Vertex *v=NULL,*index;
+	Node *p=g->vertices->head;
+	while(p)	//遍历一遍图节点，找到与给定geoHash最接近的图节点；
+	{
+		index=(Vertex*)p->data;
+		temp=abs(index->geoHash,geoHash);
+		if(temp<min)
+		{
+			min=temp;
+			v=index;
+		}
+		p=p->next;
+	}
+	return v;
+}
+
+typedef struct path          	//BFS遍历数据结构；
+{
+	Vertex *v;					//保存当前找到的道路节点指针；
+	struct path *ancest;		//保存BFS遍历树上的父节点；
+	Edge *e;					//指向父节点的边；
+	struct path *next;
+}path;
+
+
+int find_vertex(path *head,Vertex *v)	//判断图节点是否已经被遍历过；
+{
+	path *temp=head;
+	while(temp)
+	{
+		if(temp->v == v)
+			return 1;
+		temp=temp->next;
+	}
+    return 0;
+}
+
+Vertex* print_crossnode(path *p)	//返回BFS遍历路径上的交叉节点信息；
+{
+	int first,second;
+	second=p->e->road_id;
+	p=p->ancest;
+	while(p->ancest != NULL)
+	{
+		first=second;
+		second=p->e->road_id;
+		if(first != second)
+			return p->v;
+		p=p->ancest;
+	}
+	printf("there is no crossnode between %s and %s!\n",p->v->idStr,p->ancest->v->idStr);  //如果没有交叉路口，输出相应信息；
+	return NULL;
+}
+
+
+Vertex* cross_vertex(Vertex *from, Vertex *to)    //查找从from到to路径上的交叉路口节点；
+{
+	path *head,*tail,*index,*temp;
+	int flag=1;
+
+	//初始化数据结构；
+	head=tail=index=(path*)malloc(sizeof(path));
+	if(!index)
+	{
+        printf("malloc  error!\n");
+        exit(0);
+    }
+	index->v=from;
+	index->ancest=NULL;
+	index->e=NULL;
+	index->next=NULL;
+	while(index)       //BFS遍历；
+	{
+		Node *n=index->v->edges->head;
+		while(n)
+		{
+			if(find_vertex(head,((Edge*)n->data)->vertex)==1) //如果该节点已经被遍历过，则跳过；
+			{
+				n=n->next;
+				continue;
+			}
+			temp=(path*)malloc(sizeof(path));
+			temp->v=((Edge*)n->data)->vertex;
+			temp->ancest=index;
+			temp->e=(Edge*)n->data;
+			temp->next=NULL;
+
+			//将新遍历到的节点插入到链表尾部；
+			tail->next=temp;
+			tail=temp;
+			if((flag=strcmp(temp->v->idStr,to->idStr))==0)   //已经遍历到目标节点，终止遍历；
+				break;
+			n=n->next;
+		}
+		if(!flag)
+			break;
+		index=index->next;
+	}
+	if(!flag)		//如果找到目标节点，则返回交叉路口节点信息；
+	    return print_crossnode(tail);
+	else			//若没遍历到目标节点，输出不连通信息；
+		{
+			printf("%s unconnect to %s!",from->idStr,to->idStr);
+			return NULL;
+		}
 }
