@@ -2,10 +2,14 @@
 #include <linux/type.h>
 #include <linux/list.h>
 
-#include "graph.h"
-#include "geohash.h"
+#include "mbr.h"
 
-#define GEOHASH_STEP_BIT	24
+/**
+ * coding step of longitude and latitude each (bit).
+ * a geohash consists of longitude coding plus latitude coding.
+ * so the step of geohash is GEOHASH_STEP_BIT * 2.
+ */
+#define GEOHASH_STEP_BIT	12
 
 struct relay_table_list_ {
 	u64 geoHash_this;

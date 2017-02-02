@@ -2,12 +2,6 @@
 
 LIST_HEAD(mbrtable)
 
-int geohash_compare()
-{
-
-}
-
-
 /**
  * Search routing table for the GeoHash of next-hop.
  * input: dest node's geohash
@@ -23,12 +17,17 @@ u64 mbrtable_get_nexthop_geohash(u64 dstGeoHash)
 	return 0;
 }
 
+int update_mbrtable_outrange(u64 updated_geohash)
+{
+
+}
+
 int update_mbrtable(u64 this_geohash, u64 dst_geohash, u64 nexthop_geohash)
 {
 
 }
 
-int mbr_forward(struct sk_buff *skb, Graph *g)
+int mbr_forward(u8 *relay_mac, struct sk_buff *skb, Graph *g)
 {
 	/**
 	 * 从skb中nexthop查找邻居表得到该点的Geohash
@@ -42,11 +41,15 @@ int mbr_forward(struct sk_buff *skb, Graph *g)
 	Vertex *intersection;
 	Vertex *this_vertex;
 	Vertex *nexthop_vertex;
-	GeoHashNeighbors geohashset;
 	GeoHashBits	geohashbit_tmp;
+	neighbor_table* neighbor_entry
+	u64 geohashset[9];
+	int ret;
 
 	nexthop = (__force u32) rt_nexthop(rt, ip_hdr(skb)->daddr);
-
+	/**
+	 * 从邻居表中找到下一跳ip对应的geohash
+	 */
 	nexthop_geohash = neighbor_getgeohash_fromip(nexthop);
 	if(nexthop_geohash == 0){ //miss
 		/**
@@ -68,8 +71,11 @@ int mbr_forward(struct sk_buff *skb, Graph *g)
 	 */
 	geohashbit_tmp.step = GEOHASH_STEP_BIT;
 	geohashbit_tmp.bits = nexthop_geohash;
-	geohash_get_neighbors(geohashbit_tmp, geohashset);
-
+	geohash_get_neighbors_in_set(geohashbit_tmp, geohashset);
+	ret = neighbor_get_node_fromset_random(neighbor_entry, geohashset, 9);
+	if(ret == 0)
+		return -1; //unmatched!
+	relay_mac = neighbor_entry->mac;
+	return 0;
 }
 
-int

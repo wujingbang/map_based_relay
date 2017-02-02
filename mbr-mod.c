@@ -4,10 +4,10 @@
 #include <linux/init.h>
 #include <linux/proc_fs.h>
 #include <linux/miscdevice.h>
+#include <linux/sched.h>   //wake_up_process()
+#include <linux/kthread.h> //kthread_create()¡¢kthread_run()
+#include <err.h> //IS_ERR()¡¢PTR_ERR()
 
-#include "pkt_output.h"
-#include "pkt_input.h"
-#include "debug.h"
 #include "mbr.h"
 
 MODULE_LICENSE("GPL");
@@ -23,6 +23,12 @@ struct nf_hook_ops output_filter;
 
 //Shared memory
 unsigned char *shared_mem_neighbor = NULL;
+//mbr status
+struct mbr_status global_mbr_status;
+//netlink
+static struct sock *netlinkfd;
+//graph
+Graph global_graph;
 
 static unsigned char * malloc_reserved_mem(unsigned int size){
     unsigned char *p = kmalloc(size, GFP_KERNEL);
@@ -57,6 +63,8 @@ int mem_mmap(struct file *filp, struct vm_area_struct *vma){
     return 0;
 }
 
+
+
 struct file_operations sharedMemOps = {
     .read = char_read,
     .write = char_write,
@@ -69,6 +77,137 @@ static struct miscdevice shared_mem_misc = {
 	.minor = MISC_DYNAMIC_MINOR,
 	.name = SHARED_MEM_DEVNAME,
 	.fops = &sharedMemOps,
+};
+
+struct dentry *mbr_status_create_file(const char *name,
+				 umode_t mode,
+				 struct dentry *parent,
+				 void *data,
+				 const struct file_operations *fops)
+{
+	struct dentry *ret;
+
+	ret = debugfs_create_file(name, mode, parent, data, fops);
+	if (!ret)
+		mbr_dbg(debug_level, ANY, "Could not create debugfs '%s' entry\n", name);
+
+	return ret;
+}
+
+int status_open_generic(struct inode *inode, struct file *filp)
+{
+	filp->private_data = inode->i_private;
+	return 0;
+}
+
+static int
+status_geohash_read(struct file *filp, char __user *ubuf,
+		    size_t cnt, loff_t *ppos)
+{
+	char buf[64];
+	int r;
+	struct mbr_status *st = filp->private_data;
+
+	r = snprintf(buf, sizeof(buf), "%ulld\n", st->geohash);
+	if (r > sizeof(buf))
+		r = sizeof(buf);
+	return simple_read_from_buffer(ubuf, cnt, ppos, buf, r);
+}
+
+static int
+status_geohash_write(struct file *filp, char __user *ubuf,
+		    size_t cnt, loff_t *ppos)
+{
+	u64 val;
+	int ret;
+	struct mbr_status *st = filp->private_data;
+	ret = kstrtoull_from_user(ubuf, cnt, 10, &val);
+	if (ret)
+		return ret;
+
+	if(val == 0) {
+		mbr_dbg(debug_level, ANY, "status_geohash_write: geohash can not be zero!!\n");
+		return 0;
+	}
+
+	/* UPDATE mbr table! */
+	update_mbrtable_outrange(val);
+
+	return cnt;
+
+}
+
+static const struct file_operations status_geohash = {
+	.open		= status_open_generic,
+	.read		= status_geohash_read,
+	.write		= status_geohash_write,
+};
+
+static int mbr_create_debugfs(void)
+{
+	struct dentry *d_status;
+
+	if (!debugfs_initialized())
+			return NULL;
+	global_mbr_status.dir = debugfs_create_dir("mbr", NULL);
+	d_status = global_mbr_status.dir;
+
+	mbr_status_create_file("geohash", 0644, d_status,
+			&global_mbr_status, &status_geohash);
+
+}
+
+
+
+int netlink_send_msg(char *pbuf, uint16_t len)
+{
+    struct sk_buff *nl_skb;
+    struct nlmsghdr *nlh;
+
+    int ret;
+
+    nl_skb = nlmsg_new(len, GFP_ATOMIC);
+    if(!nl_skb)
+    {
+    	mbr_dbg(debug_level, ANY,"netlink_alloc_skb error\n");
+        return -1;
+    }
+
+    nlh = nlmsg_put(nl_skb, 0, 0, USER_MSG, len, 0);
+    if(nlh == NULL)
+    {
+        printk("nlmsg_put() error\n");
+        nlmsg_free(nl_skb);
+        return -1;
+    }
+    memcpy(nlmsg_data(nlh), pbuf, len);
+
+    ret = netlink_unicast(netlinkfd, nl_skb, USER_PORT, MSG_DONTWAIT);
+
+    return ret;
+}
+
+
+static void netlink_recv_cb(struct sk_buff *skb)
+{
+    struct nlmsghdr *nlh = NULL;
+    void *data = NULL;
+    graph_deliver *d;
+    printk("skb->len:%u\n", skb->len);
+    if(skb->len >= nlmsg_total_size(0))
+    {
+        nlh = nlmsg_hdr(skb);
+        data = NLMSG_DATA(nlh);
+        d=(graph_deliver*)data;
+        mbr_dbg(debug_level, ANY, "kernel receive data: %d %s %s %d\n", d->mode,d->parameter.edge.from,d->parameter.edge.to,d->parameter.edge.road_id);
+        netlink_send_msg(data, nlmsg_len(nlh));
+    }
+}
+
+
+struct netlink_kernel_cfg cfg =
+{
+    .input = recv_cb,
 };
 
 static int __init init_relay_module(void)
@@ -98,6 +237,21 @@ static int __init init_relay_module(void)
 	ret = misc_register(&shared_mem_misc);
 	mbr_dbg(debug_level, ANY, SHARED_MEM_DEVNAME" initialized\n");
 
+	/**
+	 * initial netlink for graph
+	 */
+    netlinkfd = netlink_kernel_create(&init_net, USER_MSG, &cfg);
+    if(!netlinkfd)
+    {
+    	mbr_dbg(debug_level, ANY, "can not create a netlink socket!\n");
+        return -1;
+    }
+
+    /**
+     * initial debugfs for geohash update
+     */
+    mbr_create_debugfs();
+
 	return 0;
 }
 
@@ -107,7 +261,8 @@ static void __exit cleanup_relay_module(void)
 	nf_unregister_hook(&output_filter);
 	misc_deregister(&shared_mem_misc);
 	kfree(mem_msg_buf);
-
+	debugfs_remove_recursive(global_mbr_status.dir);
+	sock_release(netlinkfd->sk_socket);
 }
 
 module_init(init_relay_module);

@@ -328,6 +328,20 @@ int geohash_get_neighbors(GeoHashBits hash, GeoHashNeighbors* neighbors)
     return 0;
 }
 
+int geohash_get_neighbors_in_set(GeoHashBits hash, u64 *geohashset)
+{
+	geohashset[0] = hash.bits;
+    geohash_get_neighbor(hash, GEOHASH_NORTH, &geohashset[1]);
+    geohash_get_neighbor(hash, GEOHASH_EAST, &geohashset[2]);
+    geohash_get_neighbor(hash, GEOHASH_WEST, &geohashset[3]);
+    geohash_get_neighbor(hash, GEOHASH_SOUTH, &geohashset[4]);
+    geohash_get_neighbor(hash, GEOHASH_SOUTH_WEST, &geohashset[5]);
+    geohash_get_neighbor(hash, GEOHASH_SOUTH_EAST, &geohashset[6]);
+    geohash_get_neighbor(hash, GEOHASH_NORT_WEST, &geohashset[7]);
+    geohash_get_neighbor(hash, GEOHASH_NORT_EAST, &geohashset[8]);
+    return 0;
+}
+
 int geohash_get_neighbor(GeoHashBits hash, GeoDirection direction, GeoHashBits* neighbor)
 {
     if (NULL == neighbor)
