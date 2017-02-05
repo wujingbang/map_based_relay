@@ -17,8 +17,7 @@
 struct neighbor_table_ {
 	u32 ip;
 	u8 mac[6];
-	double longitude;
-	double latitude;
+
 	u64 geoHash;
 	//unsigned char idStr_section[25];//this node's closest road section
 	int		isvalid;
