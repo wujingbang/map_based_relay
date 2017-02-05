@@ -1,12 +1,3 @@
-#include <linux/module.h>
-#include <linux/moduleparam.h>
-#include <linux/kernel.h>
-#include <linux/init.h>
-#include <linux/proc_fs.h>
-#include <linux/miscdevice.h>
-#include <linux/sched.h>   //wake_up_process()
-#include <linux/kthread.h> //kthread_create()¡¢kthread_run()
-#include <err.h> //IS_ERR()¡¢PTR_ERR()
 
 #include "mbr.h"
 
@@ -35,7 +26,7 @@ static unsigned char * malloc_reserved_mem(unsigned int size){
     unsigned char *tmp = p;
     unsigned int i, n;
     if (NULL == p){
-        printk("Error : malloc_reserved_mem kmalloc failed!\n");
+    	mbr_dbg(debug_level, ANY, "Error : malloc_reserved_mem kmalloc failed!\n");
         return NULL;
     }
     n = size / 4096 + 1;
@@ -50,12 +41,12 @@ static unsigned char * malloc_reserved_mem(unsigned int size){
 }
 
 int mem_mmap(struct file *filp, struct vm_area_struct *vma){
-    mbr_dbg(debug_level, ANY, "in mem_mmap\n");
     unsigned long offset = vma->vm_pgoff << PAGE_SHIFT;
-    unsigned long physics = ((unsigned long )mem_msg_buf)-PAGE_OFFSET;
+    unsigned long physics = ((unsigned long )shared_mem_neighbor)-PAGE_OFFSET;
     unsigned long mypfn = physics >> PAGE_SHIFT;
     unsigned long vmsize = vma->vm_end-vma->vm_start;
-    unsigned long psize = gsize - offset;
+    unsigned long psize = SHARED_MEM_SIZE - offset;
+    mbr_dbg(debug_level, ANY, "in mem_mmap\n");
     if(vmsize > psize)
         return -ENXIO;
     if(remap_pfn_range(vma,vma->vm_start,mypfn,vmsize,vma->vm_page_prot))
@@ -64,12 +55,14 @@ int mem_mmap(struct file *filp, struct vm_area_struct *vma){
 }
 
 
+int open_generic(struct inode *inode, struct file *filp)
+{
+	filp->private_data = inode->i_private;
+	return 0;
+}
 
 struct file_operations sharedMemOps = {
-    .read = char_read,
-    .write = char_write,
-    .open = char_open,
-    .release = char_release,
+    .open = open_generic,
     .mmap = mem_mmap,
 };
 
@@ -108,7 +101,7 @@ status_geohash_read(struct file *filp, char __user *ubuf,
 	int r;
 	struct mbr_status *st = filp->private_data;
 
-	r = snprintf(buf, sizeof(buf), "%ulld\n", st->geohash);
+	r = snprintf(buf, sizeof(buf), "%lld\n", st->geohash_this);
 	if (r > sizeof(buf))
 		r = sizeof(buf);
 	return simple_read_from_buffer(ubuf, cnt, ppos, buf, r);
@@ -129,7 +122,7 @@ status_geohash_write(struct file *filp, char __user *ubuf,
 		mbr_dbg(debug_level, ANY, "status_geohash_write: geohash can not be zero!!\n");
 		return 0;
 	}
-
+	st->geohash_this = val;
 	/* UPDATE mbr table! */
 	update_mbrtable_outrange(val);
 
@@ -150,6 +143,7 @@ static int mbr_create_debugfs(void)
 	if (!debugfs_initialized())
 			return NULL;
 	global_mbr_status.dir = debugfs_create_dir("mbr", NULL);
+	global_mbr_status.geohash_this = 0;
 	d_status = global_mbr_status.dir;
 
 	mbr_status_create_file("geohash", 0644, d_status,
@@ -207,10 +201,10 @@ static void netlink_recv_cb(struct sk_buff *skb)
 
 struct netlink_kernel_cfg cfg =
 {
-    .input = recv_cb,
+    .input = netlink_recv_cb,
 };
 
-static int __init init_relay_module(void)
+static int __init init_mbr_module(void)
 {
 	//netfilter stuff
 	// input hook
@@ -234,7 +228,7 @@ static int __init init_relay_module(void)
 	 * Initial shared memory for neighbor.
 	 */
 	shared_mem_neighbor = malloc_reserved_mem(SHARED_MEM_SIZE);
-	ret = misc_register(&shared_mem_misc);
+	misc_register(&shared_mem_misc);
 	mbr_dbg(debug_level, ANY, SHARED_MEM_DEVNAME" initialized\n");
 
 	/**
@@ -255,15 +249,15 @@ static int __init init_relay_module(void)
 	return 0;
 }
 
-static void __exit cleanup_relay_module(void)
+static void __exit cleanup_mbr_module(void)
 {
 	nf_unregister_hook(&input_filter);
 	nf_unregister_hook(&output_filter);
 	misc_deregister(&shared_mem_misc);
-	kfree(mem_msg_buf);
+	kfree(shared_mem_neighbor);
 	debugfs_remove_recursive(global_mbr_status.dir);
 	sock_release(netlinkfd->sk_socket);
 }
 
-module_init(init_relay_module);
-module_exit(cleanup_relay_module);
+module_init(init_mbr_module);
+module_exit(cleanup_mbr_module);

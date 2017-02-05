@@ -10,8 +10,9 @@
 #ifndef LIST_H
 #define LIST_H
 
+#include <linux/slab.h>
 
-typedef void (*node_data_free_callback_t)(void *);
+typedef void (*node_data_free_callback_t)(const void *);
 
 typedef struct Node {
     void *data;

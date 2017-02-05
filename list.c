@@ -9,12 +9,11 @@
 //
 
 #include "list.h"
-#include <stdlib.h>
 
 Node *node_create(void *data);
 
 List *list_create(node_data_free_callback_t node_data_free_callback) {
-    List *list = (List*)malloc(sizeof(List));
+    List *list = (List*)kmalloc(sizeof(List), GFP_KERNEL);
     list->head = NULL;
     list->count = 0;
     list->node_data_free_callback = node_data_free_callback;
@@ -22,7 +21,7 @@ List *list_create(node_data_free_callback_t node_data_free_callback) {
 }
 
 Node *node_create(void *data) {
-    Node *node = (Node*)malloc(sizeof(Node));
+    Node *node = (Node*)kmalloc(sizeof(Node), GFP_KERNEL);
     node->data = data;
     node->next = NULL;
     return node;
@@ -66,7 +65,7 @@ void list_remove_data(List *list, void *data) {
             }
             list->node_data_free_callback(data);
             list->count--;
-            free(n);
+            kfree(n);
             break;
         }
         prev_n = n;
@@ -79,10 +78,10 @@ void list_free(List *list) {
     while (n) {
         Node *next_n = n->next;
         list->node_data_free_callback(n->data);
-        free(n);
+        kfree(n);
         n = next_n;
     }
-    free (list);
+    kfree (list);
 }
 
 void list_sort(List *list, int(*cmp)(const void *a, const void *b)) {

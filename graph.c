@@ -13,13 +13,15 @@
 
 
 #include "graph.h"
-//#include <linux/string.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
+#include <linux/string.h>
+//#include <string.h>
+//#include <stdlib.h>
+//#include <stdio.h>
+
+extern int debug_level;
 
 int compare_edges(const void *aa, const void *bb);
-void vertex_free(void *data);
+void vertex_free(const void *data);
 
 int compare_edges(const void *aa, const void *bb) {
     const Edge *a = (Edge*)aa;
@@ -27,33 +29,32 @@ int compare_edges(const void *aa, const void *bb) {
     return (a->road_id > b->road_id) - (a->road_id < b->road_id);
 }
 
-void vertex_free(void *data) {
+void vertex_free(const void *data) {
     Vertex *vertex = (Vertex*)data;
     list_free(vertex->edges);
-    //kfree(vertex);
-    free(vertex);
+    kfree(vertex);
 }
 
 Graph *graph_create() {
-    Graph *graph = (Graph*)malloc(sizeof(Graph));
+    Graph *graph = (Graph*)kmalloc(sizeof(Graph), GFP_KERNEL);
     graph->vertices = list_create(vertex_free);
     return graph;
 }
 
 Vertex *vertex_create(char *idStr) {
-    Vertex *vertex = (Vertex*)malloc(sizeof(Vertex));
+    Vertex *vertex = (Vertex*)kmalloc(sizeof(Vertex), GFP_KERNEL);
     strcpy(vertex->idStr, idStr);
     vertex->data = NULL;
     //vertex->edges = list_create(kfree);
-    vertex->edges = list_create(free);
+    vertex->edges = list_create(kfree);
     vertex->indegree = 0;
     vertex->outdegree = 0;
     return vertex;
 }
 
 Edge *edge_create(Vertex *vertex, int road_id) {
-    //Edge *edge = kmalloc(sizeof(Edge), GFP_KERNEL);
-    Edge *edge = (Edge*)malloc(sizeof(Edge));
+    Edge *edge = kmalloc(sizeof(Edge), GFP_KERNEL);
+    //Edge *edge = (Edge*)malloc(sizeof(Edge));
     edge->vertex = vertex;
     edge->road_id = road_id;
     return edge;
@@ -79,7 +80,7 @@ void graph_remove_vertex(Graph *graph, Vertex *vertex) {
                 prev_n->next = n->next;
             }
             graph->vertices->count--;
-            free(n);
+            kfree(n);
         }
         else {
             vertex_remove_edge_to_vertex((Vertex*)n->data, vertex);
@@ -102,7 +103,7 @@ void graph_remove_vertex_undirect(Graph *graph, Vertex *vertex) {
                 prev_n->next = n->next;
             }
             graph->vertices->count--;
-            free(n);
+            kfree(n);
         }
         else {
             vertex_remove_edge_to_vertex_undirect((Vertex*)n->data, vertex);
@@ -161,8 +162,8 @@ void vertex_remove_edge_to_vertex(Vertex *from, Vertex *to) {
             from->outdegree--;
             //kfree(e->data);
             //kfree(e);
-            free(e->data);
-            free(e);
+            kfree(e->data);
+            kfree(e);
             break;
         }
         prev_e = e;
@@ -206,7 +207,7 @@ bool graph_is_balanced(Graph *g) {
 void graph_free(Graph *graph) {
     list_free(graph->vertices);
     //kfree(graph);
-    free(graph);
+    kfree(graph);
 }
 
 Vertex * getVertex(Graph *graph, const char* idStr) {
@@ -226,38 +227,41 @@ Vertex * getVertex(Graph *graph, const char* idStr) {
 
 void graph_print(Graph *g)
 {
+	Node *q;
     Node *p=g->vertices->head;
     while(p)
     {
         Vertex *v = (Vertex*)p->data;
-        printf("%s ",v->idStr);
-        Node *q = v->edges->head;
+        mbr_dbg(debug_level, ANY, "%s ",v->idStr);
+        q = v->edges->head;
         while(q)
         {
-            printf("%s ",((Edge*)q->data)->vertex->idStr);
+        	mbr_dbg(debug_level, ANY, "%s ",((Edge*)q->data)->vertex->idStr);
             q=q->next;
         }
-        printf("\n");
+        mbr_dbg(debug_level, ANY, "\n");
         p=p->next;
     }
 }
 
-u64 abs(u64 a, u64 b)	//计算两个geoHash差值的绝对值；
+//计算两个geoHash差值的绝对值
+u64 geohash_compare( u64 a, u64 b )
 {
 	if(a>b)
 		return a-b;
 	else
 		return b-a;
 }
+
 Vertex* find_Vertex_by_VehiclePosition(Graph *g, u64 geoHash)
 {
 	u64 min=UINT64_MAX,temp;
 	Vertex *v=NULL,*index;
 	Node *p=g->vertices->head;
-	while(p)	//遍历一遍图节点，找到与给定geoHash最接近的图节点；
+	while(p)//遍历一遍图节点，找到与给定geoHash最接近的图节点；
 	{
 		index=(Vertex*)p->data;
-		temp=abs(index->geoHash,geoHash);
+		temp=geohash_compare(index->geoHash, geoHash);
 		if(temp<min)
 		{
 			min=temp;
@@ -302,22 +306,36 @@ Vertex* print_crossnode(path *p)	//返回BFS遍历路径上的交叉节点信息；
 			return p->v;
 		p=p->ancest;
 	}
-	printf("there is no crossnode between %s and %s!\n",p->v->idStr,p->ancest->v->idStr);  //如果没有交叉路口，输出相应信息；
+	mbr_dbg(debug_level, ANY, "there is no crossnode between %s and %s!\n",p->v->idStr,p->ancest->v->idStr);  //如果没有交叉路口，输出相应信息；
 	return NULL;
+}
+
+
+int free_path(path *p)
+{
+	path *temp;
+	while(p)
+	{
+		temp=p;
+		p=p->next;
+		kfree(temp);
+	}
+	return 0;
 }
 
 
 Vertex* cross_vertex(Vertex *from, Vertex *to)    //查找从from到to路径上的交叉路口节点；
 {
 	path *head,*tail,*index,*temp;
+	Vertex *v;
 	int flag=1;
 
 	//初始化数据结构；
-	head=tail=index=(path*)malloc(sizeof(path));
+	head=tail=index=(path*)kmalloc(sizeof(path),GFP_KERNEL);
 	if(!index)
 	{
-        printf("malloc  error!\n");
-        exit(0);
+		mbr_dbg(debug_level, ANY, "malloc  error!\n");
+        //exit(0);
     }
 	index->v=from;
 	index->ancest=NULL;
@@ -333,7 +351,7 @@ Vertex* cross_vertex(Vertex *from, Vertex *to)    //查找从from到to路径上的交叉路
 				n=n->next;
 				continue;
 			}
-			temp=(path*)malloc(sizeof(path));
+			temp=(path*)kmalloc(sizeof(path), GFP_KERNEL);
 			temp->v=((Edge*)n->data)->vertex;
 			temp->ancest=index;
 			temp->e=(Edge*)n->data;
@@ -351,10 +369,15 @@ Vertex* cross_vertex(Vertex *from, Vertex *to)    //查找从from到to路径上的交叉路
 		index=index->next;
 	}
 	if(!flag)		//如果找到目标节点，则返回交叉路口节点信息；
-	    return print_crossnode(tail);
+	    {
+	    	v=print_crossnode(tail);
+	    	free_path(head);
+	    	return v;
+	    }
 	else			//若没遍历到目标节点，输出不连通信息；
 		{
-			printf("%s unconnect to %s!",from->idStr,to->idStr);
+			mbr_dbg(debug_level, ANY, "%s unconnect to %s!",from->idStr,to->idStr);
+			free_path(head);
 			return NULL;
 		}
 }

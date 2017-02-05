@@ -1,5 +1,5 @@
-obj-m := relay.o
-relay-objs := relay-mod.o pkt_output.o pkt_input.o debug.o
+obj-m := mbr.o
+mbr-objs := mbr-mod.o pkt_output.o pkt_input.o debug.o geohash.o graph.o list.o mbr_route.o neighbors.o 
 
 KDIR :=/home/wu/Desktop/galileo/802.11p-linux
 

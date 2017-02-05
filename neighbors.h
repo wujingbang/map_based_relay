@@ -1,8 +1,6 @@
 
-#include <linux/type.h>
+#include <linux/types.h>
 #include <linux/list.h>
-
-#include "mbr.h"
 
 /**
  * Use shared memory to store the neighbor list. Because the memory addr should be continuous,
@@ -27,4 +25,5 @@ struct neighbor_table_ {
 };
 typedef struct neighbor_table_ neighbor_table;
 
-u64 neighbor_getgeohash_fromip(u32 ip)
+u64 neighbor_getgeohash_fromip(u32 ip);
+u64 neighbor_get_node_fromset_random(neighbor_table* neighbor_entry, u64 *geohashset, int size);

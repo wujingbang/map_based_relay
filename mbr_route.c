@@ -1,9 +1,17 @@
 #include "mbr_route.h"
+#include <net/route.h>
 
-LIST_HEAD(mbrtable)
+LIST_HEAD(mbrtable);
 
+extern struct mbr_status global_mbr_status;
+extern int debug_level;
+
+int bitcmp(u64 a, u64 b, int step)
+{
+	return a==b;
+}
 /**
- * Search routing table for the GeoHash of next-hop.
+ * Search mbr table for the GeoHash of next-hop.
  * input: dest node's geohash
  * return: valid next-hop's geohash if exist.
  */
@@ -15,6 +23,15 @@ u64 mbrtable_get_nexthop_geohash(u64 dstGeoHash)
 			return entry->geoHash_nexthop;
 	}
 	return 0;
+}
+
+u64 get_geohash_this(void)
+{
+	if (global_mbr_status.geohash_this == 0) {
+		mbr_dbg(debug_level, ANY,"get_geohash_this get zero!!\n");
+	}
+
+	return global_mbr_status.geohash_this;
 }
 
 int update_mbrtable_outrange(u64 updated_geohash)
@@ -42,15 +59,19 @@ int mbr_forward(u8 *relay_mac, struct sk_buff *skb, Graph *g)
 	Vertex *this_vertex;
 	Vertex *nexthop_vertex;
 	GeoHashBits	geohashbit_tmp;
-	neighbor_table* neighbor_entry
+	neighbor_table* neighbor_entry;
 	u64 geohashset[9];
 	int ret;
 
-	nexthop = (__force u32) rt_nexthop(rt, ip_hdr(skb)->daddr);
 	/**
-	 * 从邻居表中找到下一跳ip对应的geohash
+	 * 从邻居表中找到下一跳ip（注意此时的“下一跳ip”的是网络路由指定的下一跳ip，还不是中继节点的ip）对应的geohash
 	 */
+	nexthop = (__force u32) rt_nexthop(rt, ip_hdr(skb)->daddr);
 	nexthop_geohash = neighbor_getgeohash_fromip(nexthop);
+	/**
+	 * 找中继表得到中继geohash，得到的结果已经是“中继节点”的geohash
+	 */
+	nexthop_geohash = mbrtable_get_nexthop_geohash(nexthop_geohash);
 	if(nexthop_geohash == 0){ //miss
 		/**
 		 * 计算中继区域，并更新中继表
@@ -59,7 +80,7 @@ int mbr_forward(u8 *relay_mac, struct sk_buff *skb, Graph *g)
 		this_vertex = find_Vertex_by_VehiclePosition(g, this_geohash);
 		nexthop_vertex = find_Vertex_by_VehiclePosition(g, nexthop_geohash);
 		intersection = cross_vertex(this_vertex, nexthop_vertex);
-		nexthop_geohash = intersection.geoHash;
+		nexthop_geohash = intersection->geoHash;
 		dst_geohash = neighbor_getgeohash_fromip(ip_hdr(skb)->daddr);
 		update_mbrtable(this_geohash, dst_geohash, nexthop_geohash);
 	}

@@ -16,14 +16,14 @@ u8 		*neigh_status;
 u32		*neigh_count;
 
 
-int neigh_list_init()
+int neigh_list_init(void)
 {
 	neigh_status = shared_mem_neighbor + NEIGH_STATUS_OFFSET;
 	neigh_count = shared_mem_neighbor + NEIGH_COUNT_OFFSET;
 	neigh_data = shared_mem_neighbor + NEIGH_DATA_OFFSET;
 }
 
-inline void wait_neigh_available()
+inline void wait_neigh_available(void)
 {
 	while(*neigh_status){}
 }

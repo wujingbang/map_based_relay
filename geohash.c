@@ -26,9 +26,9 @@
  *ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include <stddef.h>
-#include <stdio.h>
-#include <math.h>
+//#include <stddef.h>
+//#include <stdio.h>
+//#include <math.h>
 #include "geohash.h"
 
 /**
@@ -330,15 +330,19 @@ int geohash_get_neighbors(GeoHashBits hash, GeoHashNeighbors* neighbors)
 
 int geohash_get_neighbors_in_set(GeoHashBits hash, u64 *geohashset)
 {
+	GeoHashNeighbors neighbors;
+	geohash_get_neighbors(hash, &neighbors);
+
 	geohashset[0] = hash.bits;
-    geohash_get_neighbor(hash, GEOHASH_NORTH, &geohashset[1]);
-    geohash_get_neighbor(hash, GEOHASH_EAST, &geohashset[2]);
-    geohash_get_neighbor(hash, GEOHASH_WEST, &geohashset[3]);
-    geohash_get_neighbor(hash, GEOHASH_SOUTH, &geohashset[4]);
-    geohash_get_neighbor(hash, GEOHASH_SOUTH_WEST, &geohashset[5]);
-    geohash_get_neighbor(hash, GEOHASH_SOUTH_EAST, &geohashset[6]);
-    geohash_get_neighbor(hash, GEOHASH_NORT_WEST, &geohashset[7]);
-    geohash_get_neighbor(hash, GEOHASH_NORT_EAST, &geohashset[8]);
+	geohashset[1] = neighbors.north.bits;
+	geohashset[2] = neighbors.east.bits;
+	geohashset[3] = neighbors.west.bits;
+	geohashset[4] = neighbors.south.bits;
+	geohashset[5] = neighbors.south_west.bits;
+	geohashset[6] = neighbors.south_east.bits;
+	geohashset[7] = neighbors.north_west.bits;
+	geohashset[8] = neighbors.north_east.bits;
+
     return 0;
 }
 

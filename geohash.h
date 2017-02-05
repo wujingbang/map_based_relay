@@ -30,7 +30,7 @@
 #ifndef GEOHASH_H_
 #define GEOHASH_H_
 
-#include <stdint.h>
+#include "mbr.h"
 
 #if defined(__cplusplus)
 extern "C"
@@ -95,6 +95,7 @@ extern "C"
 
     int geohash_get_neighbors(GeoHashBits hash, GeoHashNeighbors* neighbors);
     int geohash_get_neighbor(GeoHashBits hash, GeoDirection direction, GeoHashBits* neighbor);
+    int geohash_get_neighbors_in_set(GeoHashBits hash, u64 *geohashset);
 
     GeoHashBits geohash_next_leftbottom(GeoHashBits bits);
     GeoHashBits geohash_next_rightbottom(GeoHashBits bits);
