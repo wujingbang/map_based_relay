@@ -19,7 +19,7 @@ struct mbr_status global_mbr_status;
 //netlink
 static struct sock *netlinkfd;
 //graph
-Graph global_graph;
+Graph *global_graph;
 
 static unsigned char * malloc_reserved_mem(unsigned int size){
     unsigned char *p = kmalloc(size, GFP_KERNEL);
@@ -193,6 +193,21 @@ static void netlink_recv_cb(struct sk_buff *skb)
         nlh = nlmsg_hdr(skb);
         data = NLMSG_DATA(nlh);
         d=(graph_deliver*)data;
+
+        switch(d->mode) {
+        case DEL_NODE:
+        	graph_remove_vertex_undirect(global_graph, getVertex(global_graph, d->parameter.vertex));
+        	break;
+        case NEW_NODE:
+        	graph_add_vertex(global_graph, getVertex(global_graph, d->parameter.vertex));
+        	break;
+        case NEW_EDGE:
+        	vertex_add_edge_to_vertex_undirect(d->parameter.edge.from,d->parameter.edge.to,d->parameter.edge.road_id);
+        	break;
+        default:
+        	mbr_dbg(debug_level, ANY, "netlink_recv_cb: graph cmd error!\n");
+        }
+
         mbr_dbg(debug_level, ANY, "kernel receive data: %d %s %s %d\n", d->mode,d->parameter.edge.from,d->parameter.edge.to,d->parameter.edge.road_id);
         netlink_send_msg(data, nlmsg_len(nlh));
     }
@@ -226,13 +241,16 @@ static int __init init_mbr_module(void)
 
 	/**
 	 * Initial shared memory for neighbor.
+	 * Initial neighbor list
 	 */
 	shared_mem_neighbor = malloc_reserved_mem(SHARED_MEM_SIZE);
 	misc_register(&shared_mem_misc);
 	mbr_dbg(debug_level, ANY, SHARED_MEM_DEVNAME" initialized\n");
+	neigh_list_init();
 
 	/**
 	 * initial netlink for graph
+	 * Initial graph
 	 */
     netlinkfd = netlink_kernel_create(&init_net, USER_MSG, &cfg);
     if(!netlinkfd)
@@ -240,6 +258,7 @@ static int __init init_mbr_module(void)
     	mbr_dbg(debug_level, ANY, "can not create a netlink socket!\n");
         return -1;
     }
+    global_graph = graph_create();
 
     /**
      * initial debugfs for geohash update
@@ -257,6 +276,7 @@ static void __exit cleanup_mbr_module(void)
 	kfree(shared_mem_neighbor);
 	debugfs_remove_recursive(global_mbr_status.dir);
 	sock_release(netlinkfd->sk_socket);
+	graph_free(global_graph);
 }
 
 module_init(init_mbr_module);

@@ -24,5 +24,7 @@ struct neighbor_table_ {
 };
 typedef struct neighbor_table_ neighbor_table;
 
+int neighbor_getnode_fromip(neighbor_table* neighbor_entry, u32 ip);
 u64 neighbor_getgeohash_fromip(u32 ip);
-u64 neighbor_get_node_fromset_random(neighbor_table* neighbor_entry, u64 *geohashset, int size);
+u64 neighbor_getnode_fromset_random(neighbor_table* neighbor_entry, u64 *geohashset, int size);
+int neigh_list_init(void);

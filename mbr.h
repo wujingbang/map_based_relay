@@ -50,6 +50,9 @@ struct mbr_status
 
 typedef struct graph_deliver
 {
+#define DEL_NODE	1
+#define NEW_NODE	2
+#define NEW_EDGE	3
     short mode; 	//操作类型，该字段为1代表删除一个节点，2代表添加一个节点，3代表添加一条边；
     union
     {

@@ -32,6 +32,24 @@ inline void wait_neigh_available(void)
  * return
  *
  */
+int neighbor_getnode_fromip(neighbor_table* neighbor_entry, u32 ip)
+{
+	int i;
+	wait_neigh_available();
+	for(i = 0; i < *neigh_count; i++) {
+		if(neigh_data[i]->ip == ip) {
+			neighbor_entry = neigh_data[i];
+			return 0;
+		}
+	}
+	return -1;
+}
+
+/**
+ * Search node's geohash from it's ip addr.
+ * return
+ *
+ */
 u64 neighbor_getgeohash_fromip(u32 ip)
 {
 	int i;
@@ -47,7 +65,7 @@ u64 neighbor_getgeohash_fromip(u32 ip)
  * get a random node which is in the range of the geohash set.
  * return 0 if unmatched.
  */
-u64 neighbor_get_node_fromset_random(neighbor_table* neighbor_entry, u64 *geohashset, int size)
+u64 neighbor_getnode_fromset_random(neighbor_table* neighbor_entry, u64 *geohashset, int size)
 {
 	int i,j;
 	wait_neigh_available();

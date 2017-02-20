@@ -1,9 +1,12 @@
 #include "pkt_output.h"
 #include "debug.h"
+#include "mbr_route.h"
+
 #include <linux/skbuff.h>
 #include <linux/ip.h>
 
 extern int debug_level;
+extern Graph *global_graph;
 
 int push_relay_mac(struct sk_buff *skb, const void *addr)
 {
@@ -61,11 +64,29 @@ unsigned int output_handler(const struct nf_hook_ops *ops, struct sk_buff *skb,
 	unsigned char	h_dest[ETH_ALEN] = GEL01;
 	unsigned char test[ETH_ALEN] = TEST;
 
+	unsigned char relay_mac[ETH_ALEN];
+	unsigned char dst_mac[ETH_ALEN];
 
 	if(skb == NULL) {
 		mbr_dbg(debug_level, ANY, "SKB is null!\n");
 		return NF_ACCEPT;
 	}
+
+//	ret = mbr_forward( dst_mac, relay_mac, skb, global_graph);
+//	if(ret < 0) {
+//		mbr_dbg(debug_level, ANY, "mbr_forward failed!\n");
+//		return NF_ACCEPT;
+//	}
+	struct netdev_hw_addr *ha;
+	int i =0;
+	rcu_read_lock();
+	for_each_dev_addr(out, ha) {
+		mbr_dbg(debug_level, ANY, "num: %d, out_mac: %x:%x:%x:%x:%x:%x\n",
+				++i,
+				ha->addr[0], ha->addr[1], ha->addr[2],
+				ha->addr[3], ha->addr[4], ha->addr[5]);
+	}
+	rcu_read_unlock();
 
 	__skb_pull(skb, skb_network_offset(skb));
 	//err = dev_hard_header(skb, skb->dev, ETH_P_IP, h_dest, h_source, skb->len);
