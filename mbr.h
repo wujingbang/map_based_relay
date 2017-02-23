@@ -56,7 +56,11 @@ typedef struct graph_deliver
     short mode; 	//操作类型，该字段为1代表删除一个节点，2代表添加一个节点，3代表添加一条边；
     union
     {
-        char vertex[25];	//如果是添加或者删除一个节点，该字段表示待添加或者待删除的节点id；
+        struct  //如果是添加或者删除一个节点，该字段表示待添加或者待删除的节点id；
+        {
+            char vertex[25];
+            u64 geohash;
+        }vertex;	
         struct 	//如果是添加一条边，该字段表示添加的边的起始和终止节点以及该边所在道路的id；
         {
             char from[25];

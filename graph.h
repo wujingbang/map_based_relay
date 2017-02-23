@@ -41,7 +41,7 @@ typedef struct Graph {
 } Graph;
 
 Graph *graph_create(void);
-Vertex *vertex_create(char *idStr);
+Vertex *vertex_create(char *idStr, u64 geoHash);
 Edge *edge_create(Vertex *vertex, int road_id);
 
 void graph_add_vertex(Graph *graph, Vertex *vertex);
@@ -66,6 +66,8 @@ Vertex * getVertex(Graph *graph, const char* idStr);
 void graph_remove_vertex_undirect(Graph *graph, Vertex *vertex);
 void vertex_add_edge_to_vertex_undirect(Vertex *from, Vertex *to, int road_id);
 void vertex_remove_edge_to_vertex_undirect(Vertex *from, Vertex *to);
+
+void graph_print(Graph *g);
 
 /**
  * mbr API

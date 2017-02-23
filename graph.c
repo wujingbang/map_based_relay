@@ -41,9 +41,10 @@ Graph *graph_create() {
     return graph;
 }
 
-Vertex *vertex_create(char *idStr) {
+Vertex *vertex_create(char *idStr, u64 geoHash) {
     Vertex *vertex = (Vertex*)kmalloc(sizeof(Vertex), GFP_KERNEL);
     strcpy(vertex->idStr, idStr);
+    vertex->geoHash = geoHash;
     vertex->data = NULL;
     //vertex->edges = list_create(kfree);
     vertex->edges = list_create(kfree);
@@ -232,11 +233,11 @@ void graph_print(Graph *g)
     while(p)
     {
         Vertex *v = (Vertex*)p->data;
-        mbr_dbg(debug_level, ANY, "%s ",v->idStr);
+        mbr_dbg(debug_level, ANY, "%s, %lld ",v->idStr, v->geoHash);
         q = v->edges->head;
         while(q)
         {
-        	mbr_dbg(debug_level, ANY, "%s ",((Edge*)q->data)->vertex->idStr);
+        	mbr_dbg(debug_level, ANY, "Connect to Edge:%s ",((Edge*)q->data)->vertex->idStr);
             q=q->next;
         }
         mbr_dbg(debug_level, ANY, "\n");

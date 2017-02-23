@@ -1,4 +1,3 @@
-
 #include "mbr.h"
 
 MODULE_LICENSE("GPL");
@@ -196,19 +195,19 @@ static void netlink_recv_cb(struct sk_buff *skb)
 
         switch(d->mode) {
         case DEL_NODE:
-        	graph_remove_vertex_undirect(global_graph, getVertex(global_graph, d->parameter.vertex));
+        	graph_remove_vertex_undirect(global_graph, getVertex(global_graph, d->parameter.vertex.vertex));
         	break;
         case NEW_NODE:
-        	graph_add_vertex(global_graph, getVertex(global_graph, d->parameter.vertex));
+        	graph_add_vertex(global_graph, vertex_create(d->parameter.vertex.vertex,d->parameter.vertex.geohash));
         	break;
         case NEW_EDGE:
-        	vertex_add_edge_to_vertex_undirect(d->parameter.edge.from,d->parameter.edge.to,d->parameter.edge.road_id);
+        	vertex_add_edge_to_vertex_undirect(getVertex(global_graph, d->parameter.edge.from),getVertex(global_graph, d->parameter.edge.to), d->parameter.edge.road_id);
         	break;
         default:
         	mbr_dbg(debug_level, ANY, "netlink_recv_cb: graph cmd error!\n");
         }
 
-        mbr_dbg(debug_level, ANY, "kernel receive data: %d %s %s %d\n", d->mode,d->parameter.edge.from,d->parameter.edge.to,d->parameter.edge.road_id);
+        mbr_dbg(debug_level, ANY, "kernel receive data: %hd ", d->mode);
         netlink_send_msg(data, nlmsg_len(nlh));
     }
 }
