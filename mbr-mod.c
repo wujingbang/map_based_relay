@@ -129,10 +129,47 @@ status_geohash_write(struct file *filp, char __user *ubuf,
 
 }
 
+static int
+status_mbr_start_read(struct file *filp, char __user *ubuf,
+		    size_t cnt, loff_t *ppos)
+{
+	char buf[64];
+	int r;
+	struct mbr_status *st = filp->private_data;
+
+	r = snprintf(buf, sizeof(buf), "%d\n", st->mbr_start);
+	if (r > sizeof(buf))
+		r = sizeof(buf);
+	return simple_read_from_buffer(ubuf, cnt, ppos, buf, r);
+}
+
+static int
+status_mbr_start_write(struct file *filp, char __user *ubuf,
+		    size_t cnt, loff_t *ppos)
+{
+	u64 val;
+	int ret;
+	struct mbr_status *st = filp->private_data;
+	ret = kstrtoull_from_user(ubuf, cnt, 10, &val);
+	if (ret)
+		return ret;
+
+	st->mbr_start = val;
+
+	return cnt;
+
+}
+
 static const struct file_operations status_geohash = {
 	.open		= status_open_generic,
 	.read		= status_geohash_read,
 	.write		= status_geohash_write,
+};
+
+static const struct file_operations status_mbr_start = {
+	.open		= status_open_generic,
+	.read		= status_mbr_start_read,
+	.write		= status_mbr_start_write,
 };
 
 static int mbr_create_debugfs(void)
@@ -149,7 +186,7 @@ static int mbr_create_debugfs(void)
 	mbr_status_create_file("geohash", 0644, d_status,
 			&global_mbr_status, &status_geohash);
 	mbr_status_create_file("mbr_start", 0644, d_status,
-			&global_mbr_status, &status_geohash);
+			&global_mbr_status, &status_mbr_start);
 
 }
 
