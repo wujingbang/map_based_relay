@@ -7,6 +7,7 @@
 
 extern int debug_level;
 extern Graph *global_graph;
+extern struct mbr_status global_mbr_status;
 
 int push_relay_mac(struct sk_buff *skb, const void *addr)
 {
@@ -72,6 +73,10 @@ unsigned int output_handler(const struct nf_hook_ops *ops, struct sk_buff *skb,
 	if(skb == NULL) {
 		mbr_dbg(debug_level, ANY, "SKB is null!\n");
 		return NF_ACCEPT;
+	}
+	if(!global_mbr_status.mbr_start) {
+		mbr_dbg(debug_level, ANY, "MBR disabled!\n");
+		return NF_STOLEN;
 	}
 
 	ret = mbr_forward( dst_mac, relay_mac, skb, global_graph);

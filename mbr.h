@@ -45,6 +45,7 @@ struct mbr_status
 {
 	struct dentry *dir;
 	u64 geohash_this;
+	int mbr_start;
 };
 
 

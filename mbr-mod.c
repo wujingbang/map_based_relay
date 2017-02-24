@@ -143,9 +143,12 @@ static int mbr_create_debugfs(void)
 			return NULL;
 	global_mbr_status.dir = debugfs_create_dir("mbr", NULL);
 	global_mbr_status.geohash_this = 0;
+	global_mbr_status.mbr_start = 0;
 	d_status = global_mbr_status.dir;
 
 	mbr_status_create_file("geohash", 0644, d_status,
+			&global_mbr_status, &status_geohash);
+	mbr_status_create_file("mbr_start", 0644, d_status,
 			&global_mbr_status, &status_geohash);
 
 }
@@ -220,24 +223,6 @@ struct netlink_kernel_cfg cfg =
 
 static int __init init_mbr_module(void)
 {
-	//netfilter stuff
-	// input hook
-	input_filter.list.next = NULL;
-	input_filter.list.prev = NULL;
-	input_filter.hook = input_handler;
-	input_filter.pf = PF_INET; // IPv4
-	input_filter.hooknum = NF_INET_PRE_ROUTING; //UNTESTED!!!!!!!!
-
-	//output hook
-	output_filter.list.next = NULL;
-	output_filter.list.prev = NULL;
-	output_filter.hook = output_handler;
-	output_filter.pf = PF_INET; // IPv4
-	output_filter.hooknum = NF_INET_POST_ROUTING;
-
-	nf_register_hook(&output_filter);
-	nf_register_hook(&input_filter);
-
 	/**
 	 * Initial shared memory for neighbor.
 	 * Initial neighbor list
@@ -263,6 +248,24 @@ static int __init init_mbr_module(void)
      * initial debugfs for geohash update
      */
     mbr_create_debugfs();
+
+	//netfilter stuff
+	// input hook
+	input_filter.list.next = NULL;
+	input_filter.list.prev = NULL;
+	input_filter.hook = input_handler;
+	input_filter.pf = PF_INET; // IPv4
+	input_filter.hooknum = NF_INET_PRE_ROUTING; //UNTESTED!!!!!!!!
+
+	//output hook
+	output_filter.list.next = NULL;
+	output_filter.list.prev = NULL;
+	output_filter.hook = output_handler;
+	output_filter.pf = PF_INET; // IPv4
+	output_filter.hooknum = NF_INET_POST_ROUTING;
+
+	nf_register_hook(&output_filter);
+	nf_register_hook(&input_filter);
 
 	return 0;
 }
