@@ -79,15 +79,16 @@ int mbr_forward(u8 *dst_mac, u8 *relay_mac, struct sk_buff *skb, Graph *g)
 	/**
 	 * 从skb中nexthop查找邻居表得到该点的Geohash
 	 */
+	int i;
 	struct dst_entry *dst = skb_dst(skb);
 	struct rtable *rt = (struct rtable *)dst;
-	u32 nexthop; //存储skb中包含的路由下一跳的ip
+	u32 nexthop;//存储skb中包含的路由下一跳的ip
 	u64 nexthop_geohash = 0;
 	u64 this_geohash = 0;
 	u64 dst_geohash = 0;
 	Vertex *intersection;
 	Vertex *this_vertex;
-	Vertex *nexthop_vertex;
+	Vertex *dst_vertex;
 	GeoHashBits	geohashbit_tmp;
 	neighbor_table* neighbor_entry;
 	u64 geohashset[9];
@@ -97,9 +98,9 @@ int mbr_forward(u8 *dst_mac, u8 *relay_mac, struct sk_buff *skb, Graph *g)
 	 * 从邻居表中找到下一跳ip（注意此时的“下一跳ip”的是网络路由指定的下一跳ip，还不是中继节点的ip）对应的geohash
 	 */
 	nexthop = (__force u32) rt_nexthop(rt, ip_hdr(skb)->daddr);
-	ret = neighbor_getnode_fromip(neighbor_entry, nexthop);
+	ret = neighbor_getnode_fromip(&neighbor_entry, nexthop);
 	if(ret == 0) {
-		nexthop_geohash = neighbor_entry->geoHash;
+		dst_geohash = neighbor_entry->geoHash;
 		dst_mac = neighbor_entry->mac;
 	} else {
 		mbr_dbg(debug_level, ANY, "mbr_forward: nexthop does not exist in the neighbors!\n");
@@ -108,18 +109,17 @@ int mbr_forward(u8 *dst_mac, u8 *relay_mac, struct sk_buff *skb, Graph *g)
 	/**
 	 * 找中继表得到中继geohash，得到的结果已经是“中继节点”的geohash
 	 */
-	nexthop_geohash = mbrtable_get_nexthop_geohash(nexthop_geohash);
-
+	nexthop_geohash = mbrtable_get_nexthop_geohash(dst_geohash);
 	if(nexthop_geohash == 0){ //miss
 		/**
 		 * 计算中继区域，并更新中继表
 		 */
 		this_geohash = get_geohash_this();
 		this_vertex = find_Vertex_by_VehiclePosition(g, this_geohash);
-		nexthop_vertex = find_Vertex_by_VehiclePosition(g, nexthop_geohash);
-		intersection = cross_vertex(this_vertex, nexthop_vertex);
+		dst_vertex = find_Vertex_by_VehiclePosition(g, dst_geohash);
+		intersection = cross_vertex(this_vertex, dst_vertex);
 		nexthop_geohash = intersection->geoHash;
-		dst_geohash = neighbor_getgeohash_fromip(ip_hdr(skb)->daddr);
+		//dst_geohash = neighbor_getgeohash_fromip(ip_hdr(skb)->daddr);
 		update_mbrtable(this_geohash, dst_geohash, nexthop_geohash);
 	}
 	/**
@@ -128,13 +128,16 @@ int mbr_forward(u8 *dst_mac, u8 *relay_mac, struct sk_buff *skb, Graph *g)
 	 * 2. 获取块集合中的节点信息
 	 * 3. 随机挑出一个节点作为中继节点
 	 */
+	
 	geohashbit_tmp.step = GEOHASH_STEP_BIT;
 	geohashbit_tmp.bits = nexthop_geohash;
 	geohash_get_neighbors_in_set(geohashbit_tmp, geohashset);
-	ret = neighbor_getnode_fromset_random(neighbor_entry, geohashset, 9);
+	ret = neighbor_getnode_fromset_random(&neighbor_entry, geohashset, 9);
+
 	if(ret == 0)
 		return -1; //unmatched!
-	relay_mac = neighbor_entry->mac;
+	for(i=0; i<6; ++i)
+		relay_mac[i] = neighbor_entry->mac[i];
 
 	return 0;
 }

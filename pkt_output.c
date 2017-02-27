@@ -104,6 +104,8 @@ unsigned int output_handler(const struct nf_hook_ops *ops, struct sk_buff *skb,
 	if (err < 0)
 		mbr_dbg(debug_level, ANY, "push_relay_mac ERROR!! %d\n", err );
 
+	mbr_dbg(debug_level, ANY, "relay_mac is: %x:%x:%x:%x:%x:%x\n", relay_mac[0],relay_mac[1],relay_mac[2],relay_mac[3],relay_mac[4],relay_mac[5] );
+
 //	mbr_dbg(debug_level, ANY, "OUTPUT: SAddress: %pI4, DAddress: %pI4\n", &ip_hdr(skb)->saddr, &ip_hdr(skb)->daddr);
 
 	dev_queue_xmit(skb);

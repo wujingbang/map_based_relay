@@ -8,8 +8,8 @@
 #include <linux/proc_fs.h>
 #include <linux/miscdevice.h>
 #include <linux/sched.h>   //wake_up_process()
-#include <linux/kthread.h> //kthread_create()¡¢kthread_run()
-#include <linux/err.h> //IS_ERR()¡¢PTR_ERR()
+#include <linux/kthread.h> //kthread_create()ã€kthread_run()
+#include <linux/err.h> //IS_ERR()ã€PTR_ERR()
 
 #include <net/sock.h>
 #include <linux/netlink.h>
@@ -29,7 +29,7 @@
 
 //Shared memory page size.
 #define SHARED_MEM_DEVNAME "mbr_neighbor_mem"
-#define SHARED_MEM_SIZE	4*4096
+#define SHARED_MEM_SIZE 4*4096
 
 #define NETLINK_USER  22
 #define USER_MSG    (NETLINK_USER + 1)
@@ -38,31 +38,31 @@
 
 //struct mbr_common {
 //
-//	int debug_mask;
+//  int debug_mask;
 //};
 
 struct mbr_status
 {
-	struct dentry *dir;
-	u64 geohash_this;
-	int mbr_start;
+    struct dentry *dir;
+    u64 geohash_this;
+    int mbr_start;
 };
 
 
 typedef struct graph_deliver
 {
-#define DEL_NODE	1
-#define NEW_NODE	2
-#define NEW_EDGE	3
-    short mode; 	//²Ù×÷ÀàĞÍ£¬¸Ã×Ö¶ÎÎª1´ú±íÉ¾³ıÒ»¸ö½Úµã£¬2´ú±íÌí¼ÓÒ»¸ö½Úµã£¬3´ú±íÌí¼ÓÒ»Ìõ±ß£»
+#define DEL_NODE    1
+#define NEW_NODE    2
+#define NEW_EDGE    3
+    short mode;     //æ“ä½œç±»å‹ï¼Œè¯¥å­—æ®µä¸º1ä»£è¡¨åˆ é™¤ä¸€ä¸ªèŠ‚ç‚¹ï¼Œ2ä»£è¡¨æ·»åŠ ä¸€ä¸ªèŠ‚ç‚¹ï¼Œ3ä»£è¡¨æ·»åŠ ä¸€æ¡è¾¹ï¼›
     union
     {
-        struct  //Èç¹ûÊÇÌí¼Ó»òÕßÉ¾³ıÒ»¸ö½Úµã£¬¸Ã×Ö¶Î±íÊ¾´ıÌí¼Ó»òÕß´ıÉ¾³ıµÄ½Úµãid£»
+        struct  //å¦‚æœæ˜¯æ·»åŠ æˆ–è€…åˆ é™¤ä¸€ä¸ªèŠ‚ç‚¹ï¼Œè¯¥å­—æ®µè¡¨ç¤ºå¾…æ·»åŠ æˆ–è€…å¾…åˆ é™¤çš„èŠ‚ç‚¹idï¼›
         {
             char vertex[25];
             u64 geohash;
-        }vertex;	
-        struct 	//Èç¹ûÊÇÌí¼ÓÒ»Ìõ±ß£¬¸Ã×Ö¶Î±íÊ¾Ìí¼ÓµÄ±ßµÄÆğÊ¼ºÍÖÕÖ¹½ÚµãÒÔ¼°¸Ã±ßËùÔÚµÀÂ·µÄid£»
+        }vertex;    
+        struct  //å¦‚æœæ˜¯æ·»åŠ ä¸€æ¡è¾¹ï¼Œè¯¥å­—æ®µè¡¨ç¤ºæ·»åŠ çš„è¾¹çš„èµ·å§‹å’Œç»ˆæ­¢èŠ‚ç‚¹ä»¥åŠè¯¥è¾¹æ‰€åœ¨é“è·¯çš„idï¼›
         {
             char from[25];
             char to[25];
