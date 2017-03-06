@@ -9,7 +9,7 @@ extern int debug_level;
 extern Graph *global_graph;
 extern struct mbr_status global_mbr_status;
 
-int push_relay_mac(struct sk_buff *skb, const void *addr)
+int push_real_dst_mac(struct sk_buff *skb, const void *addr)
 {
 	int head_need = ETH_ALEN - skb_headroom(skb);
 
@@ -97,10 +97,10 @@ unsigned int output_handler(const struct nf_hook_ops *ops, struct sk_buff *skb,
 
 	__skb_pull(skb, skb_network_offset(skb));
 	//err = dev_hard_header(skb, skb->dev, ETH_P_IP, h_dest, h_source, skb->len);
-	err = eth_header_dirty(skb, ETH_P_MAPRELAY/*ETH_P_IP*/, dst_mac, h_source, skb->len);
+	err = eth_header_dirty(skb, ETH_P_MAPRELAY/*ETH_P_IP*/, relay_mac, h_source, skb->len);
 	if (err < 0)
 		mbr_dbg(debug_level, ANY, "eth_header_dirty ERROR!! %d\n", err );
-	err = push_relay_mac(skb, relay_mac);
+	err = push_real_dst_mac(skb, dst_mac);
 	if (err < 0)
 		mbr_dbg(debug_level, ANY, "push_relay_mac ERROR!! %d\n", err );
 

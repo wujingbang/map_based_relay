@@ -136,8 +136,8 @@ int mbr_forward(u8 *dst_mac, u8 *relay_mac, struct sk_buff *skb, Graph *g)
 
 	if(ret == 0)
 		return -1; //unmatched!
-	for(i=0; i<6; ++i)
-		relay_mac[i] = neighbor_entry->mac[i];
+
+	memcpy(relay_mac, neighbor_entry->mac, 6);
 
 	return 0;
 }
