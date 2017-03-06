@@ -101,7 +101,7 @@ int mbr_forward(u8 *dst_mac, u8 *relay_mac, struct sk_buff *skb, Graph *g)
 	ret = neighbor_getnode_fromip(&neighbor_entry, nexthop);
 	if(ret == 0) {
 		dst_geohash = neighbor_entry->geoHash;
-		dst_mac = neighbor_entry->mac;
+		memcpy(dst_mac, neighbor_entry->mac, 6);
 	} else {
 		mbr_dbg(debug_level, ANY, "mbr_forward: nexthop does not exist in the neighbors!\n");
 		return -1;
@@ -118,7 +118,10 @@ int mbr_forward(u8 *dst_mac, u8 *relay_mac, struct sk_buff *skb, Graph *g)
 		this_vertex = find_Vertex_by_VehiclePosition(g, this_geohash);
 		dst_vertex = find_Vertex_by_VehiclePosition(g, dst_geohash);
 		intersection = cross_vertex(this_vertex, dst_vertex);
-		nexthop_geohash = intersection->geoHash;
+		if(intersection != NULL)
+			nexthop_geohash = intersection->geoHash;
+		else
+			return -1;
 		//dst_geohash = neighbor_getgeohash_fromip(ip_hdr(skb)->daddr);
 		update_mbrtable(this_geohash, dst_geohash, nexthop_geohash);
 	}
@@ -141,4 +144,3 @@ int mbr_forward(u8 *dst_mac, u8 *relay_mac, struct sk_buff *skb, Graph *g)
 
 	return 0;
 }
-
