@@ -5,7 +5,7 @@ KDIR :=/home/wu/Desktop/galileo/802.11p-linux
 
 PWD := $(shell pwd)
 
-EXTRA_CFLAGS += -DCONFIG_DEBUG
+EXTRA_CFLAGS += -DCONFIG_DEBUG -DCONFIG_MBR_TABLE
 
 
 default:

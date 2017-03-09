@@ -106,6 +106,8 @@ int mbr_forward(u8 *dst_mac, u8 *relay_mac, struct sk_buff *skb, Graph *g)
 		mbr_dbg(debug_level, ANY, "mbr_forward: nexthop does not exist in the neighbors!\n");
 		return -1;
 	}
+
+#ifdef CONFIG_MBR_TABLE
 	/**
 	 * 找中继表得到中继geohash，得到的结果已经是“中继节点”的geohash
 	 */
@@ -125,6 +127,16 @@ int mbr_forward(u8 *dst_mac, u8 *relay_mac, struct sk_buff *skb, Graph *g)
 		//dst_geohash = neighbor_getgeohash_fromip(ip_hdr(skb)->daddr);
 		update_mbrtable(this_geohash, dst_geohash, nexthop_geohash);
 	}
+#else
+	this_geohash = get_geohash_this();
+	this_vertex = find_Vertex_by_VehiclePosition(g, this_geohash);
+	dst_vertex = find_Vertex_by_VehiclePosition(g, dst_geohash);
+	intersection = cross_vertex(this_vertex, dst_vertex);
+	if(intersection != NULL)
+		nexthop_geohash = intersection->geoHash;
+	else
+		return -1;
+#endif
 	/**
 	 * 按Geohash进行路由转发:
 	 * 1. 通过Geohash获得周边邻居块共同组成路口
