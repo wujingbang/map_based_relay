@@ -26,5 +26,6 @@ typedef struct relay_table_list_ relay_table_list;
 
 int update_mbrtable_outrange(u64 updated_geohash);
 int mbr_forward(u8 *dst_mac, u8 *relay_mac, struct sk_buff *skb, Graph *g);
+void print_mbrtable(struct seq_file *file);
 
 #endif

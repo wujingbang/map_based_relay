@@ -69,9 +69,23 @@ int update_mbrtable(u64 this_geohash, u64 dst_geohash, u64 nexthop_geohash)
 	entry->geoHash_nexthop = nexthop_geohash;
 	entry->geoHash_this = this_geohash;
 	entry->isvalid = 1;
-	list_add(entry, &mbrtable);
+	list_add(&entry->ptr, &mbrtable);
 out:
 	return 0;
+}
+
+/**
+ * print mbrtable
+ */
+void print_mbrtable(struct seq_file *file)
+{
+	relay_table_list *entry;
+	seq_puts(file, "Mbrtable:\n");
+	seq_puts(file, "geoHash_this, geoHash_dst, geoHash_nexthop\n");
+	list_for_each_entry(entry, &mbrtable, ptr){
+		seq_printf(file, "%lld     %lld      %lld\n", entry->geoHash_this, entry->geoHash_dst, entry->geoHash_nexthop);
+	}
+	return;
 }
 
 int mbr_forward(u8 *dst_mac, u8 *relay_mac, struct sk_buff *skb, Graph *g)

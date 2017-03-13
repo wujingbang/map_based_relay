@@ -160,6 +160,17 @@ status_mbr_start_write(struct file *filp, char __user *ubuf,
 
 }
 
+static int read_file_mbrtable(struct seq_file *file, void *data)
+{
+	print_mbrtable(file);
+	return 0;
+}
+
+static int open_mbrtable(struct inode *inode, struct file *f)
+{
+	return single_open(f, read_file_mbrtable, inode->i_private);
+}
+
 static const struct file_operations status_geohash = {
 	.open		= status_open_generic,
 	.read		= status_geohash_read,
@@ -170,6 +181,13 @@ static const struct file_operations status_mbr_start = {
 	.open		= status_open_generic,
 	.read		= status_mbr_start_read,
 	.write		= status_mbr_start_write,
+};
+
+static const struct file_operations status_mbrtable = {
+		.open = open_mbrtable,
+		.read = seq_read,
+		.llseek = seq_lseek,
+		.release = single_release,
 };
 
 static int mbr_create_debugfs(void)
@@ -187,7 +205,8 @@ static int mbr_create_debugfs(void)
 			&global_mbr_status, &status_geohash);
 	mbr_status_create_file("mbr_start", 0644, d_status,
 			&global_mbr_status, &status_mbr_start);
-
+	mbr_status_create_file("mbrtable", 0644, d_status,
+			&global_mbr_status, &status_mbrtable);
 }
 
 
