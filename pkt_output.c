@@ -8,6 +8,8 @@
 extern int debug_level;
 extern Graph *global_graph;
 extern struct mbr_status global_mbr_status;
+//mac addr of this
+unsigned char global_mac_this[ETH_ALEN];
 
 int push_real_dst_mac(struct sk_buff *skb, const void *addr)
 {
@@ -51,7 +53,7 @@ int eth_header_dirty(struct sk_buff *skb, unsigned short type,
 	return ETH_HLEN;
 }
 
-
+static int addrinit_flag = 0;
 unsigned int output_handler(const struct nf_hook_ops *ops, struct sk_buff *skb,
 		const struct net_device *in, const struct net_device *out, int (*okfn) (struct sk_buff *))
 {
@@ -63,20 +65,33 @@ unsigned int output_handler(const struct nf_hook_ops *ops, struct sk_buff *skb,
 //#define GEL02 {0x54,0x27,0x1e,0x1a,0x77,0x99}
 //#define TEST {0x11,0x22,0x33,0x44,0x55,0x66}
 //#define ETH_P_MAPRELAY 0x6559
-	unsigned char	h_source[ETH_ALEN];// = GEL02;
+//	unsigned char	h_source[ETH_ALEN];// = GEL02;
 //	unsigned char	h_dest[ETH_ALEN] = GEL01;
 //	unsigned char test[ETH_ALEN] = TEST;
 
 	unsigned char relay_mac[ETH_ALEN];
 	unsigned char dst_mac[ETH_ALEN];
 
+    /**
+     * init addr
+     */
+	if(unlikely(!addrinit_flag)) {
+		rcu_read_lock();
+		for_each_dev_addr(out, ha) {
+
+			memcpy(global_mac_this, ha->addr, ETH_ALEN);
+		}
+		addrinit_flag = 1;
+		rcu_read_unlock();
+	}
+
 	if(skb == NULL) {
 		mbr_dbg(debug_level, ANY, "SKB is null!\n");
 		return NF_ACCEPT;
 	}
-	if(!global_mbr_status.mbr_start) {
+	if(unlikely(!global_mbr_status.mbr_start)) {
 		mbr_dbg(debug_level, ANY, "MBR disabled!\n");
-		return NF_STOLEN;
+		return NF_ACCEPT;
 	}
 
 	ret = mbr_forward( dst_mac, relay_mac, skb, global_graph);
@@ -85,19 +100,9 @@ unsigned int output_handler(const struct nf_hook_ops *ops, struct sk_buff *skb,
 		return NF_ACCEPT;
 	}
 
-	rcu_read_lock();
-	for_each_dev_addr(out, ha) {
-//		mbr_dbg(debug_level, ANY, "num: %d, out_mac: %x:%x:%x:%x:%x:%x\n",
-//				++i,
-//				ha->addr[0], ha->addr[1], ha->addr[2],
-//				ha->addr[3], ha->addr[4], ha->addr[5]);
-		memcpy(h_source, ha->addr, ETH_ALEN);
-	}
-	rcu_read_unlock();
-
 	__skb_pull(skb, skb_network_offset(skb));
 	//err = dev_hard_header(skb, skb->dev, ETH_P_IP, h_dest, h_source, skb->len);
-	err = eth_header_dirty(skb, ETH_P_MAPRELAY/*ETH_P_IP*/, relay_mac, h_source, skb->len);
+	err = eth_header_dirty(skb, ETH_P_MAPRELAY/*ETH_P_IP*/, relay_mac, global_mac_this, skb->len);
 	if (err < 0)
 		mbr_dbg(debug_level, ANY, "eth_header_dirty ERROR!! %d\n", err );
 	err = push_real_dst_mac(skb, dst_mac);
