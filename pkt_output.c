@@ -1,6 +1,7 @@
 #include "pkt_output.h"
 #include "debug.h"
 #include "mbr_route.h"
+#include "mbr.h"
 
 #include <linux/skbuff.h>
 #include <linux/ip.h>

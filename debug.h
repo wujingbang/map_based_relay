@@ -1,6 +1,10 @@
 #ifndef DEBUG_H
 #define DEBUG_H
 
+#include <linux/module.h>
+#include <linux/moduleparam.h>
+#include <linux/kernel.h>
+
 enum MBR_DEBUG {
 	MBR_DBG_RESET		= 0x00000001,
 	MBR_DBG_QUEUE		= 0x00000002,

@@ -18,8 +18,6 @@
 //#include <stdlib.h>
 //#include <stdio.h>
 
-extern int debug_level;
-
 int compare_edges(const void *aa, const void *bb);
 void vertex_free(const void *data);
 
@@ -324,6 +322,20 @@ int free_path(path *p)
 	return 0;
 }
 
+/**
+ * set size of the intersection based on the width of the roads.
+ * unimplemented yet!
+ */
+void setIntersectionSize(GeoHashSetCoordinate * geohashset, Vertex * this_vertex, Vertex * dst_vertex)
+{
+	int i;
+	geohashset->sx = 3;
+	geohashset->sy = 3;
+	geohashset->geohashset = (u64**)kmalloc(sizeof(u64*) * geohashset->sy, GFP_KERNEL);
+    for (i = 0; i < geohashset->sy; ++i){
+    	geohashset->geohashset[i] = (u64*)kmalloc(sizeof(u64) * geohashset->sx, GFP_KERNEL);
+    }
+}
 
 Vertex* cross_vertex(Vertex *from, Vertex *to)    //查找从from到to路径上的交叉路口节点；
 {

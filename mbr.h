@@ -71,5 +71,4 @@ typedef struct graph_deliver
     }parameter;
 }graph_deliver;
 
-
 #endif /* MBR_H */

@@ -64,20 +64,33 @@ int geohash_get_neighbors(GeoHashBits hash, GeoHashNeighbors* neighbors)
     return 0;
 }
 
-int geohash_get_neighbors_in_set(GeoHashBits hash, u64 *geohashset)
-{
-	GeoHashNeighbors neighbors;
-	geohash_get_neighbors(hash, &neighbors);
 
-	geohashset[0] = hash.bits;
-	geohashset[1] = neighbors.north.bits;
-	geohashset[2] = neighbors.east.bits;
-	geohashset[3] = neighbors.west.bits;
-	geohashset[4] = neighbors.south.bits;
-	geohashset[5] = neighbors.south_west.bits;
-	geohashset[6] = neighbors.south_east.bits;
-	geohashset[7] = neighbors.north_west.bits;
-	geohashset[8] = neighbors.north_east.bits;
+int geohash_get_neighbors_in_set(GeoHashSetCoordinate * geohashset, u64 center_geohash, int geohash_step)
+{
+	//int i, j;
+	GeoHashNeighbors neighbors;
+	GeoHashBits	geohashbit_tmp;
+
+	geohashbit_tmp.step = GEOHASH_STEP_BIT;
+	geohashbit_tmp.bits = center_geohash;
+
+	geohash_get_neighbors(geohashbit_tmp, &neighbors);
+
+	if(unlikely(geohashset->sx != 3 && geohashset->sy != 3)) {
+		mbr_dbg(debug_level, ANY, "geohash_get_neighbors_in_set: does not support sx: %d, sy: %d!\n",
+				geohashset->sx, geohashset->sy);
+		return -1;
+	}
+
+	geohashset->geohashset[0][0] = neighbors.north_west.bits;
+	geohashset->geohashset[0][1] = neighbors.north.bits;
+	geohashset->geohashset[0][2] = neighbors.north_east.bits;
+	geohashset->geohashset[1][0] = neighbors.west.bits;
+	geohashset->geohashset[1][1] = center_geohash;
+	geohashset->geohashset[1][2] = neighbors.east.bits;
+	geohashset->geohashset[2][0] = neighbors.south_west.bits;
+	geohashset->geohashset[2][1] = neighbors.south.bits;
+	geohashset->geohashset[2][2] = neighbors.south_east.bits;
 
     return 0;
 }

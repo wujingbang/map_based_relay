@@ -14,6 +14,8 @@
 #include <linux/types.h>
 #include "list.h"
 #include "debug.h"
+#include "geohash.h"
+#include "common.h"
 
 #define bool int
 #define true 1
@@ -74,6 +76,7 @@ void graph_print(Graph *g);
  */
 Vertex* find_Vertex_by_VehiclePosition(Graph *g, u64 geoHash);
 Vertex* cross_vertex(Vertex *from, Vertex *to);
+void setIntersectionSize(GeoHashSetCoordinate * geohashset, Vertex * this_vertex, Vertex * dst_vertex);
 
 //void graph_sort_vertices(Graph *graph, int(*cmp)(const void *a, const void *b));
 //void vertex_sort_edges(Vertex *vertex);

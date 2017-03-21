@@ -1,10 +1,10 @@
-#include "mbr_route.h"
+
+#include "mbr.h"
+#include "common.h"
+
 #include <net/route.h>
 
 LIST_HEAD(mbrtable);
-
-extern struct mbr_status global_mbr_status;
-extern int debug_level;
 
 int bitcmp(u64 a, u64 b, int step)
 {
@@ -103,9 +103,9 @@ int mbr_forward(u8 *dst_mac, u8 *relay_mac, struct sk_buff *skb, Graph *g)
 	Vertex *intersection;
 	Vertex *this_vertex;
 	Vertex *dst_vertex;
-	GeoHashBits	geohashbit_tmp;
+	//GeoHashBits	geohashbit_tmp;
 	neighbor_table* neighbor_entry;
-	u64 geohashset[9];
+	GeoHashSetCoordinate geohashset;
 	int ret;
 
 	/**
@@ -157,12 +157,14 @@ int mbr_forward(u8 *dst_mac, u8 *relay_mac, struct sk_buff *skb, Graph *g)
 	 * 2. 获取块集合中的节点信息
 	 * 3. 随机挑出一个节点作为中继节点
 	 */
-	
-	geohashbit_tmp.step = GEOHASH_STEP_BIT;
-	geohashbit_tmp.bits = nexthop_geohash;
-	geohash_get_neighbors_in_set(geohashbit_tmp, geohashset);
-	ret = neighbor_getnode_fromset_random(&neighbor_entry, geohashset, 9);
+	setIntersectionSize(&geohashset, this_vertex, dst_vertex);
 
+	//get neighbors of center geohash block
+	geohash_get_neighbors_in_set(&geohashset, nexthop_geohash, GEOHASH_STEP_BIT);
+
+	//ret = neighbor_getnode_fromset_random(&neighbor_entry, &geohashset);
+
+	ret = neighbor_getnode_fromset_best(&neighbor_entry, &geohashset);
 	if(ret == 0)
 		return -1; //unmatched!
 

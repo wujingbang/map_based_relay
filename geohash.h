@@ -1,8 +1,9 @@
 #ifndef GEOHASH_H_
 #define GEOHASH_H_
 
-#include "mbr.h"
-
+#include "common.h"
+#include "debug.h"
+#include <linux/types.h>
 
     typedef enum
     {
@@ -38,7 +39,7 @@
 
     int geohash_get_neighbors(GeoHashBits hash, GeoHashNeighbors* neighbors);
     int geohash_get_neighbor(GeoHashBits hash, GeoDirection direction, GeoHashBits* neighbor);
-    int geohash_get_neighbors_in_set(GeoHashBits hash, u64 *geohashset);
+    int geohash_get_neighbors_in_set(GeoHashSetCoordinate * geohashset, u64 center_geohash, int geohash_step);
 
     GeoHashBits geohash_next_leftbottom(GeoHashBits bits);
     GeoHashBits geohash_next_rightbottom(GeoHashBits bits);
