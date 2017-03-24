@@ -76,7 +76,7 @@ u64 neighbor_getnode_fromset_random(neighbor_table** neighbor_entry, GeoHashSetC
 	if(unlikely(geohashset->sx != 3 && geohashset->sy != 3)) {
 		mbr_dbg(debug_level, ANY, "neighbor_getnode_fromset_random: does not support sx: %d, sy: %d!\n",
 				geohashset->sx, geohashset->sy);
-		return -1;
+		return 0;
 	}
 
 	neighbor_table *temp = neigh_data;
@@ -108,25 +108,24 @@ int get_dtime(neighbor_table *node_info, GeoHashSetCoordinate *geohashset)
 
 	for(i = 0; i < geohashset->sy; i++) {
 		for(j=0; j < geohashset->sx; j++) {
-			if(node_info->geoHash == geohashset->geohashset[i][j]) goto direct;
+			if(node_info->geoHash == geohashset->geohashset[i][j])
+			{
+				if(45 <= direct && direct < 135) {
+					return geohashset->sx - j;
+					}
+				if(225 <= direct && direct < 315) {
+					return j + 1;
+					}
+				if(135 <= direct && direct < 225) {
+					return geohashset->sy - i;
+					}
+				if(315 <= direct || direct < 45) {
+					return i + 1;
+					}
+			}
 		}
 	}
-
-direct:
-
-	if(45 <= direct && direct < 135) {
-		return j % geohashset->sx;
-	}
-	if(225 <= direct && direct < 315) {
-		return j + 1;
-	}
-	if(135 <= direct && direct < 225) {
-		return i % geohashset->sy;
-	}
-	if(315 <= direct || direct < 45) {
-		return i + 1;
-	}
-
+	return -1;
 }
 
 /**
@@ -145,7 +144,7 @@ u64 neighbor_getnode_fromset_best(neighbor_table** neighbor_entry, GeoHashSetCoo
 	if(unlikely(geohashset->sx != 3 && geohashset->sy != 3)) {
 		mbr_dbg(debug_level, ANY, "neighbor_getnode_fromset_best: does not support sx: %d, sy: %d!\n",
 				geohashset->sx, geohashset->sy);
-		return -1;
+		return 0;
 	}
 
 	wait_neigh_available();
@@ -154,13 +153,17 @@ u64 neighbor_getnode_fromset_best(neighbor_table** neighbor_entry, GeoHashSetCoo
 		dtime_curr = get_dtime(temp, geohashset);
 		if ( dtime_curr == dtime_max ) {
 			*neighbor_entry = temp;
-			return 0;
+			return 1;
 		}
-		else {
-			dtime_best = (dtime_curr > dtime_best) ? dtime_curr : dtime_best;
+		else if(dtime_curr > dtime_best) {
+			dtime_best = dtime_curr;
 			best = temp;
 		}
 	}
-	*neighbor_entry = best;
-	return 0;
+	if(dtime_best > 0)	{
+		*neighbor_entry = best;
+		return 1;
+	}
+	else
+		return 0;
 }
