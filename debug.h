@@ -31,9 +31,12 @@ enum MBR_DEBUG {
 
 #define MBR_DBG_DEFAULT (MBR_DBG_ANY)
 
+#define TRACE_FILE "/media/realroot/mbr_packetstat/mbr_packet_stat.txt"
+
 void mbr_printk(const char *level, const int debug_mask,
 		const char *fmt, ...);
-
+void mbr_print_file(const char *level, const int debug_mask,
+		const char *fmt, ...);
 
 #ifdef CONFIG_DEBUG
 
@@ -43,6 +46,11 @@ do {									\
 		mbr_printk(KERN_ALERT, level, fmt, ##__VA_ARGS__);	\
 } while (0)
 
+#define trace_skb(level, dbg_mask, fmt, ...) \
+do {									\
+	if (level & MBR_DBG_##dbg_mask)			\
+		mbr_print_file(KERN_ALERT, level, fmt, ##__VA_ARGS__);	\
+} while (0)
 #else
 
 #define _mbr_dbg(level, dbg_mask, fmt, ...)				\
@@ -52,6 +60,8 @@ do {									\
 #define mbr_dbg(level, dbg_mask, fmt, ...)				\
 	_mbr_dbg(level, MBR_DBG_##dbg_mask, fmt, ##__VA_ARGS__)
 
+#define trace_skb(level, dbg_mask, fmt, ...)				\
+	_mbr_dbg(level, MBR_DBG_##dbg_mask, fmt, ##__VA_ARGS__)
 
 #endif /* CONFIG_DEBUG */
 #endif /* DEBUG_H */

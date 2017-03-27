@@ -5,6 +5,7 @@
 
 #include <linux/skbuff.h>
 #include <linux/ip.h>
+#include <linux/time.h>
 
 extern int debug_level;
 extern Graph *global_graph;
@@ -60,6 +61,8 @@ unsigned int output_handler(const struct nf_hook_ops *ops, struct sk_buff *skb,
 {
 	int err, ret;
 	struct netdev_hw_addr *ha;
+	struct timespec now;
+
 	int i =0;
 	//mbr_dbg(debug_level, ANY, "")
 //#define GEL01 {0x54,0x27,0x1e,0xa4,0xca,0xe3}
@@ -87,30 +90,35 @@ unsigned int output_handler(const struct nf_hook_ops *ops, struct sk_buff *skb,
 	}
 
 	if(skb == NULL) {
-		mbr_dbg(debug_level, ANY, "SKB is null!\n");
+		mbr_dbg(debug_level, XMIT, "SKB is null!\n");
 		return NF_ACCEPT;
 	}
 	if(unlikely(!global_mbr_status.mbr_start)) {
-		mbr_dbg(debug_level, ANY, "MBR disabled!\n");
+		mbr_dbg(debug_level, XMIT, "MBR disabled!\n");
 		return NF_ACCEPT;
 	}
 
 	ret = mbr_forward( dst_mac, relay_mac, skb, global_graph);
 	if(ret < 0) {
-		mbr_dbg(debug_level, ANY, "mbr_forward failed!\n");
+		mbr_dbg(debug_level, XMIT, "mbr_forward failed!\n");
 		return NF_ACCEPT;
 	}
+	now = current_kernel_time();
+	trace_skb(debug_level, XMIT, "relay: %x%x%x%x%x%x time: %d %d pktsize: %d\n",
+			relay_mac[0],relay_mac[1],relay_mac[2],relay_mac[3],relay_mac[4],relay_mac[5],
+			now.tv_sec, now.tv_nsec,
+			skb->len);
 
 	__skb_pull(skb, skb_network_offset(skb));
 	//err = dev_hard_header(skb, skb->dev, ETH_P_IP, h_dest, h_source, skb->len);
 	err = eth_header_dirty(skb, ETH_P_MAPRELAY/*ETH_P_IP*/, relay_mac, global_mac_this, skb->len);
 	if (err < 0)
-		mbr_dbg(debug_level, ANY, "eth_header_dirty ERROR!! %d\n", err );
+		mbr_dbg(debug_level, FATAL, "eth_header_dirty ERROR!! %d\n", err );
 	err = push_real_dst_mac(skb, dst_mac);
 	if (err < 0)
-		mbr_dbg(debug_level, ANY, "push_relay_mac ERROR!! %d\n", err );
+		mbr_dbg(debug_level, FATAL, "push_relay_mac ERROR!! %d\n", err );
 
-	mbr_dbg(debug_level, ANY, "relay_mac is: %x:%x:%x:%x:%x:%x\n", relay_mac[0],relay_mac[1],relay_mac[2],relay_mac[3],relay_mac[4],relay_mac[5] );
+//	mbr_dbg(debug_level, ANY, "relay_mac is: %x:%x:%x:%x:%x:%x\n", relay_mac[0],relay_mac[1],relay_mac[2],relay_mac[3],relay_mac[4],relay_mac[5] );
 
 //	mbr_dbg(debug_level, ANY, "OUTPUT: SAddress: %pI4, DAddress: %pI4\n", &ip_hdr(skb)->saddr, &ip_hdr(skb)->daddr);
 
