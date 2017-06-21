@@ -13,13 +13,18 @@
 
 
 #include "graph.h"
+#include "utils.h"
+
+#ifdef LINUX_KERNEL
 #include <linux/string.h>
-//#include <string.h>
+#else
+#include <string.h>
 //#include <stdlib.h>
 //#include <stdio.h>
+#endif /* LINUX_KERNEL */
 
 int compare_edges(const void *aa, const void *bb);
-void vertex_free(const void *data);
+void vertex_free(void *data);
 
 int compare_edges(const void *aa, const void *bb) {
     const Edge *a = (Edge*)aa;
@@ -27,32 +32,33 @@ int compare_edges(const void *aa, const void *bb) {
     return (a->road_id > b->road_id) - (a->road_id < b->road_id);
 }
 
-void vertex_free(const void *data) {
+void vertex_free(void *data) {
     Vertex *vertex = (Vertex*)data;
     list_free(vertex->edges);
-    kfree(vertex);
+    mbr_free(vertex);
 }
 
 Graph *graph_create() {
-    Graph *graph = (Graph*)kmalloc(sizeof(Graph), GFP_KERNEL);
+    Graph *graph = (Graph*)mbr_malloc(sizeof(Graph));
     graph->vertices = list_create(vertex_free);
     return graph;
 }
 
-Vertex *vertex_create(char *idStr, u64 geoHash) {
-    Vertex *vertex = (Vertex*)kmalloc(sizeof(Vertex), GFP_KERNEL);
+Vertex *vertex_create(const char *idStr, uint64_t geoHash, int isIntersection) {
+    Vertex *vertex = (Vertex*)mbr_malloc(sizeof(Vertex));
     strcpy(vertex->idStr, idStr);
     vertex->geoHash = geoHash;
     vertex->data = NULL;
     //vertex->edges = list_create(kfree);
-    vertex->edges = list_create(kfree);
+    vertex->edges = list_create(mbr_free);
     vertex->indegree = 0;
     vertex->outdegree = 0;
+    vertex->isIntersection = isIntersection;
     return vertex;
 }
 
 Edge *edge_create(Vertex *vertex, int road_id) {
-    Edge *edge = kmalloc(sizeof(Edge), GFP_KERNEL);
+    Edge *edge = (Edge*)mbr_malloc(sizeof(Edge));
     //Edge *edge = (Edge*)malloc(sizeof(Edge));
     edge->vertex = vertex;
     edge->road_id = road_id;
@@ -79,7 +85,7 @@ void graph_remove_vertex(Graph *graph, Vertex *vertex) {
                 prev_n->next = n->next;
             }
             graph->vertices->count--;
-            kfree(n);
+            mbr_free(n);
         }
         else {
             vertex_remove_edge_to_vertex((Vertex*)n->data, vertex);
@@ -102,7 +108,7 @@ void graph_remove_vertex_undirect(Graph *graph, Vertex *vertex) {
                 prev_n->next = n->next;
             }
             graph->vertices->count--;
-            kfree(n);
+            mbr_free(n);
         }
         else {
             vertex_remove_edge_to_vertex_undirect((Vertex*)n->data, vertex);
@@ -161,8 +167,8 @@ void vertex_remove_edge_to_vertex(Vertex *from, Vertex *to) {
             from->outdegree--;
             //kfree(e->data);
             //kfree(e);
-            kfree(e->data);
-            kfree(e);
+            mbr_free(e->data);
+            mbr_free(e);
             break;
         }
         prev_e = e;
@@ -176,6 +182,10 @@ void vertex_add_edge_to_vertex_undirect(Vertex *from, Vertex *to, int road_id) {
 	vertex_add_edge_to_vertex(to, from, road_id);
 }
 
+void vertex_add_edge_to_vertex_undirect_exclusive(Vertex *from, Vertex *to, int road_id){
+	vertex_remove_edge_to_vertex_undirect(from, to);
+	vertex_add_edge_to_vertex_undirect(from, to, road_id);
+}
 void vertex_remove_edge_to_vertex_undirect(Vertex *from, Vertex *to) {
 	vertex_remove_edge_to_vertex(from, to);
 	vertex_remove_edge_to_vertex(to, from);
@@ -189,24 +199,24 @@ void vertex_remove_edge_to_vertex_undirect(Vertex *from, Vertex *to) {
 //    list_sort(vertex->edges, compare_edges);
 //}
 
-bool graph_is_balanced(Graph *g) {
+int graph_is_balanced(Graph *g) {
     Node *n = g->vertices->head;
     Node *prev_n;
     while (n) {
         Vertex *v = (Vertex*)n->data;
         if (v->indegree != v->outdegree) {
-            return false;
+            return 0;
         }
         prev_n = n;
         n = n->next;
     }
-    return true;
+    return 1;
 }
 
 void graph_free(Graph *graph) {
     list_free(graph->vertices);
     //kfree(graph);
-    kfree(graph);
+    mbr_free(graph);
 }
 
 Vertex * getVertex(Graph *graph, const char* idStr) {
@@ -243,8 +253,8 @@ void graph_print(Graph *g)
     }
 }
 
-//¼ÆËãÁ½¸ögeoHash²îÖµµÄ¾ø¶ÔÖµ
-u64 geohash_compare( u64 a, u64 b )
+//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½geoHashï¿½ï¿½Öµï¿½Ä¾ï¿½ï¿½ï¿½Öµ
+uint64_t geohash_compare( uint64_t a, uint64_t b )
 {
 	if(a>b)
 		return a-b;
@@ -252,12 +262,12 @@ u64 geohash_compare( u64 a, u64 b )
 		return b-a;
 }
 
-Vertex* find_Vertex_by_VehiclePosition(Graph *g, u64 geoHash)
+Vertex* find_Vertex_by_VehiclePosition(Graph *g, uint64_t geoHash)
 {
-	u64 min=UINT64_MAX,temp;
+	uint64_t min=UINT64_MAX,temp;
 	Vertex *v=NULL,*index;
 	Node *p=g->vertices->head;
-	while(p)//±éÀúÒ»±éÍ¼½Úµã£¬ÕÒµ½Óë¸ø¶¨geoHash×î½Ó½üµÄÍ¼½Úµã£»
+	while(p)//ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Í¼ï¿½Úµã£¬ï¿½Òµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½geoHashï¿½ï¿½Ó½ï¿½ï¿½ï¿½Í¼ï¿½Úµã£»
 	{
 		index=(Vertex*)p->data;
 		temp=geohash_compare(index->geoHash, geoHash);
@@ -271,16 +281,16 @@ Vertex* find_Vertex_by_VehiclePosition(Graph *g, u64 geoHash)
 	return v;
 }
 
-typedef struct path          	//BFS±éÀúÊý¾Ý½á¹¹£»
+typedef struct path          	//BFSï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý½á¹¹ï¿½ï¿½
 {
-	Vertex *v;					//±£´æµ±Ç°ÕÒµ½µÄµÀÂ·½ÚµãÖ¸Õë£»
-	struct path *ancest;		//±£´æBFS±éÀúÊ÷ÉÏµÄ¸¸½Úµã£»
-	Edge *e;					//Ö¸Ïò¸¸½ÚµãµÄ±ß£»
+	Vertex *v;					//ï¿½ï¿½ï¿½æµ±Ç°ï¿½Òµï¿½ï¿½Äµï¿½Â·ï¿½Úµï¿½Ö¸ï¿½ë£»
+	struct path *ancest;		//ï¿½ï¿½ï¿½ï¿½BFSï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÏµÄ¸ï¿½ï¿½Úµã£»
+	Edge *e;					//Ö¸ï¿½ò¸¸½Úµï¿½Ä±ß£ï¿½
 	struct path *next;
 }path;
 
 
-int find_vertex(path *head,Vertex *v)	//ÅÐ¶ÏÍ¼½ÚµãÊÇ·ñÒÑ¾­±»±éÀú¹ý£»
+int find_vertex(path *head,Vertex *v)	//ï¿½Ð¶ï¿½Í¼ï¿½Úµï¿½ï¿½Ç·ï¿½ï¿½Ñ¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 {
 	path *temp=head;
 	while(temp)
@@ -292,7 +302,7 @@ int find_vertex(path *head,Vertex *v)	//ÅÐ¶ÏÍ¼½ÚµãÊÇ·ñÒÑ¾­±»±éÀú¹ý£»
     return 0;
 }
 
-Vertex* print_crossnode(path *p)	//·µ»ØBFS±éÀúÂ·¾¶ÉÏµÄ½»²æ½ÚµãÐÅÏ¢£»
+Vertex* print_crossnode(path *p)	//ï¿½ï¿½ï¿½ï¿½BFSï¿½ï¿½ï¿½ï¿½Â·ï¿½ï¿½ï¿½ÏµÄ½ï¿½ï¿½ï¿½Úµï¿½ï¿½ï¿½Ï¢ï¿½ï¿½
 {
 	int first,second;
 	second=p->e->road_id;
@@ -305,7 +315,7 @@ Vertex* print_crossnode(path *p)	//·µ»ØBFS±éÀúÂ·¾¶ÉÏµÄ½»²æ½ÚµãÐÅÏ¢£»
 			return p->v;
 		p=p->ancest;
 	}
-	mbr_dbg(debug_level, ANY, "there is no crossnode between %s and %s!\n",p->v->idStr,p->ancest->v->idStr);  //Èç¹ûÃ»ÓÐ½»²æÂ·¿Ú£¬Êä³öÏàÓ¦ÐÅÏ¢£»
+	mbr_dbg(debug_level, ANY, "there is no crossnode between %s and %s!\n",p->v->idStr,p->ancest->v->idStr);  //ï¿½ï¿½ï¿½Ã»ï¿½Ð½ï¿½ï¿½ï¿½Â·ï¿½Ú£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ï¢ï¿½ï¿½
 	return NULL;
 }
 
@@ -317,7 +327,7 @@ int free_path(path *p)
 	{
 		temp=p;
 		p=p->next;
-		kfree(temp);
+		mbr_free(temp);
 	}
 	return 0;
 }
@@ -331,20 +341,20 @@ void setIntersectionSize(GeoHashSetCoordinate * geohashset, Vertex * this_vertex
 	int i;
 	geohashset->sx = 3;
 	geohashset->sy = 3;
-	geohashset->geohashset = (u64**)kmalloc(sizeof(u64*) * geohashset->sy, GFP_KERNEL);
+	geohashset->geohashset = (uint64_t**)mbr_malloc(sizeof(uint64_t*) * geohashset->sy);
     for (i = 0; i < geohashset->sy; ++i){
-    	geohashset->geohashset[i] = (u64*)kmalloc(sizeof(u64) * geohashset->sx, GFP_KERNEL);
+    	geohashset->geohashset[i] = (uint64_t*)mbr_malloc(sizeof(uint64_t) * geohashset->sx);
     }
 }
 
-Vertex* cross_vertex(Vertex *from, Vertex *to)    //²éÕÒ´Ófromµ½toÂ·¾¶ÉÏµÄ½»²æÂ·¿Ú½Úµã£»
+Vertex* cross_vertex(Vertex *from, Vertex *to)    //ï¿½ï¿½ï¿½Ò´ï¿½fromï¿½ï¿½toÂ·ï¿½ï¿½ï¿½ÏµÄ½ï¿½ï¿½ï¿½Â·ï¿½Ú½Úµã£»
 {
 	path *head,*tail,*index,*temp;
 	Vertex *v;
 	int flag=1;
 
-	//³õÊ¼»¯Êý¾Ý½á¹¹£»
-	head=tail=index=(path*)kmalloc(sizeof(path),GFP_KERNEL);
+	//ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½Ý½á¹¹ï¿½ï¿½
+	head=tail=index=(path*)mbr_malloc(sizeof(path));
 	if(!index)
 	{
 		mbr_dbg(debug_level, ANY, "malloc  error!\n");
@@ -354,26 +364,26 @@ Vertex* cross_vertex(Vertex *from, Vertex *to)    //²éÕÒ´Ófromµ½toÂ·¾¶ÉÏµÄ½»²æÂ·
 	index->ancest=NULL;
 	index->e=NULL;
 	index->next=NULL;
-	while(index)       //BFS±éÀú£»
+	while(index)       //BFSï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	{
 		Node *n=index->v->edges->head;
 		while(n)
 		{
-			if(find_vertex(head,((Edge*)n->data)->vertex)==1) //Èç¹û¸Ã½ÚµãÒÑ¾­±»±éÀú¹ý£¬ÔòÌø¹ý£»
+			if(find_vertex(head,((Edge*)n->data)->vertex)==1) //ï¿½ï¿½ï¿½ï¿½Ã½Úµï¿½ï¿½Ñ¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 			{
 				n=n->next;
 				continue;
 			}
-			temp=(path*)kmalloc(sizeof(path), GFP_KERNEL);
+			temp=(path*)mbr_malloc(sizeof(path));
 			temp->v=((Edge*)n->data)->vertex;
 			temp->ancest=index;
 			temp->e=(Edge*)n->data;
 			temp->next=NULL;
 
-			//½«ÐÂ±éÀúµ½µÄ½Úµã²åÈëµ½Á´±íÎ²²¿£»
+			//ï¿½ï¿½ï¿½Â±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä½Úµï¿½ï¿½ï¿½ëµ½ï¿½ï¿½ï¿½ï¿½Î²ï¿½ï¿½ï¿½ï¿½
 			tail->next=temp;
 			tail=temp;
-			if((flag=strcmp(temp->v->idStr,to->idStr))==0)   //ÒÑ¾­±éÀúµ½Ä¿±ê½Úµã£¬ÖÕÖ¹±éÀú£»
+			if((flag=strcmp(temp->v->idStr,to->idStr))==0)   //ï¿½Ñ¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿ï¿½ï¿½Úµã£¬ï¿½ï¿½Ö¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 				break;
 			n=n->next;
 		}
@@ -381,13 +391,13 @@ Vertex* cross_vertex(Vertex *from, Vertex *to)    //²éÕÒ´Ófromµ½toÂ·¾¶ÉÏµÄ½»²æÂ·
 			break;
 		index=index->next;
 	}
-	if(!flag)		//Èç¹ûÕÒµ½Ä¿±ê½Úµã£¬Ôò·µ»Ø½»²æÂ·¿Ú½ÚµãÐÅÏ¢£»
+	if(!flag)		//ï¿½ï¿½ï¿½ï¿½Òµï¿½Ä¿ï¿½ï¿½Úµã£¬ï¿½ò·µ»Ø½ï¿½ï¿½ï¿½Â·ï¿½Ú½Úµï¿½ï¿½ï¿½Ï¢ï¿½ï¿½
 	    {
 	    	v=print_crossnode(tail);
 	    	free_path(head);
 	    	return v;
 	    }
-	else			//ÈôÃ»±éÀúµ½Ä¿±ê½Úµã£¬Êä³ö²»Á¬Í¨ÐÅÏ¢£»
+	else			//ï¿½ï¿½Ã»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿ï¿½ï¿½Úµã£¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¨ï¿½ï¿½Ï¢ï¿½ï¿½
 		{
 			mbr_dbg(debug_level, ANY, "%s unconnect to %s!",from->idStr,to->idStr);
 			free_path(head);

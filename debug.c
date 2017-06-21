@@ -1,7 +1,11 @@
+
+#include "debug.h"
+
+#ifdef LINUX_KERNEL
+
 #include <linux/kernel.h>
 #include <linux/fs.h>
 #include <linux/uaccess.h>
-#include "debug.h"
 
 void mbr_printk(const char *level, const int debug_mask,
 		const char *fmt, ...)
@@ -51,3 +55,16 @@ void mbr_print_file(const char *level, const int debug_mask,
 	set_fs(fs);
 	filp_close(filp, NULL);
 }
+
+#else
+void mbr_printk(const char *level, const int debug_mask,
+		const char *fmt, ...) {
+
+}
+
+void mbr_print_file(const char *level, const int debug_mask,
+		const char *fmt, ...) {
+
+}
+
+#endif

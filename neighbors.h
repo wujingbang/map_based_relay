@@ -5,8 +5,17 @@
 #include "common.h"
 #include "geohash.h"
 #include "debug.h"
-#include <linux/types.h>
+
+#ifdef LINUX_KERNEL
 #include <linux/list.h>
+#include <linux/types.h>
+
+#else
+#include "linux_list.h"
+#include <string.h>
+//#include "wave-net-device.h"
+
+#endif
 
 /**
  * Use shared memory to store the neighbor list. Because the memory addr should be continuous,
@@ -20,11 +29,17 @@
 #define NEIGH_COUNT_OFFSET	1
 #define NEIGH_DATA_OFFSET	5
 
-struct neighbor_table_ {
-	u32 ip;
-	u8 mac[6];
 
-	u64 geoHash;
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+struct neighbor_table_ {
+	uint32_t ip;
+	uint8_t mac[6];
+
+	uint64_t geoHash;
 
 	//GPS direction: 0~359, starting from North.
 	int direction;
@@ -33,10 +48,16 @@ struct neighbor_table_ {
 };
 typedef struct neighbor_table_ neighbor_table;
 
-int neighbor_getnode_fromip(neighbor_table** neighbor_entry, u32 ip);
-u64 neighbor_getgeohash_fromip(u32 ip);
-u64 neighbor_getnode_fromset_random(neighbor_table** neighbor_entry, GeoHashSetCoordinate *geohashset);
-u64 neighbor_getnode_fromset_best(neighbor_table** neighbor_entry, GeoHashSetCoordinate *geohashset);
-int neigh_list_init(void);
+extern int neighbor_getnode_fromip(neighbor_table** neighbor_entry, uint32_t ip);
+extern uint64_t neighbor_getgeohash_fromip(uint32_t ip);
+extern uint64_t neighbor_getnode_fromset_random(neighbor_table** neighbor_entry, GeoHashSetCoordinate *geohashset);
+extern uint64_t neighbor_getnode_fromset_best(neighbor_table** neighbor_entry, GeoHashSetCoordinate *geohashset);
+extern int neigh_list_init(void);
+extern void wait_neigh_available(void);
 
+extern uint64_t neighbor_getgeohash_frommac(uint8_t* mac);
+
+#ifdef __cplusplus
+}
+#endif
 #endif

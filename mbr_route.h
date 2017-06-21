@@ -4,13 +4,19 @@
 //#include "mbr.h"
 #include "graph.h"
 
+#ifdef LINUX_KERNEL
 #include <linux/list.h>
 #include <linux/types.h>
+#include <net/route.h>
+
+#else
+#include "linux_list.h"
+#endif
 
 struct relay_table_list_ {
-	u64 geoHash_this;
-	u64 geoHash_nexthop;
-	u64 geoHash_dst;
+	uint64_t geoHash_this;
+	uint64_t geoHash_nexthop;
+	uint64_t geoHash_dst;
 	int	isvalid;
 
 	struct list_head	ptr;
@@ -19,8 +25,14 @@ struct relay_table_list_ {
 typedef struct relay_table_list_ relay_table_list;
 
 
-int update_mbrtable_outrange(u64 updated_geohash);
-int mbr_forward(u8 *dst_mac, u8 *relay_mac, struct sk_buff *skb, Graph *g);
+int update_mbrtable_outrange(uint64_t updated_geohash);
+
+#ifdef LINUX_KERNEL
 void print_mbrtable(struct seq_file *file);
+int mbr_forward(uint8_t *dst_mac, uint8_t *relay_mac, struct sk_buff *skb, Graph *g);
+#else
+int mbr_forward(uint8_t * to, uint8_t * relay_mac, Graph *g);
+#endif
+
 
 #endif

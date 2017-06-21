@@ -1,10 +1,16 @@
 #ifndef COMMON_H_
 #define COMMON_H_
 
+#ifdef LINUX_KERNEL
 #include <linux/types.h>
+#define UINT64_MAX  0xffffffffffffffff
+
+#else
+#include <stdint.h>
+#endif
 
 typedef struct {
-	u64 ** geohashset;
+	uint64_t ** geohashset;
 	int sx;
 	int sy;
 } GeoHashSetCoordinate;
