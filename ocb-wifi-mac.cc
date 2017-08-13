@@ -33,12 +33,12 @@
 
 #include "mbr.h"
 #include "mbr_sumomap.h"
-#include "ns3/mesh-wifi-beacon.h"
 
 struct mbr_status global_mbr_status;
 unsigned char *shared_mem_neighbor = NULL;
 
 namespace ns3 {
+using namespace mbr;
 
 NS_LOG_COMPONENT_DEFINE ("OcbWifiMac");
 
@@ -464,28 +464,11 @@ OcbWifiMac::EnableForWave (Ptr<WaveNetDevice> device)
 
 Graph * OcbWifiMac::mbr_init (std::string sumoNetFilename)
 {
-
-	return loadSumoMap(sumoNetFilename);
-
-}
-
-#include "ns3/mesh-wifi-beacon.h"
-
-
-
-void
-OcbWifiMac::ScheduleNextBeacon ()
-{
+	MbrSumo * sumomap = MbrSumo::GetInstance();
+	return sumomap->loadSumoMap(sumoNetFilename);
 
 }
 
-void
-OcbWifiMac::SendBeacon ()
-{
-	//Ssid zero_ssid("0");
-	//MeshWifiBeacon beacon (GetSsid(), NULL/*GetSupportedRates ()*/, m_beaconInterval.GetMicroSeconds ());
-
-}
 
 
 } // namespace ns3

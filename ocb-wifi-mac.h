@@ -192,11 +192,7 @@ private:
 
   Graph * mbr_init(std::string sumoNetFilename);
 public:
-  //Beacon refers to class MeshWifiInterfaceMac
-  /// Send beacon
-  void SendBeacon ();
-  /// Schedule next beacon
-  void ScheduleNextBeacon ();
+
 };
 
 }

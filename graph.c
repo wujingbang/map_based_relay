@@ -74,8 +74,8 @@ void graph_add_vertex_sorted(Graph *graph, Vertex *vertex, int(*cmp)(const void 
 }
 
 void graph_remove_vertex(Graph *graph, Vertex *vertex) {
-    Node *n = graph->vertices->head;
-    Node *prev_n = NULL;
+    Node_list *n = graph->vertices->head;
+    Node_list *prev_n = NULL;
     while (n) {
         if (n->data == vertex) {
             if (!prev_n) {
@@ -97,8 +97,8 @@ void graph_remove_vertex(Graph *graph, Vertex *vertex) {
 }
 
 void graph_remove_vertex_undirect(Graph *graph, Vertex *vertex) {
-    Node *n = graph->vertices->head;
-    Node *prev_n = NULL;
+    Node_list *n = graph->vertices->head;
+    Node_list *prev_n = NULL;
     while (n) {
         if (n->data == vertex) {
             if (!prev_n) {
@@ -153,8 +153,8 @@ void vertex_add_edge_to_vertex_sorted(Vertex *from, Vertex *to, int road_id) {
 
 // here
 void vertex_remove_edge_to_vertex(Vertex *from, Vertex *to) {
-    Node *e = from->edges->head;
-    Node *prev_e = NULL;
+    Node_list *e = from->edges->head;
+    Node_list *prev_e = NULL;
     while (e) {
         if (((Edge *)e->data)->vertex == to) {
             if (!prev_e) {
@@ -200,8 +200,8 @@ void vertex_remove_edge_to_vertex_undirect(Vertex *from, Vertex *to) {
 //}
 
 int graph_is_balanced(Graph *g) {
-    Node *n = g->vertices->head;
-    Node *prev_n;
+    Node_list *n = g->vertices->head;
+    Node_list *prev_n;
     while (n) {
         Vertex *v = (Vertex*)n->data;
         if (v->indegree != v->outdegree) {
@@ -220,8 +220,8 @@ void graph_free(Graph *graph) {
 }
 
 Vertex * getVertex(Graph *graph, const char* idStr) {
-    Node *n = graph->vertices->head;
-    Node *prev_n = NULL;
+    Node_list *n = graph->vertices->head;
+    Node_list *prev_n = NULL;
     while (n)
     {
         if (!strcmp(((Vertex*)n->data)->idStr, idStr))
@@ -236,8 +236,8 @@ Vertex * getVertex(Graph *graph, const char* idStr) {
 
 void graph_print(Graph *g)
 {
-	Node *q;
-    Node *p=g->vertices->head;
+	Node_list *q;
+    Node_list *p=g->vertices->head;
     while(p)
     {
         Vertex *v = (Vertex*)p->data;
@@ -266,7 +266,7 @@ Vertex* find_Vertex_by_VehiclePosition(Graph *g, uint64_t geoHash)
 {
 	uint64_t min=UINT64_MAX,temp;
 	Vertex *v=NULL,*index;
-	Node *p=g->vertices->head;
+	Node_list *p=g->vertices->head;
 	while(p)//����һ��ͼ�ڵ㣬�ҵ������geoHash��ӽ���ͼ�ڵ㣻
 	{
 		index=(Vertex*)p->data;
@@ -366,7 +366,7 @@ Vertex* cross_vertex(Vertex *from, Vertex *to)    //���Ҵ�from��to·
 	index->next=NULL;
 	while(index)       //BFS������
 	{
-		Node *n=index->v->edges->head;
+		Node_list *n=index->v->edges->head;
 		while(n)
 		{
 			if(find_vertex(head,((Edge*)n->data)->vertex)==1) //����ýڵ��Ѿ�������������������

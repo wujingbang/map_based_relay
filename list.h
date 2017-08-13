@@ -13,13 +13,13 @@
 
 typedef void (*node_data_free_callback_t)(void *);
 
-typedef struct Node {
+typedef struct Node_list {
     void *data;
-    struct Node *next;
-} Node;
+    struct Node_list *next;
+} Node_list;
 
 typedef struct List {
-    Node *head;
+    Node_list *head;
     int count;
     node_data_free_callback_t node_data_free_callback;
 } List;

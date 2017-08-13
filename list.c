@@ -15,7 +15,7 @@
 #include <stddef.h>
 #endif
 
-Node *node_create(void *data);
+Node_list *node_create(void *data);
 
 List *list_create(node_data_free_callback_t node_data_free_callback) {
     List *list = (List*)mbr_malloc(sizeof(List));
@@ -25,24 +25,24 @@ List *list_create(node_data_free_callback_t node_data_free_callback) {
     return list;
 }
 
-Node *node_create(void *data) {
-    Node *node = (Node*)mbr_malloc(sizeof(Node));
+Node_list *node_create(void *data) {
+    Node_list *node = (Node_list*)mbr_malloc(sizeof(Node_list));
     node->data = data;
     node->next = NULL;
     return node;
 }
 
 void list_add_data(List *list, void *data) {
-    Node *node = node_create(data);
+    Node_list *node = node_create(data);
     node->next = list->head;
     list->head = node;
     list->count++;
 }
 
 void list_add_data_sorted(List *list, void *data, int (*cmp)(const void *a, const void *b)) {
-    Node *node = node_create(data);
-    Node *n = list->head;
-    Node *prev_n = NULL;
+    Node_list *node = node_create(data);
+    Node_list *n = list->head;
+    Node_list *prev_n = NULL;
     while (n && cmp(n->data, data) < 0) {
         prev_n = n;
         n = n->next;
@@ -58,8 +58,8 @@ void list_add_data_sorted(List *list, void *data, int (*cmp)(const void *a, cons
 }
 
 void list_remove_data(List *list, void *data) {
-    Node *n = list->head;
-    Node *prev_n = NULL;
+    Node_list *n = list->head;
+    Node_list *prev_n = NULL;
     while (n) {
         if (n->data == data) {
             if (!prev_n) {
@@ -79,9 +79,9 @@ void list_remove_data(List *list, void *data) {
 }
 
 void list_free(List *list) {
-    Node *n = list->head;
+    Node_list *n = list->head;
     while (n) {
-        Node *next_n = n->next;
+        Node_list *next_n = n->next;
         list->node_data_free_callback(n->data);
         mbr_free(n);
         n = next_n;
@@ -90,7 +90,7 @@ void list_free(List *list) {
 }
 
 void list_sort(List *list, int(*cmp)(const void *a, const void *b)) {
-    Node *p, *q, *e, *head, *tail;
+    Node_list *p, *q, *e, *head, *tail;
     int insize, nmerges, psize, qsize, i;
     
     if (!list || !list->head)

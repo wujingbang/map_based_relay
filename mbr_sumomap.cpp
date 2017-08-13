@@ -2,12 +2,10 @@
 
 //#include <iostream>
 
-#include <string.h>
-#include <map>
-#include <vector>
+
 #include <stdlib.h>
 
-#include "tinyxml2.h"
+
 #include "debug.h"
 #include "geohash.h"
 
@@ -17,14 +15,21 @@
 
 using namespace std;
 using namespace tinyxml2;
-
+using namespace ns3;
+using namespace mbr;
 
 //string sumoMapFilename = "E:\\work\\SUMO\\sumo-osm-no-internal.net.xml";
-//graph
-Graph *global_graph;
+
 int debug_level = MBR_DBG_DEFAULT;  
 
-static void Tokenize(const string& str,
+//Eager Singleton
+MbrSumo* MbrSumo::p = new MbrSumo;
+
+MbrSumo * MbrSumo::GetInstance(void)
+{
+	return p;
+}
+void MbrSumo::Tokenize(const string& str,
         vector<string>& tokens,
         const string& delimiters)
 {
@@ -44,59 +49,59 @@ static void Tokenize(const string& str,
 }
 
 
-static string parseRoadid(string str)
+string MbrSumo::parseRoadid(string str)
 {
 	vector<string> tokens;
 	Tokenize(str, tokens, "#");
 	return tokens[0];
 }
-static void parseBoundary(XMLElement *location, mapboundary * bound)
+void MbrSumo::parseBoundary(XMLElement *location)
 {
 	string netOffset, convBoundary, origBoundary;
 	vector<string> tokens;
 	netOffset = location->Attribute("netOffset", NULL);
 	convBoundary = location->Attribute("convBoundary", NULL);
 	origBoundary = location->Attribute("origBoundary", NULL);
-	bound->projParameter = location->Attribute("projParameter", NULL);
+	m_bound.projParameter = location->Attribute("projParameter", NULL);
 
 	Tokenize(netOffset, tokens, ",");
-	bound->netoffset_x = atof(tokens[0].c_str());
-	bound->netoffset_y = atof(tokens[1].c_str());
+	m_bound.netoffset_x = atof(tokens[0].c_str());
+	m_bound.netoffset_y = atof(tokens[1].c_str());
 	tokens.clear();
 	Tokenize(convBoundary, tokens, ",");
-	bound->conv_x1 = atof(tokens[0].c_str());
-	bound->conv_y1 = atof(tokens[1].c_str());
-	bound->conv_x2 = atof(tokens[2].c_str());
-	bound->conv_y2 = atof(tokens[3].c_str());
+	m_bound.conv_x1 = atof(tokens[0].c_str());
+	m_bound.conv_y1 = atof(tokens[1].c_str());
+	m_bound.conv_x2 = atof(tokens[2].c_str());
+	m_bound.conv_y2 = atof(tokens[3].c_str());
 	tokens.clear();
 	Tokenize(origBoundary, tokens, ",");
-	bound->orig_x1 = atof(tokens[0].c_str());
-	bound->orig_y1 = atof(tokens[1].c_str());
-	bound->orig_x2 = atof(tokens[2].c_str());
-	bound->orig_y2 = atof(tokens[3].c_str());
+	m_bound.orig_x1 = atof(tokens[0].c_str());
+	m_bound.orig_y1 = atof(tokens[1].c_str());
+	m_bound.orig_x2 = atof(tokens[2].c_str());
+	m_bound.orig_y2 = atof(tokens[3].c_str());
 	return;
 }
 
-void sumoCartesian2GPS(mapboundary bound, double input_x, double input_y,
+void MbrSumo::sumoCartesian2GPS(double input_x, double input_y,
 		double *output_x, double *output_y)
 {
-    projPJ myProjection = pj_init_plus(bound.projParameter.c_str());
+    projPJ myProjection = pj_init_plus(m_bound.projParameter.c_str());
     projUV p;
-    p.u = input_x - bound.netoffset_x;
-    p.v = input_y - bound.netoffset_y;
+    p.u = input_x - m_bound.netoffset_x;
+    p.v = input_y - m_bound.netoffset_y;
     p = pj_inv(p, myProjection);
     *output_x = p.u * RAD_TO_DEG;
     *output_y = p.v * RAD_TO_DEG;
 }
 
-uint64_t sumoCartesian2Geohash(mapboundary bound, double input_x, double input_y)
+uint64_t MbrSumo::sumoCartesian2Geohash(double input_x, double input_y)
 {
 	double x,y;
 	GeoHashRange lat_range, lon_range;
 	GeoHashBits geohashbits;
-	sumoCartesian2GPS(bound, input_x, input_y, &x, &y);
+	sumoCartesian2GPS(input_x, input_y, &x, &y);
 	/**
-	 * ÕâÀïÒªÓÃ±±¾©ÊÐµÄ¾­Î³¶ÈÇøÓò£¬ÓëÊµ¼ÊÊµÑé±£³ÖÒ»ÖÂ
+	 * ï¿½ï¿½ï¿½ï¿½Òªï¿½Ã±ï¿½ï¿½ï¿½ï¿½ÐµÄ¾ï¿½Î³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Êµï¿½ï¿½Êµï¿½é±£ï¿½ï¿½Ò»ï¿½ï¿½
 	 */
 	lat_range.min = LAT_RANGE_MIN;//bound.orig_y1;
 	lat_range.max = LAT_RANGE_MAX;//bound.orig_y2;
@@ -107,7 +112,7 @@ uint64_t sumoCartesian2Geohash(mapboundary bound, double input_x, double input_y
 
 }
 
-static void parseShapeAndUpdateGraph(Graph *graph, mapboundary bound,
+void MbrSumo::parseShapeAndUpdateGraph(
 		const char *fromid, const char *toid, const char *roadid, string shape) {
 	vector<string> tokens, tokens2;
 	//vector<string>::iterator t;
@@ -129,21 +134,21 @@ static void parseShapeAndUpdateGraph(Graph *graph, mapboundary bound,
 	 */
 	for(i = 1; i < (tokens.size() - 1); i++) {
 
-		if(getVertex(graph, tokens[i].c_str()))
+		if(getVertex(m_graph, tokens[i].c_str()))
 			continue;//vertex exists.
 
 		tokens2.clear();
 		Tokenize(tokens[i], tokens2, ",");
-		geohash = sumoCartesian2Geohash(bound, atof(tokens[0].c_str()), atof(tokens[1].c_str()));
+		geohash = sumoCartesian2Geohash(atof(tokens[0].c_str()), atof(tokens[1].c_str()));
 		v = vertex_create(tokens[i].c_str(), geohash, 0 /*notIntersection*/);
-		graph_add_vertex(global_graph, v);
+		graph_add_vertex(m_graph, v);
 	}
 
 	/**
 	 * Create Edges
 	 */
 	for(i = 1; i < (tokens.size() - 1); i++) {
-		v = getVertex(graph, tokens[i].c_str());
+		v = getVertex(m_graph, tokens[i].c_str());
 		if(!v) {
 //			cout << "parseShapeAndUpdateGraph : ERROR!!" <<endl;
 			return;
@@ -156,9 +161,9 @@ static void parseShapeAndUpdateGraph(Graph *graph, mapboundary bound,
 	}
 
 	vertex_add_edge_to_vertex_undirect_exclusive(
-			getVertex(global_graph, fromid), getVertex(graph, tokens[1].c_str()), atoi(roadid));
+			getVertex(m_graph, fromid), getVertex(m_graph, tokens[1].c_str()), atoi(roadid));
 	vertex_add_edge_to_vertex_undirect_exclusive(
-			getVertex(graph, tokens[tokens.size() - 2].c_str()), getVertex(global_graph, toid), atoi(roadid));
+			getVertex(m_graph, tokens[tokens.size() - 2].c_str()), getVertex(m_graph, toid), atoi(roadid));
 
 
 }
@@ -169,10 +174,10 @@ static void parseShapeAndUpdateGraph(Graph *graph, mapboundary bound,
 //	return x;
 //}
 
-Graph * loadSumoMap(string sumoMapFilename)
+Graph * MbrSumo::loadSumoMap(string sumoMapFilename)
 {
  	string id,roadid, xstr, ystr, fromid, toid;
-	mapboundary bound;
+//	mapboundary bound;
 	map<string, node> nodeMap;
 
 	node temp;
@@ -186,14 +191,14 @@ Graph * loadSumoMap(string sumoMapFilename)
         return NULL;
     }
 
-    global_graph = graph_create();
+    m_graph = graph_create();
 
     XMLElement *root = doc.RootElement();
     XMLElement *location = root->FirstChildElement("location");
-    parseBoundary(location, &bound);
+    parseBoundary(location);
 
     /**
-     * junction ½ö½öÊÇÂ·¿ÚµÄµã£¬Ã»ÓÐ°üÀ¨µ¥ÌõµÀÂ·ÉÏµÄµã¡£µ¥ÌõµÀÂ·ÉÏµÄµãÎ»ÓÚedgeµÄshapeÖÐ
+     * junction ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â·ï¿½ÚµÄµã£¬Ã»ï¿½Ð°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â·ï¿½ÏµÄµã¡£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â·ï¿½ÏµÄµï¿½Î»ï¿½ï¿½edgeï¿½ï¿½shapeï¿½ï¿½
      */
     XMLElement *junction = root->FirstChildElement("junction");
     /**
@@ -212,18 +217,18 @@ Graph * loadSumoMap(string sumoMapFilename)
     	temp.x = atof(xstr.c_str());
     	temp.y = atof(ystr.c_str());
 
-    	temp.geohash = sumoCartesian2Geohash(bound, temp.x, temp.y);
-    	sumoCartesian2GPS(bound, temp.x, temp.y, &temp.x, &temp.y);
+    	temp.geohash = sumoCartesian2Geohash(temp.x, temp.y);
+    	sumoCartesian2GPS(temp.x, temp.y, &temp.x, &temp.y);
     	temp.id = id;
     	nodeMap[id] = temp;
 
-    	graph_add_vertex(global_graph, vertex_create(id.c_str(), temp.geohash, 1 /*isIntersection*/));
+    	graph_add_vertex(m_graph, vertex_create(id.c_str(), temp.geohash, 1 /*isIntersection*/));
     	junction = junction->NextSiblingElement("junction");
     }
     /**
      * Create Vertexes and Edges
-     * edgeÌõÄ¿ÖÐ£¬ºÜ¶àÃ»ÓÐshape×Ö¶Î£¨laneÓÐ£¬µ«ÊÇÓëjunction×ø±ê²»Æ¥Åä£©¡£Õâ¸ö±ßÊµ¼ÊÉÏÖ»ÓÐÁ½¸öµã£¬ÓÃfromºÍto×Ö¶Î¾Í¿ÉÒÔÁË¡£
-     * Èç¹û´æÔÚshape×Ö¶Î£¬ÔòÊ×Ä©Á½¸öµãÓëfromºÍtoÊÇÒ»ÖÂµÄ¡£
+     * edgeï¿½ï¿½Ä¿ï¿½Ð£ï¿½ï¿½Ü¶ï¿½Ã»ï¿½ï¿½shapeï¿½Ö¶Î£ï¿½laneï¿½Ð£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½junctionï¿½ï¿½ï¿½ê²»Æ¥ï¿½ä£©ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Êµï¿½ï¿½ï¿½ï¿½Ö»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ã£¬ï¿½ï¿½fromï¿½ï¿½toï¿½Ö¶Î¾Í¿ï¿½ï¿½ï¿½ï¿½Ë¡ï¿½
+     * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½shapeï¿½Ö¶Î£ï¿½ï¿½ï¿½ï¿½ï¿½Ä©ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½fromï¿½ï¿½toï¿½ï¿½Ò»ï¿½ÂµÄ¡ï¿½
      */
     XMLElement *edge = root->FirstChildElement("edge");
     while (edge)
@@ -236,18 +241,17 @@ Graph * loadSumoMap(string sumoMapFilename)
     	toid = edge->Attribute("to", NULL);
 
     	if(!(edge->Attribute("shape", NULL))) {
-        	vertex_add_edge_to_vertex_undirect_exclusive(getVertex(global_graph, fromid.c_str()),
-        			getVertex(global_graph, toid.c_str()),
+        	vertex_add_edge_to_vertex_undirect_exclusive(getVertex(m_graph, fromid.c_str()),
+        			getVertex(m_graph, toid.c_str()),
     				atoi(roadid.c_str()));
     	} else {
     		shape = edge->Attribute("shape", NULL);
-    		parseShapeAndUpdateGraph(global_graph, bound,
-    		    				fromid.c_str(), toid.c_str(), roadid.c_str(), shape);
+    		parseShapeAndUpdateGraph(fromid.c_str(), toid.c_str(), roadid.c_str(), shape);
     	}
 
     	edge = edge->NextSiblingElement("edge");
     }
-	return global_graph;
+	return m_graph;
 }
 //int main()
 //{

@@ -4,17 +4,25 @@
  *  Created on: 2017年5月28日
  *      Author: wu
  */
-
-#include <string>
-#include "graph.h"
-
 #ifndef MBR_LOAD_SUMOMAP_H_
 #define MBR_LOAD_SUMOMAP_H_
+
+#include <string.h>
+#include <map>
+#include <vector>
+#include <string>
+#include "graph.h"
+#include "tinyxml2.h"
+
+namespace ns3 {
+namespace mbr {
 
 #define LAT_RANGE_MIN 39.74732
 #define LAT_RANGE_MAX 40.15929
 #define LON_RANGE_MIN 116.16677
 #define LON_RANGE_MAX 116.73407
+
+
 
 typedef struct {
 	double x,y;
@@ -35,11 +43,35 @@ typedef struct {
 	std::string projParameter;
 } mapboundary;
 
-void sumoCartesian2GPS(mapboundary bound, double input_x, double input_y,
-		double *output_x, double *output_y);
-uint64_t sumoCartesian2Geohash(mapboundary bound, double input_x, double input_y);
-Graph* loadSumoMap(std::string sumoMapFilename);
+class MbrSumo {
 
+public:
+	void sumoCartesian2GPS(double input_x, double input_y,
+			double *output_x, double *output_y);
+	uint64_t sumoCartesian2Geohash(double input_x, double input_y);
+	Graph* loadSumoMap(std::string sumoMapFilename);
+	/**
+	* \brief Gets the topology instance
+	* \return the topology instance
+	*/
+	static MbrSumo * GetInstance();
+private:
+	static MbrSumo * p;
+	mapboundary m_bound;
+	//graph
+	Graph *m_graph;
+	//private constructor
+	MbrSumo(){};
+	void Tokenize(const std::string& str,
+			std::vector<std::string>& tokens,
+	        const std::string& delimiters);
+	std::string parseRoadid(std::string str);
+	void parseBoundary(tinyxml2::XMLElement *location);
+	void parseShapeAndUpdateGraph(const char *fromid, const char *toid, const char *roadid, std::string shape);
 
+};
+
+}
+}
 #endif /* MBR_LOAD_SUMOMAP_H_ */
 
