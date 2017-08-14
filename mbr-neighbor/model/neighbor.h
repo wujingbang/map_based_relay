@@ -29,6 +29,8 @@
 #ifndef MBRNEIGHBOR_H
 #define MBRNEIGHBOR_H
 
+#include "ns3/mbr-common.h"
+
 #include "ns3/simulator.h"
 #include "ns3/timer.h"
 #include "ns3/ipv4-address.h"
@@ -55,15 +57,17 @@ public:
   {
     Ipv4Address m_neighborAddress;
     Mac48Address m_hardwareAddress;
+    Time m_expireTime;
+    bool close;
     uint64_t m_geohash;
     uint16_t m_direction;
 
-    Time m_expireTime;
-    bool close;
+
+
 
     Neighbor (Ipv4Address ip, Mac48Address mac, Time t, uint64_t geohash, uint16_t direction) :
-      m_neighborAddress (ip), m_hardwareAddress (mac), m_expireTime (t),
-      close (false), m_geohash(geohash), m_direction(direction)
+      m_neighborAddress (ip), m_hardwareAddress (mac), m_expireTime (t),close (false),
+      m_geohash(geohash), m_direction(direction)
     {
     }
   };
@@ -72,7 +76,7 @@ public:
   /// Check that node with address addr  is neighbor
   bool IsNeighbor (Ipv4Address addr);
   /// Update expire time for entry with address addr, if it exists, else add new entry
-  void Update (Ipv4Address addr, Time expire, uint64_t geohash, uint16_t direction);
+  void Update (Ipv4Address addr, Time expire, const uint8_t *mac, uint64_t geohash, uint16_t direction);
   /// Remove all expired entries
   void Purge ();
   /// Schedule m_ntimer.
@@ -80,11 +84,16 @@ public:
   /// Remove all entries
   void Clear () { m_nb.clear (); }
 
+  uint64_t GetgeohashFromMac(uint8_t* mac);
+  int GetnbFromsetRandom(Mac48Address *mac, GeoHashSetCoordinate *geohashset);
+  int GetnbFromsetBest(Mac48Address *mac, GeoHashSetCoordinate *geohashset);
+
   /// Get callback to ProcessTxError
 //  Callback<void, WifiMacHeader const &> GetTxErrorCallback () const { return m_txErrorCallback; }
 
 private:
 
+  int GetDtime(uint64_t geohash, uint16_t direct, GeoHashSetCoordinate *geohashset);
   /// TX error callback
 //  Callback<void, WifiMacHeader const &> m_txErrorCallback;
   /// Timer for neighbor's list. Schedule Purge().
@@ -93,7 +102,7 @@ private:
   std::vector<Neighbor> m_nb;
 
   /// Find MAC address by IP using list of ARP caches
-  Mac48Address LookupMacAddress (Ipv4Address);
+//  Mac48Address LookupMacAddress (Ipv4Address);
   /// Process layer 2 TX error notification
 //  void ProcessTxError (WifiMacHeader const &);
 };

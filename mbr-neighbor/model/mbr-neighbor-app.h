@@ -1,8 +1,8 @@
-#ifndef MBR_BEACON_H
-#define MBR_BEACON_H
+#ifndef MBR_NEIGHBOR_APP_H
+#define MBR_NEIGHBOR_APP_H
 
 #include "mbr-header.h"
-
+#include "neighbor.h"
 #include "ns3/application.h"
 
 #include "ns3/random-variable-stream.h"
@@ -12,7 +12,7 @@
 namespace ns3 {
 namespace mbr {
 
-class MbrNeighbor : public Application
+class MbrNeighborApp : public Application
 {
 public:
 	static TypeId GetTypeId (void);
@@ -21,8 +21,9 @@ public:
 	* \brief Constructor
 	* \return none
 	*/
-	MbrNeighbor ();
-	virtual ~MbrNeighbor();
+	MbrNeighborApp ();
+	virtual ~MbrNeighborApp();
+
 	void Setup (Ipv4InterfaceContainer & i,
 			  int nodeId,
 			  Time totalTime,
@@ -43,6 +44,10 @@ public:
 	*/
 	int64_t AssignStreams (int64_t streamIndex);
 
+	const Neighbors& getNb() const {
+		return m_neighbors;
+	}
+
 	/**
 	* (Arbitrary) port number that is used to create a socket for transmitting WAVE BSMs.
 	*/
@@ -55,17 +60,19 @@ public:
 //  void Run ();
 //
 //
-//  /**
-//   * \brief Gets the topology instance
-//   * \return the topology instance
-//   */
-//  static MbrNeighbor * GetInstance();
+//	/**
+//	* \brief Gets the topology instance
+//	* \return the topology instance
+//	*/
+//	static MbrNeighbor * GetInstance();
 //
 //  void Initialize();
 
 
 protected:
   virtual void DoDispose (void);
+
+
 
 private:
   // inherited from Application base class.
@@ -116,10 +123,7 @@ private:
   Ptr<NetDevice> GetNetDevice (int id);
 
 
-  /// Handle neighbors
-  Neighbors m_nb;
 
-  Time m_waveInterval;
   Time m_TotalSimTime;
   uint32_t m_wavePacketSize; // bytes
   uint32_t m_numWavePackets;
@@ -127,6 +131,7 @@ private:
   double m_gpsAccuracyNs;
   Ipv4InterfaceContainer * m_adhocTxInterfaces;
   std::vector<int> * m_nodesMoving;
+  Ptr<UniformRandomVariable> m_unirv;
   int m_nodeId;
   // When transmitting at a default rate of 10 Hz,
   // the subsystem shall transmit every 100 ms +/-
@@ -137,7 +142,9 @@ private:
   // max transmit delay (default 10ms)
   Time m_txMaxDelay;
   Time m_prevTxDelay;
-  Ptr<UniformRandomVariable> m_unirv;
+  /// Handle neighbors
+  Neighbors m_neighbors;
+
   /**
    * \brief Get the topology instance (create if necessary)
    * \return the topology instance
@@ -152,4 +159,4 @@ private:
 } //namespace mbr
 } // namespace ns3
 
-#endif  // MBR_BEACON_H
+#endif  // MBR_NEIGHBOR_APP_H

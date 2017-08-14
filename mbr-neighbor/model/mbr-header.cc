@@ -1,16 +1,18 @@
 #include "mbr-header.h"
 
+#include "ns3/address-utils.h"
+#include "ns3/packet.h"
+
 using namespace ns3;
 using namespace mbr;
 
 //-----------------------------------------------------------------------------
 // RREP
 //-----------------------------------------------------------------------------
-
 MbrHeader::MbrHeader (uint8_t prefixSize, uint8_t hopCount, Ipv4Address dst,
                         uint32_t dstSeqNo, Ipv4Address origin, Time lifeTime,
 						uint64_t geohash, uint8_t *mac, uint16_t direction,
-						uint32_t latitude=0, uint32_t longitude=0) :
+						float latitude, float longitude) :
   m_flags (0), m_prefixSize (prefixSize), m_hopCount (hopCount),
   m_dst (dst), m_dstSeqNo (dstSeqNo), m_origin (origin),
   m_geohash (geohash), m_direction(direction),
@@ -83,6 +85,7 @@ void
 MbrHeader::Serialize (Buffer::Iterator i) const
 {
 	int j;
+	uint32_t t1,t2;
   i.WriteU8 (m_flags);
   i.WriteU8 (m_prefixSize);
   i.WriteU8 (m_hopCount);
@@ -93,8 +96,11 @@ MbrHeader::Serialize (Buffer::Iterator i) const
   i.WriteHtonU64(m_geohash);
   for(j=0; j<6; j++)
 	  i.WriteU8(m_mac[j]);
-  i.WriteHtonU32(m_latitude);
-  i.WriteHtonU32(m_longitude);
+  memcpy(&t1, &m_latitude, 4);
+  memcpy(&t2, &m_longitude, 4);
+  i.WriteHtonU32(t1);
+  i.WriteHtonU32(t2);
+
 }
 
 uint32_t
@@ -102,6 +108,7 @@ MbrHeader::Deserialize (Buffer::Iterator start)
 {
   Buffer::Iterator i = start;
   int j;
+  uint32_t t1,t2;
   m_flags = i.ReadU8 ();
   m_prefixSize = i.ReadU8 ();
   m_hopCount = i.ReadU8 ();
@@ -112,8 +119,10 @@ MbrHeader::Deserialize (Buffer::Iterator start)
   m_geohash = i.ReadNtohU64 ();
   for(j=0; j<6; j++)
 	  m_mac[j] = i.ReadU8();
-  m_latitude = i.ReadNtohU32 ();
-  m_longitude = i.ReadNtohU32 ();
+  t1 = i.ReadNtohU32 ();
+  t2 = i.ReadNtohU32 ();
+  memcpy(&m_latitude, &t1, 4);
+  memcpy(&m_longitude, &t2, 4);
 
   uint32_t dist = i.GetDistanceFrom (start);
   NS_ASSERT (dist == GetSerializedSize ());

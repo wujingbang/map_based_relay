@@ -1,5 +1,5 @@
-#include "mbr-hello.h"
-#include "mbr-neighbor.h"
+#include "mbr-neighbor-app.h"
+
 #include "ns3/mbr_sumomap.h"
 
 #include "ns3/log.h"
@@ -23,25 +23,27 @@ using namespace mbr;
 NS_LOG_COMPONENT_DEFINE ("MbrNeighbor");
 
 // (Arbitrary) port for establishing socket to transmit WAVE BSMs
-int MbrNeighbor::wavePort = 9080;
+int MbrNeighborApp::wavePort = 9080;
 
-NS_OBJECT_ENSURE_REGISTERED (MbrNeighbor);
+NS_OBJECT_ENSURE_REGISTERED (MbrNeighborApp);
 
 TypeId
-MbrNeighbor::GetTypeId (void)
+MbrNeighborApp::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::MbrNeighbor")
     .SetParent<Application> ()
     .SetGroupName ("Wave")
-    .AddConstructor<MbrNeighbor> ()
+    .AddConstructor<MbrNeighborApp> ()
     ;
   return tid;
 }
 
-MbrNeighbor::MbrNeighbor ()
-  : m_TotalSimTime (Seconds (10)),
+
+
+MbrNeighborApp::MbrNeighborApp ():
+    m_TotalSimTime (Seconds (10)),
     m_wavePacketSize (200),
-    m_numWavePackets (1),
+    m_numWavePackets(1),
     m_waveInterval (MilliSeconds (100)),
     m_gpsAccuracyNs (10000),
     m_adhocTxInterfaces (0),
@@ -49,26 +51,28 @@ MbrNeighbor::MbrNeighbor ()
     m_unirv (0),
     m_nodeId (0),
     m_txMaxDelay (MilliSeconds (10)),
-    m_prevTxDelay (MilliSeconds (0))
+    m_prevTxDelay(MilliSeconds (0)),
+    m_neighbors(MilliSeconds (100))
 {
   NS_LOG_FUNCTION (this);
 }
 
-MbrNeighbor::~MbrNeighbor ()
+MbrNeighborApp::~MbrNeighborApp ()
 {
   NS_LOG_FUNCTION (this);
 }
 
 void
-MbrNeighbor::DoDispose (void)
+MbrNeighborApp::DoDispose (void)
 {
   NS_LOG_FUNCTION (this);
 
   // chain up
   Application::DoDispose ();
 }
+
 // Application Methods
-void MbrNeighbor::StartApplication () // Called at time specified by Start
+void MbrNeighborApp::StartApplication () // Called at time specified by Start
 {
   NS_LOG_FUNCTION (this);
 
@@ -86,7 +90,7 @@ void MbrNeighbor::StartApplication () // Called at time specified by Start
 
   // every node broadcasts WAVE BSM to potentially all other nodes
   Ptr<Socket> recvSink = Socket::CreateSocket (GetNode (m_nodeId), tid);
-  recvSink->SetRecvCallback (MakeCallback (&BsmApplication::ReceiveWavePacket, this));
+  recvSink->SetRecvCallback (MakeCallback (&MbrNeighborApp::ReceiveWavePacket, this));
   InetSocketAddress local = InetSocketAddress (Ipv4Address::GetAny (), wavePort);
   recvSink->Bind (local);
   recvSink->BindToNetDevice (GetNetDevice (m_nodeId));
@@ -158,17 +162,17 @@ void MbrNeighbor::StartApplication () // Called at time specified by Start
   Time txTime = startTime + tDrift + txDelay;
   // schedule transmission of first packet
   Simulator::ScheduleWithContext (recvSink->GetNode ()->GetId (),
-                                  txTime, &MbrNeighbor::GenerateWaveTraffic, this,
+                                  txTime, &MbrNeighborApp::GenerateWaveTraffic, this,
                                   recvSink, m_wavePacketSize, m_numWavePackets, waveInterPacketInterval, m_nodeId);
 }
 
-void MbrNeighbor::StopApplication () // Called at time specified by Stop
+void MbrNeighborApp::StopApplication () // Called at time specified by Stop
 {
   NS_LOG_FUNCTION (this);
 }
 
 void
-MbrNeighbor::Setup (Ipv4InterfaceContainer & i,
+MbrNeighborApp::Setup (Ipv4InterfaceContainer & i,
 				  int nodeId,
 				  Time totalTime,
 				  uint32_t wavePacketSize, // bytes
@@ -195,7 +199,7 @@ MbrNeighbor::Setup (Ipv4InterfaceContainer & i,
 }
 
 void
-MbrNeighbor::GenerateWaveTraffic (Ptr<Socket> socket, uint32_t pktSize,
+MbrNeighborApp::GenerateWaveTraffic (Ptr<Socket> socket, uint32_t pktSize,
                                      uint32_t pktCount, Time pktInterval,
                                      uint32_t sendingNodeId)
 {
@@ -208,19 +212,20 @@ MbrNeighbor::GenerateWaveTraffic (Ptr<Socket> socket, uint32_t pktSize,
 	double lat,longi;
 	MbrSumo *map = MbrSumo::GetInstance();
 
-	lat = map->sumoCartesian2GPS(pos.x, pos.y, &lat, &longi);
+	map->sumoCartesian2GPS(pos.x, pos.y, &lat, &longi);
 	uint8_t mac[6];
-	((Mac48Address)GetNetDevice(sendingNodeId)->GetAddress()).CopyTo(mac);
-
-	std::pair<Ptr<Ipv4>, uint32_t> interface = m_adhocTxInterfaces->Get (id);
+	//((Mac48Address)(GetNetDevice(sendingNodeId)->GetAddress())).CopyTo(mac);
+	Mac48Address tmac = Mac48Address::ConvertFrom(GetNetDevice(sendingNodeId)->GetAddress());
+	tmac.CopyTo(mac);
+	std::pair<Ptr<Ipv4>, uint32_t> interface = m_adhocTxInterfaces->Get (sendingNodeId);
 	Ptr<Ipv4> pp = interface.first;
 	uint32_t interfaceidx = interface.second;
 	Ipv4InterfaceAddress ip_origin = pp->GetAddress(interfaceidx, 0);
 
     MbrHeader helloHeader (/*prefix size=*/ 0, /*hops=*/ 0, /*dst=*/ ip_origin.GetLocal(), /*dst seqno=*/ 0,
-                                             /*origin=*/ ip_origin.GetLocal(),/*lifetime=*/ 0,
+                                             /*origin=*/ ip_origin.GetLocal(),/*lifetime=*/ MilliSeconds (0),
 							/*geohash*/map->sumoCartesian2Geohash(pos.x, pos.y), mac, /*direction*/0,
-							/*latitude*/lat, /*longitude*/longi);
+							/*latitude*/(float)lat, /*longitude*/(float)longi);
     Ptr<Packet> packet = Create<Packet> ();
     SocketIpTtlTag tag;
     tag.SetTtl (1);
@@ -245,25 +250,26 @@ MbrNeighbor::GenerateWaveTraffic (Ptr<Socket> socket, uint32_t pktSize,
 	m_prevTxDelay = txDelay;
 
 	Simulator::ScheduleWithContext (socket->GetNode ()->GetId (),
-								  txTime, &MbrNeighbor::GenerateWaveTraffic, this,
+								  txTime, &MbrNeighborApp::GenerateWaveTraffic, this,
 								  socket, pktSize, pktCount - 1, pktInterval,  socket->GetNode ()->GetId ());
 }
 
-void MbrNeighbor::ReceiveWavePacket (Ptr<Socket> socket)
+void MbrNeighborApp::ReceiveWavePacket (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
 
   Address sourceAddress;
   Ptr<Packet> packet = socket->RecvFrom (sourceAddress);
-  InetSocketAddress inetSourceAddr = InetSocketAddress::ConvertFrom (sourceAddress);
-  Ipv4Address sender = inetSourceAddr.GetIpv4 ();
+  //InetSocketAddress inetSourceAddr = InetSocketAddress::ConvertFrom (sourceAddress);
+  //Ipv4Address sender = inetSourceAddr.GetIpv4 ();
 
   MbrHeader mbrHeader;
   packet->RemoveHeader (mbrHeader);
   Ipv4Address dst = mbrHeader.GetDst ();
   NS_LOG_LOGIC ("MBR Hello destination " << dst << " origin " << mbrHeader.GetOrigin ());
 
-  m_nb.Update (mbrHeader.GetOrigin (), Time (MilliSeconds(350)), mbrHeader.getGeohash(), mbrHeader.getDirection());
+  m_neighbors.Update (mbrHeader.GetOrigin (), Time (MilliSeconds(350)),
+		  mbrHeader.getMac(), mbrHeader.getGeohash(), mbrHeader.getDirection());
 
 }
 
@@ -331,7 +337,7 @@ void MbrNeighbor::ReceiveWavePacket (Ptr<Socket> socket)
 
 
 int64_t
-MbrNeighbor::AssignStreams (int64_t streamIndex)
+MbrNeighborApp::AssignStreams (int64_t streamIndex)
 {
   NS_LOG_FUNCTION (this);
 
@@ -342,7 +348,7 @@ MbrNeighbor::AssignStreams (int64_t streamIndex)
 }
 
 Ptr<Node>
-MbrNeighbor::GetNode (int id)
+MbrNeighborApp::GetNode (int id)
 {
   NS_LOG_FUNCTION (this);
 
@@ -354,7 +360,7 @@ MbrNeighbor::GetNode (int id)
 }
 
 Ptr<NetDevice>
-MbrNeighbor::GetNetDevice (int id)
+MbrNeighborApp::GetNetDevice (int id)
 {
   NS_LOG_FUNCTION (this);
 

@@ -78,7 +78,7 @@ public:
                 Ipv4Address (), uint32_t dstSeqNo = 0, Ipv4Address origin =
                 Ipv4Address (), Time lifetime = MilliSeconds (0),
 				uint64_t geohash=0, uint8_t *mac = NULL, uint16_t direction=0,
-				uint32_t latitude=0, uint32_t longitude=0);
+				float latitude=0, float longitude=0.0);
   // Header serialization/deserialization
   static TypeId GetTypeId ();
   TypeId GetInstanceTypeId () const;
@@ -128,19 +128,19 @@ public:
 		m_geohash = geohash;
 	}
 
-	uint32_t getLatitude() const {
+	float getLatitude() const {
 		return m_latitude;
 	}
 
-	void setLatitude(uint32_t latitude) {
+	void setLatitude(float latitude) {
 		m_latitude = latitude;
 	}
 
-	uint32_t getLongitude() const {
+	float getLongitude() const {
 		return m_longitude;
 	}
 
-	void setLongitude(uint32_t longitude) {
+	void setLongitude(float longitude) {
 		m_longitude = longitude;
 	}
 
@@ -155,12 +155,14 @@ private:
   Ipv4Address   m_dst;              ///< Destination IP Address
   uint32_t      m_dstSeqNo;         ///< Destination Sequence Number
   Ipv4Address     m_origin;           ///< Source IP Address
-  uint32_t      m_lifeTime;         ///< Lifetime (in milliseconds)
+
   uint64_t		m_geohash;
   uint8_t 		m_mac[6];
   uint16_t		m_direction;
-  uint32_t		m_latitude;
-  uint32_t		m_longitude;
+  float		m_latitude;
+  float		m_longitude;
+
+  uint32_t      m_lifeTime;         ///< Lifetime (in milliseconds)
 };
 
 std::ostream & operator<< (std::ostream & os, MbrHeader const &);
