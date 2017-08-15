@@ -44,7 +44,7 @@ public:
 	*/
 	int64_t AssignStreams (int64_t streamIndex);
 
-	const Neighbors& getNb() const {
+	Neighbors* getNb() const {
 		return m_neighbors;
 	}
 
@@ -122,8 +122,6 @@ private:
    */
   Ptr<NetDevice> GetNetDevice (int id);
 
-
-
   Time m_TotalSimTime;
   uint32_t m_wavePacketSize; // bytes
   uint32_t m_numWavePackets;
@@ -143,7 +141,7 @@ private:
   Time m_txMaxDelay;
   Time m_prevTxDelay;
   /// Handle neighbors
-  Neighbors m_neighbors;
+  Neighbors* m_neighbors;
 
   /**
    * \brief Get the topology instance (create if necessary)

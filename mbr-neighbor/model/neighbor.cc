@@ -104,7 +104,7 @@ Neighbors::ScheduleTimer ()
  * return
  *
  */
-uint64_t Neighbors::GetgeohashFromMac(uint8_t* mac)
+uint64_t Neighbors::GetGeohashFromMacInNb(uint8_t* mac)
 {
 	Mac48Address tempmac;
 	tempmac.CopyFrom(mac);
@@ -177,7 +177,7 @@ int Neighbors::GetDtime(uint64_t geohash, uint16_t direct, GeoHashSetCoordinate 
  * get the best node which is in the range of the geohash set based on the "relay zone dwelling time".
  * return 0 if unmatched.
  */
-int Neighbors::GetnbFromsetBest(Mac48Address *mac, GeoHashSetCoordinate *geohashset)
+int Neighbors::GetnbFromsetBest(Mac48Address *ret_mac, GeoHashSetCoordinate *geohashset)
 {
 //	unsigned int i;
 	Mac48Address best, temp;
@@ -194,7 +194,7 @@ int Neighbors::GetnbFromsetBest(Mac48Address *mac, GeoHashSetCoordinate *geohash
 	for (std::vector<Neighbor>::iterator i = m_nb.begin (); i != m_nb.end (); ++i) {
 		dtime_curr = GetDtime(i->m_geohash, i->m_direction, geohashset);
 		if ( dtime_curr == dtime_max ) {
-			*mac = i->m_hardwareAddress;
+			*ret_mac = i->m_hardwareAddress;
 			return 1;
 		}
 		else if(dtime_curr > dtime_best) {
@@ -204,7 +204,7 @@ int Neighbors::GetnbFromsetBest(Mac48Address *mac, GeoHashSetCoordinate *geohash
 	}
 
 	if(dtime_best > 0)	{
-		*mac = best;
+		*ret_mac = best;
 		return 1;
 	}
 	else

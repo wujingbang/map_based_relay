@@ -4,6 +4,7 @@
 
 
 #include <stdlib.h>
+#include "ns3/mobility-model.h"
 
 
 #include "debug.h"
@@ -263,13 +264,14 @@ Graph * MbrSumo::loadSumoMap(string sumoMapFilename)
 
 	return m_graph;
 }
-//int main()
-//{
-//	int ret;
-//	ret = loadSumoMap();
-//	if(ret < 0) {
-//		return ret;
-//	}
-//
-//
-//}
+
+uint64_t MbrSumo::GetNodeCurrentGeohash(Ptr<Node> node)
+{
+	Ptr<MobilityModel> MM = node->GetObject<MobilityModel> ();
+	Vector pos;
+	pos.x = MM->GetPosition ().x;
+	pos.y = MM->GetPosition ().y;
+
+	return sumoCartesian2Geohash(pos.x, pos.y);
+}
+

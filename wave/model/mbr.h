@@ -74,17 +74,6 @@ typedef struct graph_deliver
 #else
 
 
-struct mbr_status
-{
-    struct dentry *dir;
-    uint64_t geohash_this;
-    int mbr_start;
-};
-
-//Shared memory page size.
-#define SHARED_MEM_DEVNAME "mbr_neighbor_mem"
-#define SHARED_MEM_SIZE 4*4096
-
 
 
 #endif /* LINUX_KERNEL */

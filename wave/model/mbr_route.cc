@@ -15,16 +15,6 @@ int bitcmp(uint64_t a, uint64_t b, int step)
 	return a==b;
 }
 
-
-uint64_t get_geohash_this(void)
-{
-	if (global_mbr_status.geohash_this == 0) {
-		mbr_dbg(debug_level, ANY,"get_geohash_this get zero!!\n");
-	}
-
-	return global_mbr_status.geohash_this;
-}
-
 ////Eager Singleton
 //MbrRoute* MbrRoute::p = new MbrRoute;
 //
@@ -48,24 +38,28 @@ int MbrRoute::mbr_forward(uint8_t * to, uint8_t * relay_mac, Ptr<Node> thisnode)
 	Vertex *dst_vertex;
 	//GeoHashBits	geohashbit_tmp;
 	GeoHashSetCoordinate geohashset;
-//	int ret;
+	int ret;
 
 	MbrSumo* sumomap = MbrSumo::GetInstance();
 	NS_ASSERT (sumomap->isInitialized());
 	Graph* g = sumomap->getGraph();
 	//Assume mbr-neighbor-app is the first application.
-	Ptr<MbrNeighborApp> mbapp = DynamicCast<MbrNeighborApp> (thisnode->GetApplication(0));
+	Ptr<MbrNeighborApp> nbapp = DynamicCast<MbrNeighborApp> (thisnode->GetApplication(0));
 //	dst_geohash = neighbor_getgeohash_frommac(to);
-	dst_geohash = mbapp->getNb()->GetgeohashFromMac(to);
+	dst_geohash = nbapp->getNb()->GetGeohashFromMacInNb(to);
 	if(dst_geohash == 0) {
 		mbr_dbg(debug_level, ANY, "mbr_forward: nexthop does not exist in the neighbors!\n");
 		return -1;
 	}
 
-	this_geohash = get_geohash_this();
+	this_geohash = sumomap->GetNodeCurrentGeohash(thisnode);
 	this_vertex = find_Vertex_by_VehiclePosition(g, this_geohash);
 	dst_vertex = find_Vertex_by_VehiclePosition(g, dst_geohash);
 	intersection = cross_vertex(this_vertex, dst_vertex);
+	/**
+	* MBR: Check whether this node and "to" are in the same road,
+	* if not, MBR should be activated.
+	*/
 	if(intersection != NULL)
 		nexthop_geohash = intersection->geoHash;
 	else
@@ -83,12 +77,13 @@ int MbrRoute::mbr_forward(uint8_t * to, uint8_t * relay_mac, Ptr<Node> thisnode)
 	geohash_get_neighbors_in_set(&geohashset, nexthop_geohash, GEOHASH_STEP_BIT);
 
 	//ret = neighbor_getnode_fromset_random(&neighbor_entry, &geohashset);
-
+	Mac48Address relaymac;
+	ret = nbapp->getNb()->GetnbFromsetBest(&relaymac, &geohashset);
 //	ret = neighbor_getnode_fromset_best(&neighbor_entry, &geohashset);
-//	if(ret == 0)
-//		return -1; //unmatched!
+	if(ret == 0)
+		return -1; //unmatched!
 //
-//	memcpy(relay_mac, neighbor_entry->mac, 6);
+	relaymac.CopyTo(relay_mac);
 
 	return 0;
 }

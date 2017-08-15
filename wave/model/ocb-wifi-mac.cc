@@ -32,11 +32,9 @@
 #include "higher-tx-tag.h"
 
 #include "ns3/net-device-container.h"
+#include "mbr_route.h"
 #include "mbr.h"
 #include "mbr_sumomap.h"
-
-struct mbr_status global_mbr_status;
-unsigned char *shared_mem_neighbor = NULL;
 
 namespace ns3 {
 using namespace mbr;
@@ -215,51 +213,59 @@ OcbWifiMac::Enqueue (Ptr<const Packet> packet, Mac48Address to)
 //  else
 //    {
 
-  /**
-   * MBR: Check whether this node and "to" are in the same road,
-   * if not, MBR should be activated.
-   */
-  Ptr<Node> thisnode = this->GetObject<Node> ();
-  Ptr<MobilityModel> MM = thisnode->GetObject<MobilityModel> ();
-  Vector pos;
-  pos.x = MM->GetPosition ().x;
-  pos.y = MM->GetPosition ().y;
-  //double lat,longi;
-  MbrSumo *mbrsumo = MbrSumo::GetInstance();
-  uint64_t thisgeohash = mbrsumo->sumoCartesian2Geohash(pos.x, pos.y);
-  uint64_t togeohash;
+//  /**
+//   * MBR: Check whether this node and "to" are in the same road,
+//   * if not, MBR should be activated.
+//   */
+//  Ptr<Node> thisnode = this->GetObject<Node> ();
+//  MbrSumo *mbrsumo = MbrSumo::GetInstance();
+//  uint64_t thisgeohash = mbrsumo->GetNodeCurrentGeohash(thisnode);
+//  uint64_t togeohash;
+//
+//  for (NetDeviceContainer::Iterator itr = mbrsumo->getNetdeivcelist()->Begin (); itr != mbrsumo->getNetdeivcelist()->End (); ++itr)
+//  {
+//	  Mac48Address tmac = Mac48Address::ConvertFrom((*itr)->GetAddress());
+//	  if (tmac == to) {
+//		  togeohash = mbrsumo->GetNodeCurrentGeohash((*itr)->GetNode());
+//		  break;
+//	  }
+//  }
+//
+//
+//  Vertex * thisv = find_Vertex_by_VehiclePosition(mbrsumo->getGraph(), thisgeohash);
+//  Vertex * tov = find_Vertex_by_VehiclePosition(mbrsumo->getGraph(), togeohash);
+//  if (cross_vertex(thisv, tov)) {
+//	  // To do mbr route
+//  }
 
-  for (NetDeviceContainer::Iterator itr = mbrsumo->getNetdeivcelist()->Begin (); itr != mbrsumo->getNetdeivcelist()->End (); ++itr)
+
+  //mbr_forward(uint8_t * to, uint8_t * relay_mac, Ptr<Node> thisnode)
+  uint8_t relay_mac[6];
+  Mac48Address relay_mac_ns;
+  uint8_t tomac[6];
+  to.CopyTo(tomac);
+  int ret = MbrRoute::mbr_forward(tomac, relay_mac, this->GetObject<Node> ());
+  if(ret == 0)
   {
-	  Mac48Address tmac = Mac48Address::ConvertFrom((*itr)->GetAddress());
-	  if (tmac == to) {
-		  Ptr<MobilityModel> toMM = (*itr)->GetNode()->GetObject<MobilityModel> ();
-		  Vector topos;
-		  topos.x = toMM->GetPosition ().x;
-		  topos.y = toMM->GetPosition ().y;
-		  togeohash = mbrsumo->sumoCartesian2Geohash(topos.x, topos.y);
-		  break;
-	  }
+	  relay_mac_ns.CopyFrom(relay_mac);
+	  hdr.SetTypeMBRData();
+	  hdr.SetAddr1(relay_mac_ns);
+	  hdr.SetAddr2(GetAddress ());
+	  hdr.SetAddr3(WILDCARD_BSSID);
+	  hdr.SetAddr4(to);
+  } else
+  {
+	hdr.SetTypeData ();
+	hdr.SetAddr1 (to);
+	hdr.SetAddr2 (GetAddress ());
+	hdr.SetAddr3 (WILDCARD_BSSID);
+	hdr.SetDsNotFrom ();
+	hdr.SetDsNotTo ();
   }
-
-
-  Vertex * thisv = find_Vertex_by_VehiclePosition(mbrsumo->getGraph(), thisgeohash);
-  Vertex * tov = find_Vertex_by_VehiclePosition(mbrsumo->getGraph(), togeohash);
-  if (cross_vertex(thisv, tov)) {
-	  // To do mbr route
-  }
-      hdr.SetTypeData ();
-//    }
-
-  if (m_htSupported || m_vhtSupported)
-    {
-      hdr.SetNoOrder ();
-    }
-  hdr.SetAddr1 (to);
-  hdr.SetAddr2 (GetAddress ());
-  hdr.SetAddr3 (WILDCARD_BSSID);
-  hdr.SetDsNotFrom ();
-  hdr.SetDsNotTo ();
+	if (m_htSupported || m_vhtSupported)
+	{
+	  hdr.SetNoOrder ();
+	}
 
   if (m_qosSupported)
     {

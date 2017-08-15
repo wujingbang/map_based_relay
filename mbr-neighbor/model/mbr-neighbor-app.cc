@@ -51,10 +51,11 @@ MbrNeighborApp::MbrNeighborApp ():
     m_unirv (0),
     m_nodeId (0),
     m_txMaxDelay (MilliSeconds (10)),
-    m_prevTxDelay(MilliSeconds (0)),
-    m_neighbors(MilliSeconds (100))
+    m_prevTxDelay(MilliSeconds (0))
+
 {
   NS_LOG_FUNCTION (this);
+  m_neighbors = new Neighbors(MilliSeconds (100));
 }
 
 MbrNeighborApp::~MbrNeighborApp ()
@@ -268,7 +269,7 @@ void MbrNeighborApp::ReceiveWavePacket (Ptr<Socket> socket)
   Ipv4Address dst = mbrHeader.GetDst ();
   NS_LOG_LOGIC ("MBR Hello destination " << dst << " origin " << mbrHeader.GetOrigin ());
 
-  m_neighbors.Update (mbrHeader.GetOrigin (), Time (MilliSeconds(350)),
+  m_neighbors->Update (mbrHeader.GetOrigin (), Time (MilliSeconds(350)),
 		  mbrHeader.getMac(), mbrHeader.getGeohash(), mbrHeader.getDirection());
 
 }

@@ -84,9 +84,9 @@ public:
   /// Remove all entries
   void Clear () { m_nb.clear (); }
 
-  uint64_t GetgeohashFromMac(uint8_t* mac);
+  uint64_t GetGeohashFromMacInNb(uint8_t* mac);
   int GetnbFromsetRandom(Mac48Address *mac, GeoHashSetCoordinate *geohashset);
-  int GetnbFromsetBest(Mac48Address *mac, GeoHashSetCoordinate *geohashset);
+  int GetnbFromsetBest(Mac48Address *ret_mac, GeoHashSetCoordinate *geohashset);
 
   /// Get callback to ProcessTxError
 //  Callback<void, WifiMacHeader const &> GetTxErrorCallback () const { return m_txErrorCallback; }

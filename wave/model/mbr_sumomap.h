@@ -15,7 +15,8 @@
 #include "tinyxml2.h"
 
 #include "ns3/net-device-container.h"
-
+#include "ns3/node.h"
+#include "ns3/ptr.h"
 namespace ns3 {
 namespace mbr {
 
@@ -51,6 +52,8 @@ public:
 	void sumoCartesian2GPS(double input_x, double input_y,
 			double *output_x, double *output_y);
 	uint64_t sumoCartesian2Geohash(double input_x, double input_y);
+
+	uint64_t GetNodeCurrentGeohash(Ptr<Node> node);
 	Graph* loadSumoMap(std::string sumoMapFilename);
 	void Initialize(NetDeviceContainer *  netdevicelist, std::string sumoMapFilename = "");
 	/**
