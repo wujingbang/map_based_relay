@@ -32,9 +32,7 @@ enum
 {
   TYPE_MGT = 0,
   TYPE_CTL  = 1,
-  TYPE_DATA = 2,
-  TYPE_MBR_DATA = 3,
-  TYPE_MBR_BEACON = 4
+  TYPE_DATA = 2
 };
 
 enum
@@ -144,13 +142,6 @@ WifiMacHeader::SetBeacon (void)
 }
 
 void
-WifiMacHeader::SetMbrBeacon (void)
-{
-	m_ctrlType = TYPE_MBR_BEACON;
-	m_ctrlSubtype = 8;
-}
-
-void
 WifiMacHeader::SetBlockAckReq (void)
 {
   m_ctrlType = TYPE_CTL;
@@ -174,8 +165,14 @@ WifiMacHeader::SetTypeData (void)
 void
 WifiMacHeader::SetTypeMBRData (void)
 {
-  m_ctrlType = TYPE_MBR_DATA;
-  m_ctrlSubtype = 0;
+  m_ctrlType = TYPE_DATA;
+  m_ctrlSubtype = 0x14;
+}
+
+bool
+WifiMacHeader::IsMBRData (void) const
+{
+  return (m_ctrlType == TYPE_DATA && (m_ctrlSubtype & 0x14));
 }
 
 void
@@ -665,11 +662,6 @@ WifiMacHeader::IsMgt (void) const
   return (m_ctrlType == TYPE_MGT);
 }
 
-bool
-WifiMacHeader::IsMbrBeacon (void) const
-{
-  return (m_ctrlType == TYPE_MBR_BEACON);
-}
 
 bool
 WifiMacHeader::IsCfpoll (void) const

@@ -317,6 +317,26 @@ OcbWifiMac::Receive (Ptr<Packet> packet, const WifiMacHeader *hdr)
           NS_LOG_DEBUG ("Received A-MSDU from" << from);
           DeaggregateAmsduAndForward (packet, hdr);
         }
+      else if (hdr->IsMBRData())
+      {
+//    	  relay_mac_ns.CopyFrom(relay_mac);
+//    	  hdr.SetTypeMBRData();
+//    	  hdr.SetAddr1(relay_mac_ns);
+//    	  hdr.SetAddr2(GetAddress ());
+//    	  hdr.SetAddr3(WILDCARD_BSSID);
+//    	  hdr.SetAddr4(to);
+
+    	  WifiMacHeader hdr_relay = *hdr;
+//    	  to = hdr->GetAddr4 (); //override
+    	  hdr_relay.SetTypeData ();
+    	  hdr_relay.SetAddr1 (hdr->GetAddr4 ());
+    	  hdr_relay.SetAddr2 (GetAddress ());
+    	  hdr_relay.SetAddr3 (WILDCARD_BSSID);
+    	  hdr_relay.SetDsNotFrom ();
+    	  hdr_relay.SetDsNotTo ();
+
+    	  m_dca->Queue (packet, hdr_relay);
+      }
       else
         {
           ForwardUp (packet, from, to);

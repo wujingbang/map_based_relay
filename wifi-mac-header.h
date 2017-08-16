@@ -134,12 +134,9 @@ public:
    */
   void SetBeacon (void);
 
-  /**
-   * Mbr Header
-   */
-  void SetMbrBeacon (void);
 
   void SetTypeMBRData (void);
+  bool IsMBRData() const;
   /**
    * Set Type/Subtype values for a data packet with
    * no subtype equal to 0.
@@ -383,10 +380,7 @@ public:
    * \return true if Type is Management, false otherwise
    */
   bool IsMgt (void) const;
-  /**
-   * Mbr Beacon
-   */
-  bool IsMbrBeacon (void) const;
+
   /**
    * Return true if the Type/Subtype is one of the possible CF-Poll headers.
    *
