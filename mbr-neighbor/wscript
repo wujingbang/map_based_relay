@@ -16,6 +16,7 @@ def build(bld):
         'model/mbr-header.cc',
         'model/mbr-neighbor-app.cc',
         'model/neighbor.cc',
+        'helper/mbr-neighbor-helper.cc',
         ]
 
 
@@ -25,6 +26,7 @@ def build(bld):
         'model/mbr-header.h',
         'model/mbr-neighbor-app.h',
         'model/neighbor.h',
+        'helper/mbr-neighbor-helper.h',
         ]
 
     if bld.env.ENABLE_EXAMPLES:
