@@ -55,7 +55,7 @@ public:
 
 	uint64_t GetNodeCurrentGeohash(Ptr<Node> node);
 	Graph* loadSumoMap(std::string sumoMapFilename);
-	void Initialize(NetDeviceContainer *  netdevicelist, std::string sumoMapFilename = "");
+	void Initialize(NetDeviceContainer&  netdevicelist, std::string sumoMapFilename = "");
 	/**
 	* \brief Gets the topology instance
 	* \return the topology instance
@@ -70,13 +70,13 @@ public:
 		return m_initialized;
 	}
 
-	NetDeviceContainer* getNetdeivcelist() const {
-		return m_netdevicelist;
-	}
-
-	void setNetdeivcelist(NetDeviceContainer* netdevicelist) {
-		m_netdevicelist = netdevicelist;
-	}
+//	NetDeviceContainer getNetdeivcelist() const {
+//		return m_netdevicelist;
+//	}
+//
+//	void setNetdeivcelist(NetDeviceContainer netdevicelist) {
+//		m_netdevicelist = netdevicelist;
+//	}
 
 private:
 	static MbrSumo * p;
@@ -85,12 +85,12 @@ private:
 	//graph
 	Graph *m_graph;
 
-	NetDeviceContainer *  m_netdevicelist;
-	std::string m_sumoMapFilename = "sumo-osm-no-internal.net.xml";
+	NetDeviceContainer  m_netdevicelist;
+	std::string m_sumoMapFilename = "/home/wu/workspace/ns-3/ns-3.26/src/wave/examples/sumo-osm-no-internal.net.xml";
 	//private constructor
 	MbrSumo(){
 		m_graph = NULL;
-		m_netdevicelist = NULL;
+		//m_netdevicelist = NULL;
 		m_initialized = 0;
 	};
 	void Tokenize(const std::string& str,

@@ -19,7 +19,7 @@ MbrHeader::MbrHeader (uint8_t prefixSize, uint8_t hopCount, Ipv4Address dst,
   m_latitude(latitude), m_longitude(longitude)
 {
   m_lifeTime = uint32_t (lifeTime.GetMilliSeconds ());
-//  if(mac != NULL)
+  if(mac != NULL)
 	  memcpy(m_mac, mac, 6 );
 //  else
 //

@@ -18,6 +18,8 @@
  */
 
 #include "mbr-neighbor-helper.h"
+#include "ns3/mbr_sumomap.h"
+
 #include "ns3/log.h"
 
 NS_LOG_COMPONENT_DEFINE ("MbrNeighborHelper");
@@ -70,11 +72,11 @@ MbrNeighborHelper::InstallPriv (Ptr<Node> node) const
 
 void
 MbrNeighborHelper::Install (Ipv4InterfaceContainer & i,
+						NetDeviceContainer & n,
                         Time totalTime,          // seconds
                         uint32_t wavePacketSize, // bytes
                         Time waveInterval,       // seconds
                         double gpsAccuracyNs,    // clock drift range in number of ns
-                        int chAccessMode,        // channel access mode
                         Time txMaxDelay)         // max delay prior to transmit
 {
 
@@ -103,6 +105,9 @@ MbrNeighborHelper::Install (Ipv4InterfaceContainer & i,
                      txMaxDelay);
       nodeId++;
     }
+  mbr::MbrSumo *map = mbr::MbrSumo::GetInstance();
+  if (!map->isInitialized())
+	  map->Initialize(n, "");
 }
 
 int64_t

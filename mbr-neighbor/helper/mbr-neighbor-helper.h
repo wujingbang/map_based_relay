@@ -28,6 +28,8 @@
 #include "ns3/internet-stack-helper.h"
 #include "ns3/mobility-model.h"
 
+#include "ns3/net-device-container.h"
+
 namespace ns3 {
 /**
  * \ingroup wave
@@ -90,11 +92,11 @@ public:
    * \return none
    */
   void Install (Ipv4InterfaceContainer & i,
+		  	  	NetDeviceContainer & n,
                 Time totalTime,          // seconds
                 uint32_t wavePacketSize, // bytes
                 Time waveInterval,       // seconds
                 double gpsAccuracyNs,    // clock drift range in number of ns
-                int chAccessMode,        // channel access mode (0=continuous; 1=switching)
                 Time txMaxDelay);        // max delay prior to transmit
 
   /**

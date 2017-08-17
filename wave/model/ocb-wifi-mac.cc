@@ -244,7 +244,11 @@ OcbWifiMac::Enqueue (Ptr<const Packet> packet, Mac48Address to)
   Mac48Address relay_mac_ns;
   uint8_t tomac[6];
   to.CopyTo(tomac);
-  int ret = MbrRoute::mbr_forward(tomac, relay_mac, this->GetObject<Node> ());
+  int ret;
+  if (!to.IsBroadcast())
+	  ret = MbrRoute::mbr_forward(tomac, relay_mac, this->GetObject<Node> ());
+  else
+	  ret = -1;
   if(ret == 0)
   {
 	  relay_mac_ns.CopyFrom(relay_mac);

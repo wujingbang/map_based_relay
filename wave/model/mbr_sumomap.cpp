@@ -5,6 +5,7 @@
 
 #include <stdlib.h>
 #include "ns3/mobility-model.h"
+#include "ns3/core-module.h"
 
 
 #include "debug.h"
@@ -174,11 +175,11 @@ void MbrSumo::parseShapeAndUpdateGraph(
 //	x.append(y);
 //	return x;
 //}
-void MbrSumo::Initialize(NetDeviceContainer *  netdevicelist, std::string sumoMapFilename)
+void MbrSumo::Initialize(NetDeviceContainer&  netdevicelist, std::string sumoMapFilename)
 {
 	if (!sumoMapFilename.empty())
 		m_sumoMapFilename = sumoMapFilename;
-	m_netdevicelist = netdevicelist;
+	m_netdevicelist.Add(netdevicelist);
 	loadSumoMap(m_sumoMapFilename);
 	m_initialized = 1;
 
@@ -196,6 +197,7 @@ Graph * MbrSumo::loadSumoMap(string sumoMapFilename)
 //    cout<<sumoMapFilename << endl;
     if(doc.LoadFile(sumoMapFilename.c_str()))
     {
+    	NS_FATAL_ERROR("Could not open sumoMap file " << sumoMapFilename.c_str() << " for reading, aborting here \n");
  //       cout<<"read file error!"<<endl;
 //        cout << doc.LoadFile(sumoMapFilename.c_str()) << endl;
         return NULL;

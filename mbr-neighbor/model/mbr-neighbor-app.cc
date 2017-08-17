@@ -20,7 +20,7 @@
 using namespace ns3;
 using namespace mbr;
 
-NS_LOG_COMPONENT_DEFINE ("MbrNeighbor");
+NS_LOG_COMPONENT_DEFINE ("MbrNeighborApp");
 
 // (Arbitrary) port for establishing socket to transmit WAVE BSMs
 int MbrNeighborApp::wavePort = 9080;
@@ -30,7 +30,7 @@ NS_OBJECT_ENSURE_REGISTERED (MbrNeighborApp);
 TypeId
 MbrNeighborApp::GetTypeId (void)
 {
-  static TypeId tid = TypeId ("ns3::MbrNeighbor")
+  static TypeId tid = TypeId ("ns3::MbrNeighborApp")
     .SetParent<Application> ()
     .SetGroupName ("Wave")
     .AddConstructor<MbrNeighborApp> ()
@@ -212,11 +212,15 @@ MbrNeighborApp::GenerateWaveTraffic (Ptr<Socket> socket, uint32_t pktSize,
 	pos.y = MM->GetPosition ().y;
 	double lat,longi;
 	MbrSumo *map = MbrSumo::GetInstance();
+	NS_ASSERT(map->isInitialized());
 
 	map->sumoCartesian2GPS(pos.x, pos.y, &lat, &longi);
 	uint8_t mac[6];
 	//((Mac48Address)(GetNetDevice(sendingNodeId)->GetAddress())).CopyTo(mac);
-	Mac48Address tmac = Mac48Address::ConvertFrom(GetNetDevice(sendingNodeId)->GetAddress());
+	Ptr<NetDevice> s =  GetNetDevice(sendingNodeId);
+	Ptr<Node> a = GetNode(sendingNodeId);
+	Address t = s->GetAddress();
+	Mac48Address tmac = Mac48Address::ConvertFrom(t);
 	tmac.CopyTo(mac);
 	std::pair<Ptr<Ipv4>, uint32_t> interface = m_adhocTxInterfaces->Get (sendingNodeId);
 	Ptr<Ipv4> pp = interface.first;
@@ -367,8 +371,9 @@ MbrNeighborApp::GetNetDevice (int id)
 
   std::pair<Ptr<Ipv4>, uint32_t> interface = m_adhocTxInterfaces->Get (id);
   Ptr<Ipv4> pp = interface.first;
-  Ptr<NetDevice> device = pp->GetObject<NetDevice> ();
-
+//  Ptr<NetDevice> device = pp->GetObject<NetDevice> ();
+  Ptr<Node> node = pp->GetObject<Node> ();
+  Ptr<NetDevice> device = node->GetDevice(0);
   return device;
 }
 
