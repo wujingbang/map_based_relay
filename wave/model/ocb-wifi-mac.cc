@@ -35,6 +35,7 @@
 #include "mbr_route.h"
 #include "mbr.h"
 #include "mbr_sumomap.h"
+#include "ns3/node-list.h"
 
 namespace ns3 {
 using namespace mbr;
@@ -245,10 +246,33 @@ OcbWifiMac::Enqueue (Ptr<const Packet> packet, Mac48Address to)
   uint8_t tomac[6];
   to.CopyTo(tomac);
   int ret;
-  if (!to.IsBroadcast())
-	  ret = MbrRoute::mbr_forward(tomac, relay_mac, this->GetObject<Node> ());
-  else
+
+  if (to.IsBroadcast()) {
 	  ret = -1;
+  } else if (to.IsGroup ())
+  {
+	  ret = -1;
+  } else {
+	  Ptr<Node> thisnode;
+	  for (NodeList::Iterator i = NodeList::Begin (); i != NodeList::End (); ++i)
+	    {
+	      Ptr<Node> n = *i;
+	      Mac48Address am = Mac48Address::ConvertFrom(n->GetDevice(0)->GetAddress());
+	      Mac48Address bm = this->GetAddress();
+	      if (am == bm) {
+	    	  thisnode = *i;
+	    	  break;
+	      }
+	      am = Mac48Address::ConvertFrom(n->GetDevice(1)->GetAddress());
+	      if (am == bm) {
+	    	  thisnode = *i;
+	    	  break;
+	      }
+	    }
+
+	  ret = MbrRoute::mbr_forward(tomac, relay_mac, thisnode);
+  }
+
   if(ret == 0)
   {
 	  relay_mac_ns.CopyFrom(relay_mac);
@@ -257,6 +281,8 @@ OcbWifiMac::Enqueue (Ptr<const Packet> packet, Mac48Address to)
 	  hdr.SetAddr2(GetAddress ());
 	  hdr.SetAddr3(WILDCARD_BSSID);
 	  hdr.SetAddr4(to);
+	  hdr.SetDsNotFrom ();
+	  hdr.SetDsNotTo ();
   } else
   {
 	hdr.SetTypeData ();

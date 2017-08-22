@@ -39,23 +39,26 @@ int MbrRoute::mbr_forward(uint8_t * to, uint8_t * relay_mac, Ptr<Node> thisnode)
 	//GeoHashBits	geohashbit_tmp;
 	GeoHashSetCoordinate geohashset;
 	int ret;
-
+	double x_this,y_this;
+	double x_dst,y_dst;
 	MbrSumo* sumomap = MbrSumo::GetInstance();
 	NS_ASSERT (sumomap->isInitialized());
 	Graph* g = sumomap->getGraph();
 	//Assume mbr-neighbor-app is the first application.
-	Ptr<MbrNeighborApp> nbapp = DynamicCast<MbrNeighborApp> (thisnode->GetApplication(0));
+	Ptr<Application> app = thisnode->GetApplication(0);
+	Ptr<MbrNeighborApp> nbapp = DynamicCast<MbrNeighborApp> (app);
 //	dst_geohash = neighbor_getgeohash_frommac(to);
-	dst_geohash = nbapp->getNb()->GetGeohashFromMacInNb(to);
+	dst_geohash = nbapp->getNb()->GetGeohashFromMacInNb(to, &x_dst, &y_dst);
 	if(dst_geohash == 0) {
 		mbr_dbg(debug_level, ANY, "mbr_forward: nexthop does not exist in the neighbors!\n");
 		return -1;
 	}
 
 	this_geohash = sumomap->GetNodeCurrentGeohash(thisnode);
-	this_vertex = find_Vertex_by_VehiclePosition(g, this_geohash);
-	dst_vertex = find_Vertex_by_VehiclePosition(g, dst_geohash);
-	intersection = cross_vertex(this_vertex, dst_vertex);
+	sumomap->GetNodeCurrentXY(thisnode, &x_this, &y_this);
+	this_vertex = MbrGraph::find_Vertex_by_VehiclePosition(g, this_geohash, x_this, y_this);
+	dst_vertex = MbrGraph::find_Vertex_by_VehiclePosition(g, dst_geohash, x_dst, y_dst);
+	intersection = MbrGraph::cross_vertex(this_vertex, dst_vertex);
 	/**
 	* MBR: Check whether this node and "to" are in the same road,
 	* if not, MBR should be activated.
@@ -71,7 +74,7 @@ int MbrRoute::mbr_forward(uint8_t * to, uint8_t * relay_mac, Ptr<Node> thisnode)
 	 * 2. ��ȡ�鼯���еĽڵ���Ϣ
 	 * 3. �������һ���ڵ���Ϊ�м̽ڵ�
 	 */
-	setIntersectionSize(&geohashset, this_vertex, dst_vertex);
+	MbrGraph::setIntersectionSize(&geohashset, this_vertex, dst_vertex);
 
 	//get neighbors of center geohash block
 	geohash_get_neighbors_in_set(&geohashset, nexthop_geohash, GEOHASH_STEP_BIT);

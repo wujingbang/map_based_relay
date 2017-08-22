@@ -10,6 +10,10 @@
 #ifndef LIST_H
 #define LIST_H
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 typedef void (*node_data_free_callback_t)(void *);
 
@@ -24,11 +28,16 @@ typedef struct List {
     node_data_free_callback_t node_data_free_callback;
 } List;
 
-List *list_create(node_data_free_callback_t node_data_free_callback);
-void list_add_data(List *list, void *data);
-void list_add_data_sorted(List *list, void *data, int (*cmp)(const void *a, const void *b));
-void list_remove_data(List *list, void *data);
-void list_free(List *list);
-void list_sort(List *list, int(*cmp)(const void *a, const void *b));
+
+extern List *list_create(node_data_free_callback_t node_data_free_callback);
+extern void list_add_data(List *list, void *data);
+extern void list_add_data_sorted(List *list, void *data, int (*cmp)(const void *a, const void *b));
+extern void list_remove_data(List *list, void *data);
+extern void list_free(List *list);
+extern void list_sort(List *list, int(*cmp)(const void *a, const void *b));
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

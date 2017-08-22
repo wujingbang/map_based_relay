@@ -54,6 +54,7 @@ public:
 	uint64_t sumoCartesian2Geohash(double input_x, double input_y);
 
 	uint64_t GetNodeCurrentGeohash(Ptr<Node> node);
+	void GetNodeCurrentXY(Ptr<Node> node, double *x, double *y);
 	Graph* loadSumoMap(std::string sumoMapFilename);
 	void Initialize(NetDeviceContainer&  netdevicelist, std::string sumoMapFilename = "");
 	/**
@@ -86,7 +87,8 @@ private:
 	Graph *m_graph;
 
 	NetDeviceContainer  m_netdevicelist;
-	std::string m_sumoMapFilename = "/home/wu/workspace/ns-3/ns-3.26/src/wave/examples/sumo-osm-no-internal.net.xml";
+	std::map<std::string, int> m_map_roadid;
+	std::string m_sumoMapFilename = "/home/wu/workspace/ns-3/ns-3.26/src/wave/examples/simple.net.xml";//sumo-osm-no-internal.net.xml";
 	//private constructor
 	MbrSumo(){
 		m_graph = NULL;
@@ -98,7 +100,7 @@ private:
 	        const std::string& delimiters);
 	std::string parseRoadid(std::string str);
 	void parseBoundary(tinyxml2::XMLElement *location);
-	void parseShapeAndUpdateGraph(const char *fromid, const char *toid, const char *roadid, std::string shape);
+	void parseShapeAndUpdateGraph(const char *fromid, const char *toid, int roadid, std::string shape);
 
 };
 

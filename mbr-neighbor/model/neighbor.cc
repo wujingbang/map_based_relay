@@ -49,7 +49,7 @@ Neighbors::GetExpireTime (Ipv4Address addr)
 }
 
 void
-Neighbors::Update (Ipv4Address addr, Time expire, const uint8_t *mac, uint64_t geohash, uint16_t direction)
+Neighbors::Update (Ipv4Address addr, Time expire, const uint8_t *mac, uint64_t geohash, uint16_t direction, double x, double y)
 {
 	Mac48Address tempmac;
 	tempmac.CopyFrom(mac);
@@ -62,11 +62,13 @@ Neighbors::Update (Ipv4Address addr, Time expire, const uint8_t *mac, uint64_t g
 
           i->m_hardwareAddress = tempmac;
         }
+        i->m_x = x;
+        i->m_y = y;
         return;
       }
 
   NS_LOG_LOGIC ("Open link to " << addr);
-  Neighbor neighbor (addr, tempmac, expire + Simulator::Now (), geohash, direction);
+  Neighbor neighbor (addr, tempmac, expire + Simulator::Now (), geohash, direction, x, y);
   m_nb.push_back (neighbor);
   Purge ();
 }
@@ -104,13 +106,18 @@ Neighbors::ScheduleTimer ()
  * return
  *
  */
-uint64_t Neighbors::GetGeohashFromMacInNb(uint8_t* mac)
+uint64_t Neighbors::GetGeohashFromMacInNb(uint8_t* mac, double *x, double *y)
 {
 	Mac48Address tempmac;
 	tempmac.CopyFrom(mac);
 	for (std::vector<Neighbor>::iterator i = m_nb.begin (); i != m_nb.end (); ++i)
-		if (i->m_hardwareAddress == tempmac)
-		  return i->m_geohash;
+		if (i->m_hardwareAddress == tempmac) {
+			*x = i->m_x;
+			*y = i->m_y;
+
+			return i->m_geohash;
+
+		}
 
 	return 0;
 }

@@ -122,6 +122,7 @@ private:
    */
   Ptr<NetDevice> GetNetDevice (int id);
 
+  int m_stop;
   Time m_TotalSimTime;
   uint32_t m_wavePacketSize; // bytes
   uint32_t m_numWavePackets;

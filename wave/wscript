@@ -32,7 +32,7 @@ def build(bld):
         'helper/wave-bsm-helper.cc',
         'model/debug.c',
         'model/geohash.c',
-        'model/graph.c',
+        'model/graph.cc',
         'model/list.c',
         'model/mbr_route.cc',
         'model/mbr_sumomap.cpp',

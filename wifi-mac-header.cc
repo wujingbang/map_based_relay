@@ -166,13 +166,13 @@ void
 WifiMacHeader::SetTypeMBRData (void)
 {
   m_ctrlType = TYPE_DATA;
-  m_ctrlSubtype = 0x14;
+  m_ctrlSubtype = 16;
 }
 
 bool
 WifiMacHeader::IsMBRData (void) const
 {
-  return (m_ctrlType == TYPE_DATA && (m_ctrlSubtype & 0x14));
+  return (m_ctrlType == TYPE_DATA && (m_ctrlSubtype == 16));
 }
 
 void
@@ -330,6 +330,10 @@ WifiMacHeader::SetType (enum WifiMacType type)
       m_ctrlType = TYPE_DATA;
       m_ctrlSubtype = 15;
       break;
+    case WIFI_MAC_MBR_DATA:
+        m_ctrlType = TYPE_DATA;
+        m_ctrlSubtype = 16;
+        break;
     }
   m_ctrlToDs = 0;
   m_ctrlFromDs = 0;
@@ -617,6 +621,9 @@ WifiMacHeader::GetType (void) const
         case 15:
           return WIFI_MAC_QOSDATA_NULL_CFACK_CFPOLL;
           break;
+        case 16:
+        	return WIFI_MAC_MBR_DATA;
+        	break;
         }
       break;
     }
@@ -904,8 +911,8 @@ uint16_t
 WifiMacHeader::GetFrameControl (void) const
 {
   uint16_t val = 0;
-  val |= (m_ctrlType << 2) & (0x3 << 2);
-  val |= (m_ctrlSubtype << 4) & (0xf << 4);
+  val |= (m_ctrlType << 1) & (0x3 << 1);
+  val |= (m_ctrlSubtype << 3) & (0x1f << 3);
   val |= (m_ctrlToDs << 8) & (0x1 << 8);
   val |= (m_ctrlFromDs << 9) & (0x1 << 9);
   val |= (m_ctrlMoreFrag << 10) & (0x1 << 10);
@@ -931,8 +938,8 @@ WifiMacHeader::GetQosControl (void) const
 void
 WifiMacHeader::SetFrameControl (uint16_t ctrl)
 {
-  m_ctrlType = (ctrl >> 2) & 0x03;
-  m_ctrlSubtype = (ctrl >> 4) & 0x0f;
+  m_ctrlType = (ctrl >> 1) & 0x03;
+  m_ctrlSubtype = (ctrl >> 3) & 0x1f;
   m_ctrlToDs = (ctrl >> 8) & 0x01;
   m_ctrlFromDs = (ctrl >> 9) & 0x01;
   m_ctrlMoreFrag = (ctrl >> 10) & 0x01;
@@ -987,7 +994,7 @@ WifiMacHeader::GetSize (void) const
       break;
     case TYPE_DATA:
       size = 2 + 2 + 6 + 6 + 6 + 2;
-      if (m_ctrlToDs && m_ctrlFromDs)
+      if ((m_ctrlToDs && m_ctrlFromDs) || m_ctrlSubtype == 16)
         {
           size += 6;
         }
@@ -1168,6 +1175,8 @@ WifiMacHeader::Print (std::ostream &os) const
     case WIFI_MAC_QOSDATA_NULL:
     case WIFI_MAC_QOSDATA_NULL_CFPOLL:
     case WIFI_MAC_QOSDATA_NULL_CFACK_CFPOLL:
+
+    case WIFI_MAC_MBR_DATA:
       break;
     }
 }
@@ -1215,7 +1224,7 @@ WifiMacHeader::Serialize (Buffer::Iterator i) const
         WriteTo (i, m_addr2);
         WriteTo (i, m_addr3);
         i.WriteHtolsbU16 (GetSequenceControl ());
-        if (m_ctrlToDs && m_ctrlFromDs)
+        if ((m_ctrlToDs && m_ctrlFromDs) || m_ctrlSubtype == 16)
           {
             WriteTo (i, m_addr4);
           }
@@ -1265,7 +1274,7 @@ WifiMacHeader::Deserialize (Buffer::Iterator start)
       ReadFrom (i, m_addr2);
       ReadFrom (i, m_addr3);
       SetSequenceControl (i.ReadLsbtohU16 ());
-      if (m_ctrlToDs && m_ctrlFromDs)
+      if ((m_ctrlToDs && m_ctrlFromDs) || m_ctrlSubtype == 16)
         {
           ReadFrom (i, m_addr4);
         }

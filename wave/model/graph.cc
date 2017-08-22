@@ -7,22 +7,12 @@
 //
 //  Customized by Wu Jingbang on 2017
 //
-
-//#include "graph.h"
-//#include <linux/string.h>
-
-
 #include "graph.h"
-
 #include "mbr-utils.h"
-
-#ifdef LINUX_KERNEL
-#include <linux/string.h>
-#else
 #include <string.h>
-//#include <stdlib.h>
-//#include <stdio.h>
-#endif /* LINUX_KERNEL */
+
+using namespace ns3;
+using namespace mbr;
 
 int compare_edges(const void *aa, const void *bb);
 void vertex_free(void *data);
@@ -39,15 +29,17 @@ void vertex_free(void *data) {
     mbr_free(vertex);
 }
 
-Graph *graph_create() {
+Graph *MbrGraph::graph_create() {
     Graph *graph = (Graph*)mbr_malloc(sizeof(Graph));
     graph->vertices = list_create(vertex_free);
     return graph;
 }
 
-Vertex *vertex_create(const char *idStr, uint64_t geoHash, int isIntersection) {
+Vertex *MbrGraph::vertex_create(const char *idStr, double x, double y, uint64_t geoHash, int isIntersection) {
     Vertex *vertex = (Vertex*)mbr_malloc(sizeof(Vertex));
     strcpy(vertex->idStr, idStr);
+    vertex->x = x;
+    vertex->y = y;
     vertex->geoHash = geoHash;
     vertex->data = NULL;
     //vertex->edges = list_create(kfree);
@@ -58,7 +50,7 @@ Vertex *vertex_create(const char *idStr, uint64_t geoHash, int isIntersection) {
     return vertex;
 }
 
-Edge *edge_create(Vertex *vertex, int road_id) {
+Edge *MbrGraph::edge_create(Vertex *vertex, int road_id) {
     Edge *edge = (Edge*)mbr_malloc(sizeof(Edge));
     //Edge *edge = (Edge*)malloc(sizeof(Edge));
     edge->vertex = vertex;
@@ -66,15 +58,15 @@ Edge *edge_create(Vertex *vertex, int road_id) {
     return edge;
 }
 
-void graph_add_vertex(Graph *graph, Vertex *vertex) {
+void MbrGraph::graph_add_vertex(Graph *graph, Vertex *vertex) {
     list_add_data(graph->vertices, vertex);
 }
 
-void graph_add_vertex_sorted(Graph *graph, Vertex *vertex, int(*cmp)(const void *a, const void *b)) {
+void MbrGraph::graph_add_vertex_sorted(Graph *graph, Vertex *vertex, int(*cmp)(const void *a, const void *b)) {
     list_add_data_sorted(graph->vertices, vertex, cmp);
 }
 
-void graph_remove_vertex(Graph *graph, Vertex *vertex) {
+void MbrGraph::graph_remove_vertex(Graph *graph, Vertex *vertex) {
     Node_list *n = graph->vertices->head;
     Node_list *prev_n = NULL;
     while (n) {
@@ -97,7 +89,7 @@ void graph_remove_vertex(Graph *graph, Vertex *vertex) {
     vertex_free(vertex);
 }
 
-void graph_remove_vertex_undirect(Graph *graph, Vertex *vertex) {
+void MbrGraph::graph_remove_vertex_undirect(Graph *graph, Vertex *vertex) {
     Node_list *n = graph->vertices->head;
     Node_list *prev_n = NULL;
     while (n) {
@@ -120,32 +112,32 @@ void graph_remove_vertex_undirect(Graph *graph, Vertex *vertex) {
     vertex_free(vertex);
 }
 
-void vertex_add_edge(Vertex *vertex, Edge *edge) {
+void MbrGraph::vertex_add_edge(Vertex *vertex, Edge *edge) {
     list_add_data(vertex->edges, edge);
     edge->vertex->indegree++;
     vertex->outdegree++;
 }
 
-void vertex_add_edge_sorted(Vertex *vertex, Edge *edge) {
+void MbrGraph::vertex_add_edge_sorted(Vertex *vertex, Edge *edge) {
     list_add_data_sorted(vertex->edges, edge, compare_edges);
     edge->vertex->indegree++;
     vertex->outdegree++;
 }
 
-void vertex_remove_edge(Vertex *vertex, Edge *edge) {
+void MbrGraph::vertex_remove_edge(Vertex *vertex, Edge *edge) {
     list_remove_data(vertex->edges, edge);
     edge->vertex->indegree--;
     vertex->outdegree--;
 }
 
-void vertex_add_edge_to_vertex(Vertex *from, Vertex *to, int road_id) {
+void MbrGraph::vertex_add_edge_to_vertex(Vertex *from, Vertex *to, int road_id) {
     Edge *edge = edge_create(to, road_id);
     list_add_data(from->edges, edge);
     to->indegree++;
     from->outdegree++;
 }
 
-void vertex_add_edge_to_vertex_sorted(Vertex *from, Vertex *to, int road_id) {
+void MbrGraph::vertex_add_edge_to_vertex_sorted(Vertex *from, Vertex *to, int road_id) {
     Edge *edge = edge_create(to, road_id);
     list_add_data_sorted(from->edges, edge, compare_edges);
     to->indegree++;
@@ -153,7 +145,7 @@ void vertex_add_edge_to_vertex_sorted(Vertex *from, Vertex *to, int road_id) {
 }
 
 // here
-void vertex_remove_edge_to_vertex(Vertex *from, Vertex *to) {
+void MbrGraph::vertex_remove_edge_to_vertex(Vertex *from, Vertex *to) {
     Node_list *e = from->edges->head;
     Node_list *prev_e = NULL;
     while (e) {
@@ -178,16 +170,16 @@ void vertex_remove_edge_to_vertex(Vertex *from, Vertex *to) {
 }
 
 
-void vertex_add_edge_to_vertex_undirect(Vertex *from, Vertex *to, int road_id) {
+void MbrGraph::vertex_add_edge_to_vertex_undirect(Vertex *from, Vertex *to, int road_id) {
 	vertex_add_edge_to_vertex(from, to, road_id);
 	vertex_add_edge_to_vertex(to, from, road_id);
 }
 
-void vertex_add_edge_to_vertex_undirect_exclusive(Vertex *from, Vertex *to, int road_id){
+void MbrGraph::vertex_add_edge_to_vertex_undirect_exclusive(Vertex *from, Vertex *to, int road_id){
 	vertex_remove_edge_to_vertex_undirect(from, to);
 	vertex_add_edge_to_vertex_undirect(from, to, road_id);
 }
-void vertex_remove_edge_to_vertex_undirect(Vertex *from, Vertex *to) {
+void MbrGraph::vertex_remove_edge_to_vertex_undirect(Vertex *from, Vertex *to) {
 	vertex_remove_edge_to_vertex(from, to);
 	vertex_remove_edge_to_vertex(to, from);
 }
@@ -200,42 +192,42 @@ void vertex_remove_edge_to_vertex_undirect(Vertex *from, Vertex *to) {
 //    list_sort(vertex->edges, compare_edges);
 //}
 
-int graph_is_balanced(Graph *g) {
+int MbrGraph::graph_is_balanced(Graph *g) {
     Node_list *n = g->vertices->head;
-    Node_list *prev_n;
+//    Node_list *prev_n;
     while (n) {
         Vertex *v = (Vertex*)n->data;
         if (v->indegree != v->outdegree) {
             return 0;
         }
-        prev_n = n;
+//        prev_n = n;
         n = n->next;
     }
     return 1;
 }
 
-void graph_free(Graph *graph) {
+void MbrGraph::graph_free(Graph *graph) {
     list_free(graph->vertices);
     //kfree(graph);
     mbr_free(graph);
 }
 
-Vertex * getVertex(Graph *graph, const char* idStr) {
+Vertex * MbrGraph::getVertex(Graph *graph, const char* idStr) {
     Node_list *n = graph->vertices->head;
-    Node_list *prev_n = NULL;
+//    Node_list *prev_n = NULL;
     while (n)
     {
         if (!strcmp(((Vertex*)n->data)->idStr, idStr))
         {
             return (Vertex*)n->data;
         }
-        prev_n = n;
+//        prev_n = n;
         n = n->next;
     }
     return NULL;
 }
 
-void graph_print(Graph *g)
+void MbrGraph::graph_print(Graph *g)
 {
 	Node_list *q;
     Node_list *p=g->vertices->head;
@@ -263,23 +255,54 @@ uint64_t geohash_compare( uint64_t a, uint64_t b )
 		return b-a;
 }
 
-Vertex* find_Vertex_by_VehiclePosition(Graph *g, uint64_t geoHash)
+Vertex* MbrGraph::find_Vertex_by_VehiclePosition(Graph *g, uint64_t geoHash, double x, double y)
 {
-	uint64_t min=UINT64_MAX,temp;
-	Vertex *v=NULL,*index;
+	uint64_t temp;
+	double dist;
+	double distmin = 999.0;
+	uint64_t min1 = UINT64_MAX;
+	uint64_t min2 = UINT64_MAX;
+	uint64_t min3 = UINT64_MAX;
+	Vertex *vmin, *v[3],*index;
+	vmin = NULL;
+	v[0] = NULL;
+	v[1] = NULL;
+	v[2] = NULL;
 	Node_list *p=g->vertices->head;
+	int i;
 	while(p)//����һ��ͼ�ڵ㣬�ҵ������geoHash��ӽ���ͼ�ڵ㣻
 	{
 		index=(Vertex*)p->data;
 		temp=geohash_compare(index->geoHash, geoHash);
-		if(temp<min)
+		if(temp<min1)
 		{
-			min=temp;
-			v=index;
+			min3 = min2;
+			v[2] = v[1];
+			min2 = min1;
+			v[1] = v[0];
+			min1=temp;
+			v[0]=index;
+		} else if (temp < min2) {
+			min3 = min2;
+			v[2] = v[1];
+			min2 = temp;
+			v[1] = index;
+		} else if (temp < min3) {
+			min3 = temp;
+			v[2] = index;
 		}
 		p=p->next;
 	}
-	return v;
+	for (i=0; i<3 && v[i] != NULL; i++)
+	{
+		dist = get_distance(v[i]->y, v[i]->x, y, x);
+		if (dist < distmin)
+		{
+			distmin = dist;
+			vmin = v[i];
+		}
+	}
+	return vmin;
 }
 
 typedef struct path          	//BFS�������ݽṹ��
@@ -337,7 +360,7 @@ int free_path(path *p)
  * set size of the intersection based on the width of the roads.
  * unimplemented yet!
  */
-void setIntersectionSize(GeoHashSetCoordinate * geohashset, Vertex * this_vertex, Vertex * dst_vertex)
+void MbrGraph::setIntersectionSize(GeoHashSetCoordinate * geohashset, Vertex * this_vertex, Vertex * dst_vertex)
 {
 	int i;
 	geohashset->sx = 3;
@@ -348,7 +371,7 @@ void setIntersectionSize(GeoHashSetCoordinate * geohashset, Vertex * this_vertex
     }
 }
 
-Vertex* cross_vertex(Vertex *from, Vertex *to)    //���Ҵ�from��to·���ϵĽ���·�ڽڵ㣻
+Vertex* MbrGraph::cross_vertex(Vertex *from, Vertex *to)    //���Ҵ�from��to·���ϵĽ���·�ڽڵ㣻
 {
 	path *head,*tail,*index,*temp;
 	Vertex *v;

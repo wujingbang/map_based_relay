@@ -115,7 +115,7 @@ uint64_t MbrSumo::sumoCartesian2Geohash(double input_x, double input_y)
 }
 
 void MbrSumo::parseShapeAndUpdateGraph(
-		const char *fromid, const char *toid, const char *roadid, string shape) {
+		const char *fromid, const char *toid, int roadid, string shape) {
 	vector<string> tokens, tokens2;
 	//vector<string>::iterator t;
 	unsigned int i;
@@ -134,23 +134,25 @@ void MbrSumo::parseShapeAndUpdateGraph(
 	/**
 	 * Create Vertexes
 	 */
+	double x,y;
 	for(i = 1; i < (tokens.size() - 1); i++) {
 
-		if(getVertex(m_graph, tokens[i].c_str()))
+		if(MbrGraph::getVertex(m_graph, tokens[i].c_str()))
 			continue;//vertex exists.
 
 		tokens2.clear();
 		Tokenize(tokens[i], tokens2, ",");
 		geohash = sumoCartesian2Geohash(atof(tokens[0].c_str()), atof(tokens[1].c_str()));
-		v = vertex_create(tokens[i].c_str(), geohash, 0 /*notIntersection*/);
-		graph_add_vertex(m_graph, v);
+		sumoCartesian2GPS(atof(tokens[0].c_str()), atof(tokens[1].c_str()), &x, &y);
+		v = MbrGraph::vertex_create(tokens[i].c_str(),x,y, geohash, 0 /*notIntersection*/);
+		MbrGraph::graph_add_vertex(m_graph, v);
 	}
 
 	/**
 	 * Create Edges
 	 */
 	for(i = 1; i < (tokens.size() - 1); i++) {
-		v = getVertex(m_graph, tokens[i].c_str());
+		v = MbrGraph::getVertex(m_graph, tokens[i].c_str());
 		if(!v) {
 //			cout << "parseShapeAndUpdateGraph : ERROR!!" <<endl;
 			return;
@@ -159,13 +161,13 @@ void MbrSumo::parseShapeAndUpdateGraph(
 			last_v = v;
 			continue;
 		}
-		vertex_add_edge_to_vertex_undirect_exclusive(last_v, v, atoi(roadid));
+		MbrGraph::vertex_add_edge_to_vertex_undirect_exclusive(last_v, v, roadid);
 	}
 
-	vertex_add_edge_to_vertex_undirect_exclusive(
-			getVertex(m_graph, fromid), getVertex(m_graph, tokens[1].c_str()), atoi(roadid));
-	vertex_add_edge_to_vertex_undirect_exclusive(
-			getVertex(m_graph, tokens[tokens.size() - 2].c_str()), getVertex(m_graph, toid), atoi(roadid));
+	MbrGraph::vertex_add_edge_to_vertex_undirect_exclusive(
+			MbrGraph::getVertex(m_graph, fromid), MbrGraph::getVertex(m_graph, tokens[1].c_str()), roadid);
+	MbrGraph::vertex_add_edge_to_vertex_undirect_exclusive(
+			MbrGraph::getVertex(m_graph, tokens[tokens.size() - 2].c_str()), MbrGraph::getVertex(m_graph, toid), roadid);
 
 
 }
@@ -187,7 +189,8 @@ void MbrSumo::Initialize(NetDeviceContainer&  netdevicelist, std::string sumoMap
 
 Graph * MbrSumo::loadSumoMap(string sumoMapFilename)
 {
- 	string id,roadid, xstr, ystr, fromid, toid;
+ 	string id,roadid_str, xstr, ystr, fromid, toid;
+ 	int roadid_int;
 //	mapboundary bound;
 	map<string, node> nodeMap;
 
@@ -203,7 +206,7 @@ Graph * MbrSumo::loadSumoMap(string sumoMapFilename)
         return NULL;
     }
 
-    m_graph = graph_create();
+    m_graph = MbrGraph::graph_create();
 
     XMLElement *root = doc.RootElement();
     XMLElement *location = root->FirstChildElement("location");
@@ -234,7 +237,7 @@ Graph * MbrSumo::loadSumoMap(string sumoMapFilename)
     	temp.id = id;
     	nodeMap[id] = temp;
 
-    	graph_add_vertex(m_graph, vertex_create(id.c_str(), temp.geohash, 1 /*isIntersection*/));
+    	MbrGraph::graph_add_vertex(m_graph, MbrGraph::vertex_create(id.c_str(), temp.x,temp.y, temp.geohash, 1 /*isIntersection*/));
     	junction = junction->NextSiblingElement("junction");
     }
     /**
@@ -242,23 +245,38 @@ Graph * MbrSumo::loadSumoMap(string sumoMapFilename)
      * edge��Ŀ�У��ܶ�û��shape�ֶΣ�lane�У�������junction���겻ƥ�䣩�������ʵ����ֻ�������㣬��from��to�ֶξͿ����ˡ�
      * �������shape�ֶΣ�����ĩ��������from��to��һ�µġ�
      */
+    int kkk = 1;
     XMLElement *edge = root->FirstChildElement("edge");
     while (edge)
     {
     	string shape;
     	id = edge->Attribute("id", NULL);
 
-    	roadid = parseRoadid(id);
+    	roadid_str = parseRoadid(id);
     	fromid = edge->Attribute("from", NULL);
     	toid = edge->Attribute("to", NULL);
 
+    	map<string, int>::iterator iter;
+        iter = m_map_roadid.find(roadid_str);
+		if(iter != m_map_roadid.end())
+		{
+			roadid_int = iter->second;
+		}
+		else
+		{
+			roadid_int = kkk;
+			m_map_roadid.insert(pair<string, int>(roadid_str, kkk++));
+		}
+
+
     	if(!(edge->Attribute("shape", NULL))) {
-        	vertex_add_edge_to_vertex_undirect_exclusive(getVertex(m_graph, fromid.c_str()),
-        			getVertex(m_graph, toid.c_str()),
-    				atoi(roadid.c_str()));
+    		MbrGraph::vertex_add_edge_to_vertex_undirect_exclusive(MbrGraph::getVertex(m_graph, fromid.c_str()),
+    				MbrGraph::getVertex(m_graph, toid.c_str()),
+    				roadid_int);
     	} else {
+    		//Note that edge -> lane -> shape is ignored.
     		shape = edge->Attribute("shape", NULL);
-    		parseShapeAndUpdateGraph(fromid.c_str(), toid.c_str(), roadid.c_str(), shape);
+    		parseShapeAndUpdateGraph(fromid.c_str(), toid.c_str(), roadid_int, shape);
     	}
 
     	edge = edge->NextSiblingElement("edge");
@@ -275,5 +293,16 @@ uint64_t MbrSumo::GetNodeCurrentGeohash(Ptr<Node> node)
 	pos.y = MM->GetPosition ().y;
 
 	return sumoCartesian2Geohash(pos.x, pos.y);
+}
+
+void MbrSumo::GetNodeCurrentXY(Ptr<Node> node, double *x, double *y)
+{
+	Ptr<MobilityModel> MM = node->GetObject<MobilityModel> ();
+	Vector pos;
+	pos.x = MM->GetPosition ().x;
+	pos.y = MM->GetPosition ().y;
+
+	sumoCartesian2GPS(pos.x, pos.y, x, y);
+	return ;
 }
 

@@ -61,13 +61,14 @@ public:
     bool close;
     uint64_t m_geohash;
     uint16_t m_direction;
+    double m_x;
+    double m_y;
 
 
 
-
-    Neighbor (Ipv4Address ip, Mac48Address mac, Time t, uint64_t geohash, uint16_t direction) :
+    Neighbor (Ipv4Address ip, Mac48Address mac, Time t, uint64_t geohash, uint16_t direction, double x, double y) :
       m_neighborAddress (ip), m_hardwareAddress (mac), m_expireTime (t),close (false),
-      m_geohash(geohash), m_direction(direction)
+      m_geohash(geohash), m_direction(direction), m_x(x), m_y(y)
     {
     }
   };
@@ -76,7 +77,7 @@ public:
   /// Check that node with address addr  is neighbor
   bool IsNeighbor (Ipv4Address addr);
   /// Update expire time for entry with address addr, if it exists, else add new entry
-  void Update (Ipv4Address addr, Time expire, const uint8_t *mac, uint64_t geohash, uint16_t direction);
+  void Update (Ipv4Address addr, Time expire, const uint8_t *mac, uint64_t geohash, uint16_t direction, double x, double y);
   /// Remove all expired entries
   void Purge ();
   /// Schedule m_ntimer.
@@ -84,7 +85,7 @@ public:
   /// Remove all entries
   void Clear () { m_nb.clear (); }
 
-  uint64_t GetGeohashFromMacInNb(uint8_t* mac);
+  uint64_t GetGeohashFromMacInNb(uint8_t* mac,double *x, double *y);
   int GetnbFromsetRandom(Mac48Address *mac, GeoHashSetCoordinate *geohashset);
   int GetnbFromsetBest(Mac48Address *ret_mac, GeoHashSetCoordinate *geohashset);
 
