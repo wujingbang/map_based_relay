@@ -92,7 +92,7 @@ public:
    * \return none
    */
   void Install (Ipv4InterfaceContainer & i,
-		  	  	NetDeviceContainer & n,
+                Ipv4InterfaceContainer & iData,
                 Time totalTime,          // seconds
                 uint32_t wavePacketSize, // bytes
                 Time waveInterval,       // seconds

@@ -415,6 +415,8 @@ vertexlist* MbrGraph::cross_vertex(Vertex *from, Vertex *to)    //���Ҵ�
     index->next=NULL;
     while(index)       //BFS������
     {
+    	if(strcmp(index->v->idStr,to->idStr)==0)
+    		break;
         Node_list *n=index->v->edges->head;
         while(n)
         {
@@ -467,8 +469,7 @@ vertexlist* MbrGraph::cross_vertex(Vertex *from, Vertex *to)    //���Ҵ�
             n=n->next;
         }
         index=index->next;
-        if(strcmp(index->v->idStr,to->idStr)==0)
-            break;
+
     }
     free_path(head);
     return head_list;

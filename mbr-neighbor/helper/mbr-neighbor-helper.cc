@@ -72,7 +72,7 @@ MbrNeighborHelper::InstallPriv (Ptr<Node> node) const
 
 void
 MbrNeighborHelper::Install (Ipv4InterfaceContainer & i,
-						NetDeviceContainer & n,
+						Ipv4InterfaceContainer & iData,
                         Time totalTime,          // seconds
                         uint32_t wavePacketSize, // bytes
                         Time waveInterval,       // seconds
@@ -96,6 +96,7 @@ MbrNeighborHelper::Install (Ipv4InterfaceContainer & i,
       Ptr<mbr::MbrNeighborApp> mbrnbApps = DynamicCast<mbr::MbrNeighborApp> (*aci);
 
       mbrnbApps->Setup (i,
+    		  	  	 iData,
                      nodeId,
                      totalTime,
                      wavePacketSize,
@@ -107,7 +108,7 @@ MbrNeighborHelper::Install (Ipv4InterfaceContainer & i,
     }
   mbr::MbrSumo *map = mbr::MbrSumo::GetInstance();
   if (!map->isInitialized())
-	  map->Initialize(n, "");
+	  map->Initialize("");
 }
 
 int64_t

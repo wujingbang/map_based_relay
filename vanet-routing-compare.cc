@@ -2390,7 +2390,7 @@ VanetRoutingExperiment::SetupWaveMessages ()
 
 
   m_MbrNeighborHelper.Install(m_adhocTxInterfaces,
-		  	  	  	  	  	  m_adhocTxDevices,
+		  	  	  	  	  	  m_adhocTxInterfacesData,
 							  Seconds (m_TotalSimTime),//Seconds(4),//
 							  m_wavePacketSize,
 							  Seconds (m_waveInterval),
@@ -2405,7 +2405,7 @@ VanetRoutingExperiment::SetupWaveMessages ()
   serverApps.Start (Seconds (1.0));
   serverApps.Stop (Seconds (10.0));
 
-  UdpEchoClientHelper echoClient (m_adhocTxInterfaces.GetAddress (1), 9);
+  UdpEchoClientHelper echoClient (m_adhocTxInterfacesData.GetAddress (1), 9); //Data interface
   echoClient.SetAttribute ("MaxPackets", UintegerValue (1));
   echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
   echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
@@ -2415,11 +2415,11 @@ VanetRoutingExperiment::SetupWaveMessages ()
   clientApps.Start (Seconds (6.0));
   clientApps.Stop (Seconds (10.0));
 
-  std::pair<Ptr<Ipv4>, uint32_t> interface = m_adhocTxInterfaces.Get (0);
+  std::pair<Ptr<Ipv4>, uint32_t> interface = m_adhocTxInterfacesData.Get (0); //Data interface
   Ptr<Ipv4> pp = interface.first;
   Ipv4StaticRoutingHelper ipv4RoutingHelper;
   Ptr<Ipv4StaticRouting> staticRouting = ipv4RoutingHelper.GetStaticRouting (pp);
-  staticRouting->SetDefaultRoute (m_adhocTxInterfaces.GetAddress (1), interface.second);
+  staticRouting->SetDefaultRoute (m_adhocTxInterfacesData.GetAddress (1), interface.second);
 
 
 //  Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
@@ -2540,7 +2540,7 @@ VanetRoutingExperiment::SetupScenario ()
       m_logFile = "Raleigh_Downtown50.log";
       m_mobility = 3; //static relay
       m_nNodes = 3;
-      m_TotalSimTime = 199;
+      m_TotalSimTime = 7;
       m_nodeSpeed = 0;
       m_nodePause = 0;
       m_CSVfileName = "Raleigh_Downtown50_vanet-routing-compare.csv";

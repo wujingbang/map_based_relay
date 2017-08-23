@@ -114,7 +114,8 @@ int MbrRoute::mbr_forward(Ipv4Address dest, uint8_t * to_mac, uint8_t * relay_ma
 		NS_LOG_LOGIC ("node="<< thisnode->GetId() <<
 									", This Area " << this_vertex->idStr <<
 									", Dest Area " << dst_vertex->idStr <<
-									", Relay Area " << temp->v->idStr);
+									", Relay Area " << temp->v->idStr <<
+											", Dest IP "<< dest);
 		relaymac.CopyTo(relay_mac);
 		vertexlist_free(intersectionlist);
 		return 0;

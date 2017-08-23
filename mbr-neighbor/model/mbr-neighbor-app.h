@@ -25,6 +25,7 @@ public:
 	virtual ~MbrNeighborApp();
 
 	void Setup (Ipv4InterfaceContainer & i,
+			  Ipv4InterfaceContainer & iData,
 			  int nodeId,
 			  Time totalTime,
 			  uint32_t wavePacketSize, // bytes
@@ -121,6 +122,7 @@ private:
    * \return ptr to the desired net device
    */
   Ptr<NetDevice> GetNetDevice (int id);
+  Ptr<NetDevice> GetNetDeviceOfDataInf (int id);
 
   int m_stop;
   Time m_TotalSimTime;
@@ -128,7 +130,8 @@ private:
   uint32_t m_numWavePackets;
   Time m_waveInterval;
   double m_gpsAccuracyNs;
-  Ipv4InterfaceContainer * m_adhocTxInterfaces;
+  Ipv4InterfaceContainer * m_beaconInterfaces;
+  Ipv4InterfaceContainer * m_dataInterfaces;
   std::vector<int> * m_nodesMoving;
   Ptr<UniformRandomVariable> m_unirv;
   int m_nodeId;

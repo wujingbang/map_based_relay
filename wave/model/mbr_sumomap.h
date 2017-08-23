@@ -56,7 +56,7 @@ public:
 	uint64_t GetNodeCurrentGeohash(Ptr<Node> node);
 	void GetNodeCurrentXY(Ptr<Node> node, double *x, double *y);
 	Graph* loadSumoMap(std::string sumoMapFilename);
-	void Initialize(NetDeviceContainer&  netdevicelist, std::string sumoMapFilename = "");
+	void Initialize(std::string sumoMapFilename = "");
 	/**
 	* \brief Gets the topology instance
 	* \return the topology instance
@@ -70,14 +70,6 @@ public:
 	bool isInitialized() const {
 		return m_initialized;
 	}
-
-//	NetDeviceContainer getNetdeivcelist() const {
-//		return m_netdevicelist;
-//	}
-//
-//	void setNetdeivcelist(NetDeviceContainer netdevicelist) {
-//		m_netdevicelist = netdevicelist;
-//	}
 
 private:
 	static MbrSumo * p;

@@ -177,11 +177,11 @@ void MbrSumo::parseShapeAndUpdateGraph(
 //	x.append(y);
 //	return x;
 //}
-void MbrSumo::Initialize(NetDeviceContainer&  netdevicelist, std::string sumoMapFilename)
+void MbrSumo::Initialize(std::string sumoMapFilename)
 {
 	if (!sumoMapFilename.empty())
 		m_sumoMapFilename = sumoMapFilename;
-	m_netdevicelist.Add(netdevicelist);
+	//m_netdevicelist.Add(netdevicelist);
 	loadSumoMap(m_sumoMapFilename);
 	m_initialized = 1;
 
@@ -252,7 +252,7 @@ Graph * MbrSumo::loadSumoMap(string sumoMapFilename)
     	string shape;
     	id = edge->Attribute("id", NULL);
 
-    	roadid_str = parseRoadid(id);
+    	roadid_str = parseRoadid(id); //roadid#roadedges_id
     	fromid = edge->Attribute("from", NULL);
     	toid = edge->Attribute("to", NULL);
 

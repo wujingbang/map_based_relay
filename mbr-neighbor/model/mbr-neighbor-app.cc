@@ -47,7 +47,8 @@ MbrNeighborApp::MbrNeighborApp ():
     m_numWavePackets(1),
     m_waveInterval (MilliSeconds (100)),
     m_gpsAccuracyNs (10000),
-    m_adhocTxInterfaces (0),
+    m_beaconInterfaces (0),
+	m_dataInterfaces (0),
     m_nodesMoving (0),
     m_unirv (0),
     m_nodeId (0),
@@ -94,7 +95,7 @@ void MbrNeighborApp::StartApplication () // Called at time specified by Start
   Ptr<Socket> recvSink = Socket::CreateSocket (GetNode (m_nodeId), tid);
   recvSink->SetRecvCallback (MakeCallback (&MbrNeighborApp::ReceiveWavePacket, this));
 
-  std::pair<Ptr<Ipv4>, uint32_t> interface = m_adhocTxInterfaces->Get (m_nodeId);
+  std::pair<Ptr<Ipv4>, uint32_t> interface = m_beaconInterfaces->Get (m_nodeId);
   Ptr<Ipv4> pp = interface.first;
   //first interface id indicate loop (127.0.0.1)
   Ipv4InterfaceAddress iface = pp->GetAddress(interface.second, 0);
@@ -182,6 +183,7 @@ void MbrNeighborApp::StopApplication () // Called at time specified by Stop
 
 void
 MbrNeighborApp::Setup (Ipv4InterfaceContainer & i,
+				  Ipv4InterfaceContainer & iData,
 				  int nodeId,
 				  Time totalTime,
 				  uint32_t wavePacketSize, // bytes
@@ -202,7 +204,8 @@ MbrNeighborApp::Setup (Ipv4InterfaceContainer & i,
   m_nodesMoving = nodesMoving;
 
 
-  m_adhocTxInterfaces = &i;
+  m_beaconInterfaces = &i;
+  m_dataInterfaces = &iData;
   m_nodeId = nodeId;
   m_txMaxDelay = txMaxDelay;
 }
@@ -225,12 +228,15 @@ MbrNeighborApp::GenerateWaveTraffic (Ptr<Socket> socket, uint32_t pktSize,
 	map->sumoCartesian2GPS(pos.x, pos.y, &longi, &lat);
 	uint8_t mac[6];
 	//((Mac48Address)(GetNetDevice(sendingNodeId)->GetAddress())).CopyTo(mac);
-	Ptr<NetDevice> s =  GetNetDevice(sendingNodeId);
-	Ptr<Node> a = GetNode(sendingNodeId);
+	/**
+	 * Be careful of the Data inf. and Beacon inf.
+	 */
+	Ptr<NetDevice> s =  GetNetDeviceOfDataInf(sendingNodeId);//GetNetDevice(sendingNodeId);
+	//Ptr<Node> a = GetNode(sendingNodeId);
 	Address t = s->GetAddress();
 	Mac48Address tmac = Mac48Address::ConvertFrom(t);
 	tmac.CopyTo(mac);
-	std::pair<Ptr<Ipv4>, uint32_t> interface = m_adhocTxInterfaces->Get (sendingNodeId);
+	std::pair<Ptr<Ipv4>, uint32_t> interface = m_dataInterfaces->Get (sendingNodeId);
 	Ptr<Ipv4> pp = interface.first;
 	uint32_t interfaceidx = interface.second;
 	Ipv4InterfaceAddress ip_origin = pp->GetAddress(interfaceidx, 0);
@@ -367,7 +373,7 @@ MbrNeighborApp::GetNode (int id)
 {
   NS_LOG_FUNCTION (this);
 
-  std::pair<Ptr<Ipv4>, uint32_t> interface = m_adhocTxInterfaces->Get (id);
+  std::pair<Ptr<Ipv4>, uint32_t> interface = m_beaconInterfaces->Get (id);
   Ptr<Ipv4> pp = interface.first;
   Ptr<Node> node = pp->GetObject<Node> ();
 
@@ -375,11 +381,24 @@ MbrNeighborApp::GetNode (int id)
 }
 
 Ptr<NetDevice>
+MbrNeighborApp::GetNetDeviceOfDataInf (int id)
+{
+  NS_LOG_FUNCTION (this);
+
+  std::pair<Ptr<Ipv4>, uint32_t> interface = m_dataInterfaces->Get (id);
+  Ptr<Ipv4> pp = interface.first;
+//  Ptr<NetDevice> device = pp->GetObject<NetDevice> ();
+  Ptr<Node> node = pp->GetObject<Node> ();
+  Ptr<NetDevice> device = node->GetDevice(1);
+  return device;
+}
+
+Ptr<NetDevice>
 MbrNeighborApp::GetNetDevice (int id)
 {
   NS_LOG_FUNCTION (this);
 
-  std::pair<Ptr<Ipv4>, uint32_t> interface = m_adhocTxInterfaces->Get (id);
+  std::pair<Ptr<Ipv4>, uint32_t> interface = m_beaconInterfaces->Get (id);
   Ptr<Ipv4> pp = interface.first;
 //  Ptr<NetDevice> device = pp->GetObject<NetDevice> ();
   Ptr<Node> node = pp->GetObject<Node> ();
