@@ -318,7 +318,7 @@ int find_vertex(path *head,path *index,Vertex *v)   //�ж�ͼ�ڵ��Ƿ�
     int flag = 0;
     path *temp=head;
     while(temp)
-    {  
+    {
         if(temp == index)
             flag = 1;
         if(temp->v == v)

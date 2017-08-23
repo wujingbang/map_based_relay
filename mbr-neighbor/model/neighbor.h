@@ -55,7 +55,7 @@ public:
   /// Neighbor description
   struct Neighbor
   {
-    Ipv4Address m_neighborAddress;
+    Ipv4Address m_ipAddress;
     Mac48Address m_hardwareAddress;
     Time m_expireTime;
     bool close;
@@ -67,7 +67,7 @@ public:
 
 
     Neighbor (Ipv4Address ip, Mac48Address mac, Time t, uint64_t geohash, uint16_t direction, double x, double y) :
-      m_neighborAddress (ip), m_hardwareAddress (mac), m_expireTime (t),close (false),
+      m_ipAddress (ip), m_hardwareAddress (mac), m_expireTime (t),close (false),
       m_geohash(geohash), m_direction(direction), m_x(x), m_y(y)
     {
     }
@@ -85,6 +85,7 @@ public:
   /// Remove all entries
   void Clear () { m_nb.clear (); }
 
+  uint64_t GetGeohashFromIpInNb(Ipv4Address ip, uint8_t* to_mac, double *x, double *y);
   uint64_t GetGeohashFromMacInNb(uint8_t* mac,double *x, double *y);
   int GetnbFromsetRandom(Mac48Address *mac, GeoHashSetCoordinate *geohashset);
   int GetnbFromsetBest(Mac48Address *ret_mac, GeoHashSetCoordinate *geohashset);

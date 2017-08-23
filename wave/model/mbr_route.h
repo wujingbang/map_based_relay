@@ -12,7 +12,8 @@ namespace mbr{
 class MbrRoute {
 
 public:
-	static int mbr_forward(uint8_t * to, uint8_t * relay_mac, Ptr<Node> thisnode);
+	MbrRoute();
+	static int mbr_forward(Ipv4Address dest, uint8_t* tomac, uint8_t * relay_mac, Ptr<Node> thisnode);
 
 //	/**
 //	* \brief Gets the topology instance

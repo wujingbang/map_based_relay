@@ -29,7 +29,7 @@ Neighbors::IsNeighbor (Ipv4Address addr)
   for (std::vector<Neighbor>::const_iterator i = m_nb.begin ();
        i != m_nb.end (); ++i)
     {
-      if (i->m_neighborAddress == addr)
+      if (i->m_ipAddress == addr)
         return true;
     }
   return false;
@@ -42,7 +42,7 @@ Neighbors::GetExpireTime (Ipv4Address addr)
   for (std::vector<Neighbor>::const_iterator i = m_nb.begin (); i
        != m_nb.end (); ++i)
     {
-      if (i->m_neighborAddress == addr)
+      if (i->m_ipAddress == addr)
         return (i->m_expireTime - Simulator::Now ());
     }
   return Seconds (0);
@@ -54,7 +54,7 @@ Neighbors::Update (Ipv4Address addr, Time expire, const uint8_t *mac, uint64_t g
 	Mac48Address tempmac;
 	tempmac.CopyFrom(mac);
   for (std::vector<Neighbor>::iterator i = m_nb.begin (); i != m_nb.end (); ++i)
-    if (i->m_neighborAddress == addr)
+    if (i->m_ipAddress == addr)
       {
         i->m_expireTime
           = std::max (expire + Simulator::Now (), i->m_expireTime);
@@ -119,6 +119,24 @@ uint64_t Neighbors::GetGeohashFromMacInNb(uint8_t* mac, double *x, double *y)
 
 		}
 
+	return 0;
+}
+
+/**
+ * Search node's geohash from it's mac addr.
+ * return
+ *
+ */
+uint64_t Neighbors::GetGeohashFromIpInNb(Ipv4Address ip, uint8_t* to_mac, double *x, double *y)
+{
+	for (std::vector<Neighbor>::iterator i = m_nb.begin (); i != m_nb.end (); ++i)
+		if (i->m_ipAddress == ip)
+		{
+			*x = i->m_x;
+			*y = i->m_y;
+			i->m_hardwareAddress.CopyTo(to_mac);
+			return i->m_geohash;
+		}
 	return 0;
 }
 

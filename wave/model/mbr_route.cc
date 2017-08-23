@@ -6,13 +6,31 @@
 #include "mbr_sumomap.h"
 #include "ns3/mbr-neighbor-app.h"
 #include <string.h>
+#include "ns3/core-module.h"
 
 using namespace ns3;
 using namespace mbr;
 
+NS_LOG_COMPONENT_DEFINE ("MbrRoute");
+
+MbrRoute::MbrRoute()
+{
+	NS_LOG_FUNCTION (this);
+}
 int bitcmp(uint64_t a, uint64_t b, int step)
 {
 	return a==b;
+}
+
+void vertexlist_free(vertexlist *head)
+{
+	vertexlist *temp;
+	while(head!=NULL)
+	{
+		temp = head;
+		head = head->next;
+		mbr_free(temp);
+	}
 }
 
 ////Eager Singleton
@@ -23,18 +41,7 @@ int bitcmp(uint64_t a, uint64_t b, int step)
 //	return p;
 //}
 
-void vertexlist_free(vertexlist *head)
-{
-	vertexlist *temp;
-	while(head!=NULL)
-	{
-		temp = head;
-		head = head->next;
-		kfree(temp);
-	}
-}
-
-int MbrRoute::mbr_forward(uint8_t * to, uint8_t * relay_mac, Ptr<Node> thisnode)
+int MbrRoute::mbr_forward(Ipv4Address dest, uint8_t * to_mac, uint8_t * relay_mac, Ptr<Node> thisnode)
 {
 	/**
 	 * �����ھӱ�õ��õ��Geohash
@@ -44,7 +51,7 @@ int MbrRoute::mbr_forward(uint8_t * to, uint8_t * relay_mac, Ptr<Node> thisnode)
 	uint64_t nexthop_geohash = 0;
 	uint64_t this_geohash = 0;
 	uint64_t dst_geohash = 0;
-	vertexlist *intersection;
+	vertexlist *intersectionlist;
 	Vertex *this_vertex;
 	Vertex *dst_vertex;
 	//GeoHashBits	geohashbit_tmp;
@@ -59,7 +66,7 @@ int MbrRoute::mbr_forward(uint8_t * to, uint8_t * relay_mac, Ptr<Node> thisnode)
 	Ptr<Application> app = thisnode->GetApplication(0);
 	Ptr<MbrNeighborApp> nbapp = DynamicCast<MbrNeighborApp> (app);
 //	dst_geohash = neighbor_getgeohash_frommac(to);
-	dst_geohash = nbapp->getNb()->GetGeohashFromMacInNb(to, &x_dst, &y_dst);
+	dst_geohash = nbapp->getNb()->GetGeohashFromIpInNb(dest, to_mac, &x_dst, &y_dst);
 	if(dst_geohash == 0) {
 		mbr_dbg(debug_level, ANY, "mbr_forward: nexthop does not exist in the neighbors!\n");
 		return -1;
@@ -69,13 +76,12 @@ int MbrRoute::mbr_forward(uint8_t * to, uint8_t * relay_mac, Ptr<Node> thisnode)
 	sumomap->GetNodeCurrentXY(thisnode, &x_this, &y_this);
 	this_vertex = MbrGraph::find_Vertex_by_VehiclePosition(g, this_geohash, x_this, y_this);
 	dst_vertex = MbrGraph::find_Vertex_by_VehiclePosition(g, dst_geohash, x_dst, y_dst);
-	//intersection = MbrGraph::cross_vertex(this_vertex, dst_vertex);
-	intersection = MbrGraph::cross_vertex(dst_vertex,this_vertex);
+	intersectionlist = MbrGraph::cross_vertex(dst_vertex,this_vertex);//Be careful of the vertex order !
 	/**
 	* MBR: Check whether this node and "to" are in the same road,
 	* if not, MBR should be activated.
 	*/
-	if(intersection == NULL)
+	if(intersectionlist == NULL)
 		return -1;
 
 	/**
@@ -84,10 +90,10 @@ int MbrRoute::mbr_forward(uint8_t * to, uint8_t * relay_mac, Ptr<Node> thisnode)
 	 * 2. ��ȡ�鼯���еĽڵ���Ϣ
 	 * 3. �������һ���ڵ���Ϊ�м̽ڵ�
 	 */
-	vertexlist *temp = intersection;
+	vertexlist *temp = intersectionlist;
 
 	while(temp != NULL)
-	{	
+	{
 		nexthop_geohash = temp->v->geoHash;
 
 		MbrGraph::setIntersectionSize(&geohashset, this_vertex, dst_vertex);
@@ -99,17 +105,21 @@ int MbrRoute::mbr_forward(uint8_t * to, uint8_t * relay_mac, Ptr<Node> thisnode)
 		Mac48Address relaymac;
 
 		ret = nbapp->getNb()->GetnbFromsetBest(&relaymac, &geohashset);
-//	ret = neighbor_getnode_fromset_best(&neighbor_entry, &geohashset);
 		if(ret == 0)
 		{
 			temp = temp->next;
 			continue;
-		} //unmatched!		
+		} //unmatched!
+
+		NS_LOG_LOGIC ("node="<< thisnode->GetId() <<
+									", This Area " << this_vertex->idStr <<
+									", Dest Area " << dst_vertex->idStr <<
+									", Relay Area " << temp->v->idStr);
 		relaymac.CopyTo(relay_mac);
-		vertexlist_free(intersection);
+		vertexlist_free(intersectionlist);
 		return 0;
 	}
-	vertexlist_free(intersection);
+	vertexlist_free(intersectionlist);
 	return -1;
 }
 
