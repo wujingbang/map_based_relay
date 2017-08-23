@@ -313,47 +313,73 @@ typedef struct path          	//BFS�������ݽṹ��
 	struct path *next;
 }path;
 
-
-int find_vertex(path *head,Vertex *v)	//�ж�ͼ�ڵ��Ƿ��Ѿ�����������
+int find_vertex(path *head,path *index,Vertex *v)   //�ж�ͼ�ڵ��Ƿ��Ѿ�����������
 {
-	path *temp=head;
-	while(temp)
-	{
-		if(temp->v == v)
-			return 1;
-		temp=temp->next;
-	}
+    int flag = 0;
+    path *temp=head;
+    while(temp)
+    {  
+        if(temp == index)
+            flag = 1;
+        if(temp->v == v)
+        {
+            if(flag)
+                temp->ancest = index;
+            return 1;
+        }
+        temp=temp->next;
+    }
     return 0;
 }
 
-Vertex* print_crossnode(path *p)	//����BFS����·���ϵĽ���ڵ���Ϣ��
+Vertex* print_crossnode(path *p)    //����BFS����·���ϵĽ���ڵ���Ϣ��
 {
-	int first,second;
-	second=p->e->road_id;
-	p=p->ancest;
-	while(p->ancest != NULL)
-	{
-		first=second;
-		second=p->e->road_id;
-		if(first != second)
-			return p->v;
-		p=p->ancest;
-	}
-	mbr_dbg(debug_level, ANY, "there is no crossnode between %s and %s!\n",p->v->idStr,p->ancest->v->idStr);  //���û�н���·�ڣ������Ӧ��Ϣ��
-	return NULL;
+    int first,second;
+    Vertex *ver = NULL;
+    second=p->e->road_id;
+    p=p->ancest;
+    while(p->ancest != NULL)
+    {
+        first=second;
+        second=p->e->road_id;
+        if(first != second)
+        {
+            ver = p->v;
+            break;
+        }
+        p=p->ancest;
+    }
+    if(ver != NULL)
+        return ver;
+    else
+    {
+       return NULL;
+    }
 }
 
 
 int free_path(path *p)
 {
-	path *temp;
-	while(p)
-	{
-		temp=p;
-		p=p->next;
-		mbr_free(temp);
-	}
-	return 0;
+    path *temp;
+    while(p)
+    {
+        temp=p;
+        p=p->next;
+        mbr_free(temp);
+    }
+    return 0;
+}
+
+int find_vertexlist(vertexlist *head, Vertex* v)
+{
+    vertexlist *temp = head;
+    while(temp!=NULL)
+    {
+        if(temp->v == v)
+            return 1;
+        temp = temp->next;
+    }
+    return 0;
 }
 
 /**
@@ -362,69 +388,88 @@ int free_path(path *p)
  */
 void MbrGraph::setIntersectionSize(GeoHashSetCoordinate * geohashset, Vertex * this_vertex, Vertex * dst_vertex)
 {
-	int i;
-	geohashset->sx = 3;
-	geohashset->sy = 3;
-	geohashset->geohashset = (uint64_t**)mbr_malloc(sizeof(uint64_t*) * geohashset->sy);
+    int i;
+    geohashset->sx = 3;
+    geohashset->sy = 3;
+    geohashset->geohashset = (uint64_t**)mbr_malloc(sizeof(uint64_t*) * geohashset->sy);
     for (i = 0; i < geohashset->sy; ++i){
-    	geohashset->geohashset[i] = (uint64_t*)mbr_malloc(sizeof(uint64_t) * geohashset->sx);
+        geohashset->geohashset[i] = (uint64_t*)mbr_malloc(sizeof(uint64_t) * geohashset->sx);
     }
 }
 
-Vertex* MbrGraph::cross_vertex(Vertex *from, Vertex *to)    //���Ҵ�from��to·���ϵĽ���·�ڽڵ㣻
+vertexlist* MbrGraph::cross_vertex(Vertex *from, Vertex *to)    //���Ҵ�from��to·���ϵĽ���·�ڽڵ㣻
 {
-	path *head,*tail,*index,*temp;
-	Vertex *v;
-	int flag=1;
-
-	//��ʼ�����ݽṹ��
-	head=tail=index=(path*)mbr_malloc(sizeof(path));
-	if(!index)
-	{
-		mbr_dbg(debug_level, ANY, "malloc  error!\n");
+    path *head,*tail,*index,*temp,*target = NULL;
+    Vertex *v;
+    vertexlist *head_list = NULL, *tail_list = NULL, *lst;
+    int flag = 0;
+    //��ʼ�����ݽṹ��
+    head=tail=index=(path*)mbr_malloc(sizeof(path));
+    if(!index)
+    {
         //exit(0);
     }
-	index->v=from;
-	index->ancest=NULL;
-	index->e=NULL;
-	index->next=NULL;
-	while(index)       //BFS������
-	{
-		Node_list *n=index->v->edges->head;
-		while(n)
-		{
-			if(find_vertex(head,((Edge*)n->data)->vertex)==1) //����ýڵ��Ѿ�������������������
-			{
-				n=n->next;
-				continue;
-			}
-			temp=(path*)mbr_malloc(sizeof(path));
-			temp->v=((Edge*)n->data)->vertex;
-			temp->ancest=index;
-			temp->e=(Edge*)n->data;
-			temp->next=NULL;
+    index->v=from;
+    index->ancest=NULL;
+    index->e=NULL;
+    index->next=NULL;
+    while(index)       //BFS������
+    {
+        Node_list *n=index->v->edges->head;
+        while(n)
+        {
+            int ret = find_vertex(head,index,((Edge*)n->data)->vertex);
 
-			//���±������Ľڵ���뵽����β����
-			tail->next=temp;
-			tail=temp;
-			if((flag=strcmp(temp->v->idStr,to->idStr))==0)   //�Ѿ�������Ŀ��ڵ㣬��ֹ������
-				break;
-			n=n->next;
-		}
-		if(!flag)
-			break;
-		index=index->next;
-	}
-	if(!flag)		//����ҵ�Ŀ��ڵ㣬�򷵻ؽ���·�ڽڵ���Ϣ��
-	    {
-	    	v=print_crossnode(tail);
-	    	free_path(head);
-	    	return v;
-	    }
-	else			//��û������Ŀ��ڵ㣬�������ͨ��Ϣ��
-		{
-			mbr_dbg(debug_level, ANY, "%s unconnect to %s!",from->idStr,to->idStr);
-			free_path(head);
-			return NULL;
-		}
+            if(ret)
+            {
+                if(target!=NULL&&strcmp(((Edge*)n->data)->vertex->idStr,to->idStr)==0)
+                    flag = 1;
+            }
+            else
+            {
+                temp=(path*)mbr_malloc(sizeof(path));
+                temp->v=((Edge*)n->data)->vertex;
+                temp->ancest=index;
+                temp->e=(Edge*)n->data;
+                temp->next=NULL;
+
+                //���±������Ľڵ���뵽����β����
+                tail->next=temp;
+                tail=temp;
+                if(strcmp(temp->v->idStr,to->idStr)==0)
+                {
+                    flag = 1;
+                    target = temp;
+                }
+            }
+            if(flag == 1)   //�Ѿ�������Ŀ��ڵ㣬��ֹ������
+            {
+                v=print_crossnode(target);
+                if(v != NULL && find_vertexlist(head_list,v) == 0)
+                {
+
+                    lst = (vertexlist*)mbr_malloc(sizeof(vertexlist));
+                    lst->v =v;
+                    lst->next = NULL;
+
+                    if(head_list == NULL)
+                    {
+                        head_list = lst;
+                        tail_list = lst;
+                    }
+                    else
+                    {
+                        tail_list->next = lst;
+                        tail_list = lst;
+                    }
+                }
+            }
+            n=n->next;
+        }
+        index=index->next;
+        if(strcmp(index->v->idStr,to->idStr)==0)
+            break;
+    }
+    free_path(head);
+    return head_list;
 }

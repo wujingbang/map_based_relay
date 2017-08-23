@@ -16,7 +16,6 @@
 #include "geohash.h"
 #include "mbr-common.h"
 
-
 typedef struct Edge {
     struct Vertex *vertex;
     int road_id;
@@ -34,6 +33,12 @@ typedef struct Vertex {
     int outdegree;
     int isIntersection;
 } Vertex;
+
+typedef struct vertexlist
+{
+    Vertex *v;
+    vertexlist *next;
+}vertexlist;
 
 typedef struct Graph {
     struct List *vertices;
@@ -80,7 +85,7 @@ static void graph_print(Graph *g);
  * mbr API
  */
 static Vertex* find_Vertex_by_VehiclePosition(Graph *g, uint64_t geoHash, double x, double y);
-static Vertex* cross_vertex(Vertex *from, Vertex *to);
+static vertexlist* cross_vertex(Vertex *from, Vertex *to);
 static void setIntersectionSize(GeoHashSetCoordinate * geohashset, Vertex * this_vertex, Vertex * dst_vertex);
 
 //void graph_sort_vertices(Graph *graph, int(*cmp)(const void *a, const void *b));

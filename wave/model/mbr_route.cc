@@ -23,6 +23,17 @@ int bitcmp(uint64_t a, uint64_t b, int step)
 //	return p;
 //}
 
+void vertexlist_free(vertexlist *head)
+{
+	vertexlist *temp;
+	while(head!=NULL)
+	{
+		temp = head;
+		head = head->next;
+		kfree(temp);
+	}
+}
+
 int MbrRoute::mbr_forward(uint8_t * to, uint8_t * relay_mac, Ptr<Node> thisnode)
 {
 	/**
@@ -33,7 +44,7 @@ int MbrRoute::mbr_forward(uint8_t * to, uint8_t * relay_mac, Ptr<Node> thisnode)
 	uint64_t nexthop_geohash = 0;
 	uint64_t this_geohash = 0;
 	uint64_t dst_geohash = 0;
-	Vertex *intersection;
+	vertexlist *intersection;
 	Vertex *this_vertex;
 	Vertex *dst_vertex;
 	//GeoHashBits	geohashbit_tmp;
@@ -58,14 +69,13 @@ int MbrRoute::mbr_forward(uint8_t * to, uint8_t * relay_mac, Ptr<Node> thisnode)
 	sumomap->GetNodeCurrentXY(thisnode, &x_this, &y_this);
 	this_vertex = MbrGraph::find_Vertex_by_VehiclePosition(g, this_geohash, x_this, y_this);
 	dst_vertex = MbrGraph::find_Vertex_by_VehiclePosition(g, dst_geohash, x_dst, y_dst);
-	intersection = MbrGraph::cross_vertex(this_vertex, dst_vertex);
+	//intersection = MbrGraph::cross_vertex(this_vertex, dst_vertex);
+	intersection = MbrGraph::cross_vertex(dst_vertex,this_vertex);
 	/**
 	* MBR: Check whether this node and "to" are in the same road,
 	* if not, MBR should be activated.
 	*/
-	if(intersection != NULL)
-		nexthop_geohash = intersection->geoHash;
-	else
+	if(intersection == NULL)
 		return -1;
 
 	/**
@@ -74,20 +84,32 @@ int MbrRoute::mbr_forward(uint8_t * to, uint8_t * relay_mac, Ptr<Node> thisnode)
 	 * 2. ��ȡ�鼯���еĽڵ���Ϣ
 	 * 3. �������һ���ڵ���Ϊ�м̽ڵ�
 	 */
-	MbrGraph::setIntersectionSize(&geohashset, this_vertex, dst_vertex);
+	vertexlist *temp = intersection;
+
+	while(temp != NULL)
+	{	
+		nexthop_geohash = temp->v->geoHash;
+
+		MbrGraph::setIntersectionSize(&geohashset, this_vertex, dst_vertex);
 
 	//get neighbors of center geohash block
-	geohash_get_neighbors_in_set(&geohashset, nexthop_geohash, GEOHASH_STEP_BIT);
+		geohash_get_neighbors_in_set(&geohashset, nexthop_geohash, GEOHASH_STEP_BIT);
 
 	//ret = neighbor_getnode_fromset_random(&neighbor_entry, &geohashset);
-	Mac48Address relaymac;
-	ret = nbapp->getNb()->GetnbFromsetBest(&relaymac, &geohashset);
-//	ret = neighbor_getnode_fromset_best(&neighbor_entry, &geohashset);
-	if(ret == 0)
-		return -1; //unmatched!
-//
-	relaymac.CopyTo(relay_mac);
+		Mac48Address relaymac;
 
-	return 0;
+		ret = nbapp->getNb()->GetnbFromsetBest(&relaymac, &geohashset);
+//	ret = neighbor_getnode_fromset_best(&neighbor_entry, &geohashset);
+		if(ret == 0)
+		{
+			temp = temp->next;
+			continue;
+		} //unmatched!		
+		relaymac.CopyTo(relay_mac);
+		vertexlist_free(intersection);
+		return 0;
+	}
+	vertexlist_free(intersection);
+	return -1;
 }
 
