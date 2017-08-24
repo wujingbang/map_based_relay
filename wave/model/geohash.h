@@ -36,6 +36,11 @@
 
 #include <linux/types.h>
 
+#define LAT_RANGE_MIN 39.74732
+#define LAT_RANGE_MAX 40.15929
+#define LON_RANGE_MIN 116.16677
+#define LON_RANGE_MAX 116.73407
+
     typedef enum
     {
         GEOHASH_NORTH = 0,
@@ -54,6 +59,11 @@
             uint8_t step;
     } GeoHashBits;
 
+        typedef struct
+    {
+            double max;
+            double min;
+    } GeoHashRange;
 
     typedef struct
     {
@@ -77,11 +87,18 @@
     GeoHashBits geohash_next_lefttop(GeoHashBits bits);
     GeoHashBits geohash_next_righttop(GeoHashBits bits);
 
+    geohash_fast_encode(GeoHashRange lat_range, GeoHashRange lon_range, double latitude, double longitude, uint8_t step, GeoHashBits* hash);
+
 #else
 
 #include <stdint.h>
 
 #define unlikely(a) a
+
+#define LAT_RANGE_MIN 39.74732
+#define LAT_RANGE_MAX 40.15929
+#define LON_RANGE_MIN 116.16677
+#define LON_RANGE_MAX 116.73407
 
 #if defined(__cplusplus)
 extern "C"

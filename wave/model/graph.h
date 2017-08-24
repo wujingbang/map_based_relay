@@ -16,6 +16,9 @@
 #include "geohash.h"
 #include "mbr-common.h"
 
+#define MAX_DIST                70
+#define AVERAGE_DIST            50 
+
 typedef struct Edge {
     struct Vertex *vertex;
     int road_id;
@@ -80,6 +83,8 @@ static void vertex_remove_edge_to_vertex_undirect(Vertex *from, Vertex *to);
 static void vertex_add_edge_to_vertex_undirect_exclusive(Vertex *from, Vertex *to, int road_id);
 
 static void graph_print(Graph *g);
+static void edge_division(Graph *graph, Vertex* from, Vertex* to);
+static void graph_division(Graph *graph);
 
 /**
  * mbr API

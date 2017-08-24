@@ -40,6 +40,23 @@ void list_add_data(List *list, void *data) {
     list->count++;
 }
 
+void list_add_data_tail(List *list, void *data) {
+    Node_list *node = node_create(data);
+    Node_list *temp = list->head;
+    if(temp == NULL)
+    {
+        list->head = node;
+        list->count++;
+        return;
+    }
+    while(temp->next != NULL)
+    {
+        temp = temp->next;
+    }
+    temp->next = node;
+    list->count++;
+}
+
 void list_add_data_sorted(List *list, void *data, int (*cmp)(const void *a, const void *b)) {
     Node_list *node = node_create(data);
     Node_list *n = list->head;

@@ -10,9 +10,13 @@
 #include "graph.h"
 #include "mbr-utils.h"
 #include <string.h>
+#include <stdio.h>
+#include <math.h>
 
 using namespace ns3;
 using namespace mbr;
+
+GeoHashRange lat_range, lon_range;
 
 int compare_edges(const void *aa, const void *bb);
 void vertex_free(void *data);
@@ -59,7 +63,7 @@ Edge *MbrGraph::edge_create(Vertex *vertex, int road_id) {
 }
 
 void MbrGraph::graph_add_vertex(Graph *graph, Vertex *vertex) {
-    list_add_data(graph->vertices, vertex);
+    list_add_data_tail(graph->vertices, vertex);
 }
 
 void MbrGraph::graph_add_vertex_sorted(Graph *graph, Vertex *vertex, int(*cmp)(const void *a, const void *b)) {
@@ -229,19 +233,20 @@ Vertex * MbrGraph::getVertex(Graph *graph, const char* idStr) {
 
 void MbrGraph::graph_print(Graph *g)
 {
-	Node_list *q;
+    Node_list *q;
     Node_list *p=g->vertices->head;
     while(p)
     {
         Vertex *v = (Vertex*)p->data;
-        mbr_dbg(debug_level, ANY, "%s, %lld ",v->idStr, v->geoHash);
+        printf("%s %ld ",(char*)(v->idStr),v->geoHash);
         q = v->edges->head;
         while(q)
         {
-        	mbr_dbg(debug_level, ANY, "Connect to Edge:%s ",((Edge*)q->data)->vertex->idStr);
+            Edge *e = (Edge*)(q->data);
+            printf("%s %d# ",(char*)(e->vertex->idStr), e->road_id);
             q=q->next;
         }
-        mbr_dbg(debug_level, ANY, "\n");
+        printf("\n");
         p=p->next;
     }
 }
@@ -318,7 +323,7 @@ int find_vertex(path *head,path *index,Vertex *v)   //�ж�ͼ�ڵ��Ƿ�
     int flag = 0;
     path *temp=head;
     while(temp)
-    {
+    {  
         if(temp == index)
             flag = 1;
         if(temp->v == v)
@@ -415,8 +420,8 @@ vertexlist* MbrGraph::cross_vertex(Vertex *from, Vertex *to)    //���Ҵ�
     index->next=NULL;
     while(index)       //BFS������
     {
-    	if(strcmp(index->v->idStr,to->idStr)==0)
-    		break;
+        if(strcmp(index->v->idStr,to->idStr)==0)
+            break;
         Node_list *n=index->v->edges->head;
         while(n)
         {
@@ -469,8 +474,93 @@ vertexlist* MbrGraph::cross_vertex(Vertex *from, Vertex *to)    //���Ҵ�
             n=n->next;
         }
         index=index->next;
-
     }
     free_path(head);
     return head_list;
+}
+
+
+void make_coordinate_string(char* str, double x, double y)
+{
+    sprintf(str, "%09.6lf,%09.6lf", x, y);
+    return;
+}
+
+void coordString_to_coordinate(const char* str, double &x, double &y)
+{
+    sscanf(str, "%lf,%lf", &x, &y);
+    return;
+}
+
+int find_road_id(Vertex *from, Vertex *to)
+{
+    Node_list *e = from->edges->head;
+    while (e) {
+        if (((Edge *)e->data)->vertex == to) {
+            return ((Edge *)e->data)->road_id;
+        }
+        e = e->next;
+    }
+    return -1;
+}
+
+
+void MbrGraph::edge_division(Graph *graph, Vertex* from, Vertex* to)
+{
+    int a;
+    int road_id;
+    double dst,lat1,lng1,lat2,lng2,lat3,lng3;
+    GeoHashBits geo;
+    Vertex *temp;
+    char idStr[25];
+    lat1 = from->x;
+    lng1 = from->y;
+    lat2 = to->x;
+    lng2 = to->y;
+    dst = get_distance(lat1, lng1, lat2, lng2)*1000;
+    if(dst > MAX_DIST)
+    {
+        a = round(dst/AVERAGE_DIST);
+        lat3 = lat1 + (lat2-lat1)/a;
+        lng3 = lng1 + (lng2-lng1)/a;
+        make_coordinate_string((char *)idStr, lat3, lng3);
+        geohash_fast_encode(lat_range, lon_range, lat3, lng3, 12, &geo);
+        temp = vertex_create(idStr, lat3, lng3, geo.bits, 0);
+        graph_add_vertex(graph,temp);
+        road_id = find_road_id(from,to);
+
+        //printf("%d %d\n",dst,road_id);
+
+        vertex_add_edge_to_vertex_undirect(from,temp,road_id);
+        vertex_add_edge_to_vertex_undirect(temp,to,road_id);
+        vertex_remove_edge_to_vertex_undirect(from,to);
+    }
+    return;
+}
+
+void MbrGraph::graph_division(Graph *graph)
+{
+    Node_list *n1;
+    Node_list *n2=graph->vertices->head;
+
+    lat_range.min = LAT_RANGE_MIN;
+    lat_range.max = LAT_RANGE_MAX;
+    lon_range.min = LON_RANGE_MIN;
+    lon_range.max = LON_RANGE_MAX;
+
+    while(n2)
+    {
+        Vertex *v = (Vertex*)n2->data;
+        n1 = v->edges->head;
+        while(n1)
+        {
+            Edge *e =(Edge*)(n1->data);
+            n1 = n1->next;
+            edge_division(graph,v,e->vertex);
+            //graph_print(graph);
+            //printf("####\n");
+        }
+        n2=n2->next;
+    }
+    return;
 }
