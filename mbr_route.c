@@ -117,7 +117,7 @@ int mbr_forward(u8 *dst_mac, u8 *relay_mac, struct sk_buff *skb, Graph *g)
 		dst_geohash = neighbor_entry->geoHash;
 		memcpy(dst_mac, neighbor_entry->mac, 6);
 	} else {
-		mbr_dbg(debug_level, ANY, "mbr_forward: nexthop does not exist in the neighbors!\n");
+		//mbr_dbg(debug_level, ANY, "mbr_forward: nexthop does not exist in the neighbors!\n");
 		return -1;
 	}
 
@@ -162,6 +162,8 @@ int mbr_forward(u8 *dst_mac, u8 *relay_mac, struct sk_buff *skb, Graph *g)
 	//get neighbors of center geohash block
 	geohash_get_neighbors_in_set(&geohashset, nexthop_geohash, GEOHASH_STEP_BIT);
 
+	
+
 	//ret = neighbor_getnode_fromset_random(&neighbor_entry, &geohashset);
 
 	ret = neighbor_getnode_fromset_best(&neighbor_entry, &geohashset);
@@ -169,6 +171,8 @@ int mbr_forward(u8 *dst_mac, u8 *relay_mac, struct sk_buff *skb, Graph *g)
 		return -1; //unmatched!
 
 	memcpy(relay_mac, neighbor_entry->mac, 6);
+
+	//mbr_dbg(debug_level, ANY, "relay_mac is: %x:%x:%x:%x:%x:%x\n", relay_mac[0],relay_mac[1],relay_mac[2],relay_mac[3],relay_mac[4],relay_mac[5] );
 
 	return 0;
 }

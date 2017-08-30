@@ -25,7 +25,7 @@ int neigh_list_init(void)
 
 inline void wait_neigh_available(void)
 {
-	while(*neigh_status){}
+	//while(*neigh_status){}
 }
 /**
  * Search node's geohash from it's ip addr.
@@ -37,8 +37,11 @@ int neighbor_getnode_fromip(neighbor_table** neighbor_entry, u32 ip)
 	int i;
 	neighbor_table	*temp = neigh_data;
 	wait_neigh_available();
+
+	//mbr_dbg(debug_level, ANY, "begin!\n");
 	for(i = 0; i < *neigh_count; i++) {
 		temp = neigh_data + i;
+		//mbr_dbg(debug_level, ANY, "%x %lld\n",temp->ip,temp->geoHash);
 		if(temp->ip == ip) {
 			*neighbor_entry = temp;
 			return 0;
@@ -155,15 +158,21 @@ u64 neighbor_getnode_fromset_best(neighbor_table** neighbor_entry, GeoHashSetCoo
 			*neighbor_entry = temp;
 			return 1;
 		}
-		else if(dtime_curr > dtime_best) {
+		else {
+			if(dtime_curr > dtime_best)
+			{
 			dtime_best = dtime_curr;
 			best = temp;
+			}
 		}
 	}
-	if(dtime_best > 0)	{
-		*neighbor_entry = best;
-		return 1;
+	if(dtime_best > 0)
+	{
+	*neighbor_entry = best;
+	return 1;
 	}
 	else
-		return 0;
+	{
+	return 0;
+	}
 }

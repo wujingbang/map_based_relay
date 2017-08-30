@@ -41,11 +41,21 @@
 //  int debug_mask;
 //};
 
+struct packet_stat
+{
+    u8 mac[6];
+    long sec,nsec;
+    int packetsize;
+    struct packet_stat *next;
+};
 struct mbr_status
 {
     struct dentry *dir;
     u64 geohash_this;
     int mbr_start;
+    int relay_work;
+    int stat_on;
+    int stat_write;
 };
 
 

@@ -305,7 +305,7 @@ Vertex* print_crossnode(path *p)	//返回BFS遍历路径上的交叉节点信息；
 			return p->v;
 		p=p->ancest;
 	}
-	mbr_dbg(debug_level, ANY, "there is no crossnode between %s and %s!\n",p->v->idStr,p->ancest->v->idStr);  //如果没有交叉路口，输出相应信息；
+	//mbr_dbg(debug_level, ANY, "there is no crossnode between %s and %s!\n",p->v->idStr,p->ancest->v->idStr);  //如果没有交叉路口，输出相应信息；
 	return NULL;
 }
 
@@ -389,7 +389,7 @@ Vertex* cross_vertex(Vertex *from, Vertex *to)    //查找从from到to路径上的交叉路
 	    }
 	else			//若没遍历到目标节点，输出不连通信息；
 		{
-			mbr_dbg(debug_level, ANY, "%s unconnect to %s!",from->idStr,to->idStr);
+			// mbr_dbg(debug_level, ANY, "%s unconnect to %s!",from->idStr,to->idStr);
 			free_path(head);
 			return NULL;
 		}

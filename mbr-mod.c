@@ -20,6 +20,8 @@ static struct sock *netlinkfd;
 //graph
 Graph *global_graph;
 
+struct packet_stat *statis = NULL;
+
 static unsigned char * malloc_reserved_mem(unsigned int size){
     unsigned char *p = kmalloc(size, GFP_KERNEL);
     unsigned char *tmp = p;
@@ -160,6 +162,99 @@ status_mbr_start_write(struct file *filp, char __user *ubuf,
 
 }
 
+static int
+status_relay_work_read(struct file *filp, char __user *ubuf,
+		    size_t cnt, loff_t *ppos)
+{
+	char buf[64];
+	int r;
+	struct mbr_status *st = filp->private_data;
+
+	r = snprintf(buf, sizeof(buf), "%d\n", st->relay_work);
+	if (r > sizeof(buf))
+		r = sizeof(buf);
+	return simple_read_from_buffer(ubuf, cnt, ppos, buf, r);
+}
+
+static int
+status_relay_work_write(struct file *filp, char __user *ubuf,
+		    size_t cnt, loff_t *ppos)
+{
+	u64 val;
+	int ret;
+	struct mbr_status *st = filp->private_data;
+	ret = kstrtoull_from_user(ubuf, cnt, 10, &val);
+	if (ret)
+		return ret;
+
+	st->relay_work = val;
+
+	return cnt;
+
+}
+
+static int
+status_stat_on_read(struct file *filp, char __user *ubuf,
+		    size_t cnt, loff_t *ppos)
+{
+	char buf[64];
+	int r;
+	struct mbr_status *st = filp->private_data;
+
+	r = snprintf(buf, sizeof(buf), "%d\n", st->stat_on);
+	if (r > sizeof(buf))
+		r = sizeof(buf);
+	return simple_read_from_buffer(ubuf, cnt, ppos, buf, r);
+}
+
+static int
+status_stat_on_write(struct file *filp, char __user *ubuf,
+		    size_t cnt, loff_t *ppos)
+{
+	u64 val;
+	int ret;
+	struct mbr_status *st = filp->private_data;
+	ret = kstrtoull_from_user(ubuf, cnt, 10, &val);
+	if (ret)
+		return ret;
+
+	st->stat_on = val;
+
+	return cnt;
+
+}
+
+static int
+status_stat_write_read(struct file *filp, char __user *ubuf,
+		    size_t cnt, loff_t *ppos)
+{
+	char buf[64];
+	int r;
+	struct mbr_status *st = filp->private_data;
+
+	r = snprintf(buf, sizeof(buf), "%d\n", st->stat_write);
+	if (r > sizeof(buf))
+		r = sizeof(buf);
+	return simple_read_from_buffer(ubuf, cnt, ppos, buf, r);
+}
+
+static int
+status_stat_write_write(struct file *filp, char __user *ubuf,
+		    size_t cnt, loff_t *ppos)
+{
+	u64 val;
+	int ret;
+	struct mbr_status *st = filp->private_data;
+	ret = kstrtoull_from_user(ubuf, cnt, 10, &val);
+	if (ret)
+		return ret;
+
+	st->stat_write = val;
+
+	return cnt;
+
+}
+
 static int read_file_mbrtable(struct seq_file *file, void *data)
 {
 	print_mbrtable(file);
@@ -170,6 +265,24 @@ static int open_mbrtable(struct inode *inode, struct file *f)
 {
 	return single_open(f, read_file_mbrtable, inode->i_private);
 }
+
+static const struct file_operations status_relay_work = {
+	.open		= status_open_generic,
+	.read		= status_relay_work_read,
+	.write		= status_relay_work_write,
+};
+
+static const struct file_operations status_stat_on = {
+	.open		= status_open_generic,
+	.read		= status_stat_on_read,
+	.write		= status_stat_on_write,
+};
+
+static const struct file_operations status_stat_write = {
+	.open		= status_open_generic,
+	.read		= status_stat_write_read,
+	.write		= status_stat_write_write,
+};
 
 static const struct file_operations status_geohash = {
 	.open		= status_open_generic,
@@ -199,6 +312,7 @@ static int mbr_create_debugfs(void)
 	global_mbr_status.dir = debugfs_create_dir("mbr", NULL);
 	global_mbr_status.geohash_this = 0;
 	global_mbr_status.mbr_start = 0;
+	global_mbr_status.relay_work = 0;
 	d_status = global_mbr_status.dir;
 
 	mbr_status_create_file("geohash", 0644, d_status,
@@ -207,6 +321,12 @@ static int mbr_create_debugfs(void)
 			&global_mbr_status, &status_mbr_start);
 	mbr_status_create_file("mbrtable", 0644, d_status,
 			&global_mbr_status, &status_mbrtable);
+	mbr_status_create_file("relay_work", 0644, d_status,
+			&global_mbr_status, &status_relay_work);
+	mbr_status_create_file("stat_on", 0644, d_status,
+			&global_mbr_status, &status_stat_on);
+	mbr_status_create_file("stat_write", 0644, d_status,
+			&global_mbr_status, &status_stat_write);
 }
 
 

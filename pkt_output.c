@@ -10,6 +10,7 @@
 extern int debug_level;
 extern Graph *global_graph;
 extern struct mbr_status global_mbr_status;
+extern struct packet_stat *statis;
 //mac addr of this
 unsigned char global_mac_this[ETH_ALEN];
 
@@ -63,7 +64,7 @@ unsigned int output_handler(const struct nf_hook_ops *ops, struct sk_buff *skb,
 	struct netdev_hw_addr *ha;
 	struct timespec now;
 
-	int i =0;
+	int i =0, j = 0;
 	//mbr_dbg(debug_level, ANY, "")
 //#define GEL01 {0x54,0x27,0x1e,0xa4,0xca,0xe3}
 //#define GEL02 {0x54,0x27,0x1e,0x1a,0x77,0x99}
@@ -79,6 +80,22 @@ unsigned int output_handler(const struct nf_hook_ops *ops, struct sk_buff *skb,
     /**
      * init addr
      */
+
+	if(global_mbr_status.stat_write == 1)
+	{
+		struct packet_stat *temp;
+		while(statis != NULL)
+		{	
+			temp = statis;
+			trace_skb(debug_level, XMIT, "relay: %x%x%x%x%x%x time: %d %d pktsize: %d\n",
+			statis->mac[0],statis->mac[1],statis->mac[2],statis->mac[3],statis->mac[4],statis->mac[5],
+			statis->sec, statis->nsec,statis->packetsize);
+			statis = statis->next;
+			kfree(temp);
+		}
+		global_mbr_status.stat_write = 0;
+	}
+
 	if(unlikely(!addrinit_flag)) {
 		rcu_read_lock();
 		for_each_dev_addr(out, ha) {
@@ -90,24 +107,48 @@ unsigned int output_handler(const struct nf_hook_ops *ops, struct sk_buff *skb,
 	}
 
 	if(skb == NULL) {
-		mbr_dbg(debug_level, XMIT, "SKB is null!\n");
+		//mbr_dbg(debug_level, XMIT, "SKB is null!\n");
 		return NF_ACCEPT;
 	}
 	if(unlikely(!global_mbr_status.mbr_start)) {
-		mbr_dbg(debug_level, XMIT, "MBR disabled!\n");
+		//mbr_dbg(debug_level, XMIT, "MBR disabled!\n");
 		return NF_ACCEPT;
 	}
 
 	ret = mbr_forward( dst_mac, relay_mac, skb, global_graph);
-	if(ret < 0) {
-		mbr_dbg(debug_level, XMIT, "mbr_forward failed!\n");
+	if(ret < 0) 
+	{
+	//	mbr_dbg(debug_level, XMIT, "mbr_forward failed!\n");
+
 		return NF_ACCEPT;
 	}
+	else
+	{
+		++global_mbr_status.relay_work;
+		if(global_mbr_status.stat_on == 1)
+		{
+			struct packet_stat *temp;
+			temp = (struct packet_stat*)kmalloc(sizeof(struct packet_stat), GFP_KERNEL);
+			now = current_kernel_time();
+			for(j=0;j<6;++j)
+				temp->mac[j] = relay_mac[j];
+			temp->sec = now.tv_sec;
+			temp->nsec = now.tv_nsec;
+			temp->packetsize = skb->len;
+			temp->next = NULL;
+
+			temp->next = statis;
+			statis = temp;
+		}
+	}
+	
+	/*
 	now = current_kernel_time();
 	trace_skb(debug_level, XMIT, "relay: %x%x%x%x%x%x time: %d %d pktsize: %d\n",
 			relay_mac[0],relay_mac[1],relay_mac[2],relay_mac[3],relay_mac[4],relay_mac[5],
 			now.tv_sec, now.tv_nsec,
 			skb->len);
+	*/
 
 	__skb_pull(skb, skb_network_offset(skb));
 	//err = dev_hard_header(skb, skb->dev, ETH_P_IP, h_dest, h_source, skb->len);

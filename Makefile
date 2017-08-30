@@ -1,11 +1,11 @@
 obj-m := mbr.o
 mbr-objs := mbr-mod.o pkt_output.o pkt_input.o debug.o geohash.o graph.o list.o mbr_route.o neighbors.o 
 
-KDIR :=/home/wu/Desktop/galileo/802.11p-linux
+KDIR :=/home/wory/Documents/802.11p-linux
 
 PWD := $(shell pwd)
 
-EXTRA_CFLAGS += -DCONFIG_DEBUG -DCONFIG_MBR_TABLE
+EXTRA_CFLAGS += -DCONFIG_DEBUG
 
 
 default:

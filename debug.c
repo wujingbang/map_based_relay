@@ -37,8 +37,8 @@ void mbr_print_file(const char *level, const int debug_mask,
 
 	va_end(args);
 
-
 	filp = filp_open(TRACE_FILE, O_RDWR| O_APPEND | O_CREAT, 0644);
+	
 	if(IS_ERR(filp))
 	{
 		printk(KERN_ALERT "mbr_print_file: file open error!\n");

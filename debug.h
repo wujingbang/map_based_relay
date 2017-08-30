@@ -31,7 +31,7 @@ enum MBR_DEBUG {
 
 #define MBR_DBG_DEFAULT (MBR_DBG_ANY)
 
-#define TRACE_FILE "/media/realroot/mbr_packetstat/mbr_packet_stat.txt"
+#define TRACE_FILE "/media/realroot/xxxxx/mbr_packet_stat.txt"
 
 void mbr_printk(const char *level, const int debug_mask,
 		const char *fmt, ...);
