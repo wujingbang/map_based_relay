@@ -39,6 +39,8 @@
 #include "ns3/arp-cache.h"
 #include <vector>
 
+#include "ns3/vector.h"
+
 namespace ns3
 {
 namespace mbr
@@ -58,6 +60,7 @@ public:
     Ipv4Address m_ipAddress;
     Mac48Address m_hardwareAddress;
     Time m_expireTime;
+    Time m_settingTime;
     bool close;
     uint64_t m_geohash;
     uint16_t m_direction;
@@ -66,14 +69,16 @@ public:
 
 
 
-    Neighbor (Ipv4Address ip, Mac48Address mac, Time t, uint64_t geohash, uint16_t direction, double x, double y) :
-      m_ipAddress (ip), m_hardwareAddress (mac), m_expireTime (t),close (false),
+    Neighbor (Ipv4Address ip, Mac48Address mac, Time t, Time sett, uint64_t geohash, uint16_t direction, double x, double y) :
+      m_ipAddress (ip), m_hardwareAddress (mac), m_expireTime (t),m_settingTime(sett),close (false),
       m_geohash(geohash), m_direction(direction), m_x(x), m_y(y)
     {
     }
   };
   /// Return expire time for neighbor node with address addr, if exists, else return 0.
   Time GetExpireTime (Ipv4Address addr);
+
+  Time GetSettingTime (Ipv4Address addr);
   /// Check that node with address addr  is neighbor
   bool IsNeighbor (Ipv4Address addr);
   /// Update expire time for entry with address addr, if it exists, else add new entry
@@ -89,6 +94,13 @@ public:
   uint64_t GetGeohashFromMacInNb(uint8_t* mac,double *x, double *y);
   int GetnbFromsetRandom(Mac48Address *mac, GeoHashSetCoordinate *geohashset);
   int GetnbFromsetBest(Mac48Address *ret_mac, GeoHashSetCoordinate *geohashset);
+
+  Vector GetPositionFromIp(Ipv4Address ip);
+  bool NeighborEmpty();
+  Time GetEntryUpdateTime (Ipv4Address ip);
+  int GetTableSize();
+  Vector GetPosition(int i);
+  Ipv4Address GetIp(int i);
 
   /// Get callback to ProcessTxError
 //  Callback<void, WifiMacHeader const &> GetTxErrorCallback () const { return m_txErrorCallback; }

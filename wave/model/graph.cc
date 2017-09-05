@@ -513,10 +513,10 @@ void MbrGraph::edge_division(Graph *graph, Vertex* from, Vertex* to)
     GeoHashBits geo;
     Vertex *temp;
     char idStr[25];
-    lat1 = from->x;
-    lng1 = from->y;
-    lat2 = to->x;
-    lng2 = to->y;
+    lat1 = from->y;
+    lng1 = from->x;
+    lat2 = to->y;
+    lng2 = to->x;
     dst = get_distance(lat1, lng1, lat2, lng2)*1000;
     if(dst > MAX_DIST)
     {
@@ -524,8 +524,8 @@ void MbrGraph::edge_division(Graph *graph, Vertex* from, Vertex* to)
         lat3 = lat1 + (lat2-lat1)/a;
         lng3 = lng1 + (lng2-lng1)/a;
         make_coordinate_string((char *)idStr, lat3, lng3);
-        geohash_fast_encode(lat_range, lon_range, lat3, lng3, 12, &geo);
-        temp = vertex_create(idStr, lat3, lng3, geo.bits, 0);
+        geohash_fast_encode(lat_range, lon_range, lat3, lng3, GEOHASH_STEP_BIT, &geo);
+        temp = vertex_create(idStr, lng3, lat3, geo.bits, 0);
         graph_add_vertex(graph,temp);
         road_id = find_road_id(from,to);
 

@@ -106,7 +106,7 @@ public:
    * \param r limiting radius for obstacles between p1 and p2
    * \return tbd
    */
-  double GetObstructedLossBetween(const Point &p1, const Point &p2, double r);
+  double GetObstructedLossBetween(const Point &p1, const Point &p2, double r, bool forbeacon);
 
   /**
    * \brief Tests if the topology has any obstacles (loaded within it)

@@ -16,7 +16,7 @@
 #include "geohash.h"
 #include "mbr-common.h"
 
-#define MAX_DIST                70
+#define MAX_DIST                75
 #define AVERAGE_DIST            50 
 
 typedef struct Edge {

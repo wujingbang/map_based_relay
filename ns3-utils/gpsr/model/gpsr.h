@@ -94,6 +94,17 @@ public:
     return;
   }
 
+  PositionTable&
+  getNeighbors ()
+  {
+    return m_neighbors;
+  }
+
+  void
+  setNbFromMbr (bool nbFromMbr)
+  {
+    m_nbFromMbr = nbFromMbr;
+  }
 
 private:
   /// Start protocol operation
@@ -134,7 +145,8 @@ private:
   Ptr<LocationService> m_locationService;
 
   IpL4Protocol::DownTargetCallback m_downTarget;
-
+  bool m_nbFromMbr;
+  bool m_start;
 
 
 };

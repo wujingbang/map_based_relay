@@ -63,7 +63,7 @@ public:
    */
   void Set (std::string name, const AttributeValue &value);
 
-  void Install (void) const;
+  void Install (bool nbFromMbr) const;
 
 private:
   ObjectFactory m_agentFactory;

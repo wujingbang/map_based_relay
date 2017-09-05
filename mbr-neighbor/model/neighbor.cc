@@ -48,6 +48,19 @@ Neighbors::GetExpireTime (Ipv4Address addr)
   return Seconds (0);
 }
 
+Time
+Neighbors::GetSettingTime (Ipv4Address addr)
+{
+  Purge ();
+  for (std::vector<Neighbor>::const_iterator i = m_nb.begin (); i
+       != m_nb.end (); ++i)
+    {
+      if (i->m_ipAddress == addr)
+        return (i->m_settingTime);
+    }
+  return Seconds (0);
+}
+
 void
 Neighbors::Update (Ipv4Address addr, Time expire, const uint8_t *mac, uint64_t geohash, uint16_t direction, double x, double y)
 {
@@ -58,6 +71,7 @@ Neighbors::Update (Ipv4Address addr, Time expire, const uint8_t *mac, uint64_t g
       {
         i->m_expireTime
           = std::max (expire + Simulator::Now (), i->m_expireTime);
+        i->m_settingTime = Simulator::Now ();
         if (i->m_hardwareAddress == Mac48Address ()) {
 
           i->m_hardwareAddress = tempmac;
@@ -68,7 +82,7 @@ Neighbors::Update (Ipv4Address addr, Time expire, const uint8_t *mac, uint64_t g
       }
 
   NS_LOG_LOGIC ("Open link to " << addr);
-  Neighbor neighbor (addr, tempmac, expire + Simulator::Now (), geohash, direction, x, y);
+  Neighbor neighbor (addr, tempmac, expire + Simulator::Now (), Simulator::Now (), geohash, direction, x, y);
   m_nb.push_back (neighbor);
   Purge ();
 }
@@ -140,6 +154,54 @@ uint64_t Neighbors::GetGeohashFromIpInNb(Ipv4Address ip, uint8_t* to_mac, double
 	return 0;
 }
 
+Vector
+Neighbors::GetPositionFromIp (Ipv4Address ip)
+{
+  Vector p;
+  p.x = -1;
+  p.y = -1;
+  for (std::vector<Neighbor>::iterator i = m_nb.begin (); i != m_nb.end (); ++i)
+    if (i->m_ipAddress == ip)
+      {
+	p.x = i->m_x;
+	p.y = i->m_y;
+	p.z = 0;
+	return p;
+      }
+  return p;
+}
+
+bool Neighbors::NeighborEmpty()
+{
+  return m_nb.empty();
+}
+
+Time Neighbors::GetEntryUpdateTime (Ipv4Address ip)
+{
+  for (std::vector<Neighbor>::iterator i = m_nb.begin (); i != m_nb.end (); ++i)
+    if (i->m_ipAddress == ip)
+      return i->m_settingTime;
+  return Time();
+}
+
+int Neighbors::GetTableSize()
+{
+  return m_nb.size();
+}
+
+Vector Neighbors::GetPosition(int i)
+{
+  Vector p;
+  p.x = m_nb[i].m_x;
+  p.y = m_nb[i].m_y;
+  p.z = 0;
+  return p;
+}
+
+Ipv4Address Neighbors::GetIp(int i)
+{
+  return m_nb[i].m_ipAddress;
+}
 /**
  * get a random node which is in the range of the geohash set.
  * return 0 if unmatched.

@@ -183,7 +183,9 @@ void MbrSumo::Initialize(std::string sumoMapFilename)
 		m_sumoMapFilename = sumoMapFilename;
 	//m_netdevicelist.Add(netdevicelist);
 	loadSumoMap(m_sumoMapFilename);
-	m_initialized = 1;
+	MbrGraph::graph_division(m_graph);
+	//m_initialized = 1;
+	m_mapLoaded = true;
 
 }
 

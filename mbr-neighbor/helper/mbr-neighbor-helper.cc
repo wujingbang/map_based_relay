@@ -72,12 +72,16 @@ MbrNeighborHelper::InstallPriv (Ptr<Node> node) const
 
 void
 MbrNeighborHelper::Install (Ipv4InterfaceContainer & i,
-						Ipv4InterfaceContainer & iData,
+			Ipv4InterfaceContainer & iData,
+			NetDeviceContainer &d,
+			NetDeviceContainer &dData,
                         Time totalTime,          // seconds
                         uint32_t wavePacketSize, // bytes
                         Time waveInterval,       // seconds
                         double gpsAccuracyNs,    // clock drift range in number of ns
-                        Time txMaxDelay)         // max delay prior to transmit
+                        Time txMaxDelay,        // max delay prior to transmit
+			std::string netFileString,
+			bool openRelay)
 {
 
 
@@ -96,19 +100,29 @@ MbrNeighborHelper::Install (Ipv4InterfaceContainer & i,
       Ptr<mbr::MbrNeighborApp> mbrnbApps = DynamicCast<mbr::MbrNeighborApp> (*aci);
 
       mbrnbApps->Setup (i,
-    		  	  	 iData,
-                     nodeId,
-                     totalTime,
-                     wavePacketSize,
-                     waveInterval,
-                     gpsAccuracyNs,
-                     &nodesMoving,
-                     txMaxDelay);
+		        iData,
+		        d,
+		        dData,
+		        nodeId,
+		        totalTime,
+		        wavePacketSize,
+		        waveInterval,
+		        gpsAccuracyNs,
+		        &nodesMoving,
+		        txMaxDelay);
       nodeId++;
     }
   mbr::MbrSumo *map = mbr::MbrSumo::GetInstance();
   if (!map->isInitialized())
-	  map->Initialize("");
+    {
+	  map->Initialize(netFileString);
+	  NS_LOG_UNCOND ("Sumo Map is loaded!");
+    }
+  if (openRelay) {
+      NS_ASSERT(map->isMapLoaded());
+      map->setInitialized(true);
+      NS_LOG_UNCOND ("MBR relaying is opened!");
+  }
 }
 
 int64_t

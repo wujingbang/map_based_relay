@@ -71,9 +71,29 @@ public:
 		return m_initialized;
 	}
 
-private:
+      void
+      setInitialized (bool initialized)
+      {
+	m_initialized = initialized;
+      }
+      bool
+      isMapLoaded () const
+      {
+	return m_mapLoaded;
+      }
+
+      void
+      setMapLoaded (bool mapLoaded)
+      {
+	m_mapLoaded = mapLoaded;
+      }
+
+
+    private:
 	static MbrSumo * p;
 	bool m_initialized;
+	bool m_mapLoaded;
+
 	mapboundary m_bound;
 	//graph
 	Graph *m_graph;
@@ -86,6 +106,7 @@ private:
 		m_graph = NULL;
 		//m_netdevicelist = NULL;
 		m_initialized = 0;
+		m_mapLoaded = 0;
 	};
 	void Tokenize(const std::string& str,
 			std::vector<std::string>& tokens,

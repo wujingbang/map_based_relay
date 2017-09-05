@@ -60,7 +60,7 @@ GpsrHelper::Set (std::string name, const AttributeValue &value)
 
 
 void 
-GpsrHelper::Install (void) const
+GpsrHelper::Install (bool nbFromMbr) const
 {
   NodeContainer c = NodeContainer::GetGlobal ();
   for (NodeContainer::Iterator i = c.Begin (); i != c.End (); ++i)
@@ -69,11 +69,11 @@ GpsrHelper::Install (void) const
       Ptr<UdpL4Protocol> udp = node->GetObject<UdpL4Protocol> ();
       Ptr<gpsr::RoutingProtocol> gpsr = node->GetObject<gpsr::RoutingProtocol> ();
       gpsr->SetDownTarget (udp->GetDownTarget ());
+      gpsr->setNbFromMbr(nbFromMbr);
+      gpsr->getNeighbors().setNbFromMbr(nbFromMbr);
+      gpsr->getNeighbors().setNode(node);
       udp->SetDownTarget (MakeCallback(&gpsr::RoutingProtocol::AddHeaders, gpsr));
     }
-
-
 }
-
 
 }

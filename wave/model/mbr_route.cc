@@ -60,15 +60,24 @@ int MbrRoute::mbr_forward(Ipv4Address dest, uint8_t * to_mac, uint8_t * relay_ma
 	double x_this,y_this;
 	double x_dst,y_dst;
 	MbrSumo* sumomap = MbrSumo::GetInstance();
-	NS_ASSERT (sumomap->isInitialized());
+
+	if (!sumomap->isInitialized())
+		return -1;
+
 	Graph* g = sumomap->getGraph();
-	//Assume mbr-neighbor-app is the first application.
-	Ptr<Application> app = thisnode->GetApplication(0);
-	Ptr<MbrNeighborApp> nbapp = DynamicCast<MbrNeighborApp> (app);
+	Ptr<MbrNeighborApp> nbapp;
+	for (uint32_t j = 0; j < thisnode->GetNApplications (); j++)
+	  {
+	    nbapp = DynamicCast<MbrNeighborApp> (thisnode->GetApplication(j));
+	    if (nbapp)
+	      break;
+	  }
+	if (!nbapp) return -1;
 //	dst_geohash = neighbor_getgeohash_frommac(to);
 	dst_geohash = nbapp->getNb()->GetGeohashFromIpInNb(dest, to_mac, &x_dst, &y_dst);
 	if(dst_geohash == 0) {
 		mbr_dbg(debug_level, ANY, "mbr_forward: nexthop does not exist in the neighbors!\n");
+		NS_LOG_LOGIC("mbr_forward: nexthop does not exist in the neighbors!\n");
 		return -1;
 	}
 
@@ -77,12 +86,16 @@ int MbrRoute::mbr_forward(Ipv4Address dest, uint8_t * to_mac, uint8_t * relay_ma
 	this_vertex = MbrGraph::find_Vertex_by_VehiclePosition(g, this_geohash, x_this, y_this);
 	dst_vertex = MbrGraph::find_Vertex_by_VehiclePosition(g, dst_geohash, x_dst, y_dst);
 	intersectionlist = MbrGraph::cross_vertex(dst_vertex,this_vertex);//Be careful of the vertex order !
+
 	/**
 	* MBR: Check whether this node and "to" are in the same road,
 	* if not, MBR should be activated.
 	*/
 	if(intersectionlist == NULL)
-		return -1;
+	  {
+	    NS_LOG_LOGIC("intersectionlist is NULL ! this_v: "<<this_vertex->idStr << " dst_v: "<<dst_vertex->idStr);
+	    return -1;
+	  }
 
 	/**
 	 * ��Geohash����·��ת��:

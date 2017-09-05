@@ -309,7 +309,7 @@ Topology::GetObstructedDistance(const Point &p1, const Point &p2, Obstacle &obs,
 }
 
 double 
-Topology::GetObstructedLossBetween(const Point &p1, const Point &p2, double r)
+Topology::GetObstructedLossBetween(const Point &p1, const Point &p2, double r, bool forbeacon)
 {
   NS_LOG_FUNCTION (this);
 
@@ -420,6 +420,11 @@ Topology::GetObstructedLossBetween(const Point &p1, const Point &p2, double r)
                 {
                   double beta = obstacle.GetBeta();
                   double gamma = obstacle.GetGamma();
+                  if (forbeacon)
+                    {
+                      beta = beta/4;
+                      gamma = gamma/4;
+                    }
                   obstructedLoss = beta * (double) intersections + gamma * obstructedDistanceBetween;
                               
                 }
@@ -427,6 +432,9 @@ Topology::GetObstructedLossBetween(const Point &p1, const Point &p2, double r)
           current++;
         }
     }
+
+  else
+    obstructedLoss = 9999;
 
   // cache results
   if (m_obstructedDistanceMap.size() > 1000) 

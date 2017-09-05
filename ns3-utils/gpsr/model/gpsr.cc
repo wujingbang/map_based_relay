@@ -96,10 +96,11 @@ RoutingProtocol::RoutingProtocol ()
     MaxQueueTime (Seconds (30)),
     m_queue (MaxQueueLen, MaxQueueTime),
     HelloIntervalTimer (Timer::CANCEL_ON_DESTROY),
-    PerimeterMode (false)
+    PerimeterMode (false),
+    m_nbFromMbr (false),
+    m_start (false)
 {
-
-  m_neighbors = PositionTable ();
+  m_neighbors = PositionTable (false);
 }
 
 TypeId
@@ -117,7 +118,7 @@ RoutingProtocol::GetTypeId (void)
                    MakeEnumAccessor (&RoutingProtocol::LocationServiceName),
                    MakeEnumChecker (GPSR_LS_GOD, "GOD",
                                     GPSR_LS_RLS, "RLS"))
-    .AddAttribute ("PerimeterMode ", "Indicates if PerimeterMode is enabled",
+    .AddAttribute ("PerimeterMode", "Indicates if PerimeterMode is enabled",
                    BooleanValue (false),
                    MakeBooleanAccessor (&RoutingProtocol::PerimeterMode),
                    MakeBooleanChecker ())
@@ -422,6 +423,7 @@ RoutingProtocol::RecoveryMode(Ipv4Address dst, Ptr<Packet> p, UnicastForwardCall
 
 
   Ipv4Address nextHop = m_neighbors.BestAngle (previousHop, myPos); 
+  NS_LOG_LOGIC("BestAngle return: nextHop " << nextHop);
   if (nextHop == Ipv4Address::GetZero ())
     {
       return;
@@ -664,18 +666,28 @@ RoutingProtocol::SetIpv4 (Ptr<Ipv4> ipv4)
 
   m_ipv4 = ipv4;
 
-  HelloIntervalTimer.SetFunction (&RoutingProtocol::HelloTimerExpire, this);
-  HelloIntervalTimer.Schedule (FIRST_JITTER);
-
   //Schedule only when it has packets on queue
   CheckQueueTimer.SetFunction (&RoutingProtocol::CheckQueue, this);
 
-  Simulator::ScheduleNow (&RoutingProtocol::Start, this);
+  HelloIntervalTimer.SetFunction (&RoutingProtocol::HelloTimerExpire, this);
+  if (!m_nbFromMbr)
+    {
+      HelloIntervalTimer.Schedule (FIRST_JITTER);
+    }
+  if (!m_start)
+    {
+      Simulator::ScheduleNow (&RoutingProtocol::Start, this);
+      m_start = true;
+    }
+
 }
 
 void
 RoutingProtocol::HelloTimerExpire ()
 {
+  if (m_nbFromMbr)
+    return;
+
   SendHello ();
   HelloIntervalTimer.Cancel ();
   HelloIntervalTimer.Schedule (HelloInterval + JITTER);
@@ -813,15 +825,18 @@ RoutingProtocol::AddHeaders (Ptr<Packet> p, Ipv4Address source, Ipv4Address dest
  
   Ipv4Address nextHop;
 
-  if(m_neighbors.isNeighbour (destination))
+  if(destination != m_ipv4->GetAddress (1, 0).GetBroadcast ())
     {
-      nextHop = destination;
+      if(m_neighbors.isNeighbour (destination))
+	{
+	  nextHop = destination;
+	}
+      else
+	{
+	  nextHop = m_neighbors.BestNeighbor (m_locationService->GetPosition (destination), myPos);
+	}
+      NS_LOG_FUNCTION (this <<" nexthop "<< nextHop);
     }
-  else
-    {
-      nextHop = m_neighbors.BestNeighbor (m_locationService->GetPosition (destination), myPos);
-    }
-
   uint16_t positionX = 0;
   uint16_t positionY = 0;
   uint32_t hdrTime = 0;
@@ -912,7 +927,30 @@ RoutingProtocol::Forwarding (Ptr<const Packet> packet, const Ipv4Header & header
 
   if(m_neighbors.isNeighbour (dst))
     {
+      NS_LOG_LOGIC(dst << " is neighbor !");
       nextHop = dst;
+      PositionHeader posHeader (Position.x, Position.y,  updated, (uint64_t) 0, (uint64_t) 0, (uint8_t) 0, myPos.x, myPos.y);
+      p->AddHeader (posHeader);
+      p->AddHeader (tHeader);
+
+
+      Ptr<NetDevice> oif = m_ipv4->GetObject<NetDevice> ();
+      Ptr<Ipv4Route> route = Create<Ipv4Route> ();
+      route->SetDestination (dst);
+      route->SetSource (header.GetSource ());
+      route->SetGateway (nextHop);
+
+      // FIXME: Does not work for multiple interfaces
+      route->SetOutputDevice (m_ipv4->GetNetDevice (1));
+      route->SetDestination (header.GetDestination ());
+      NS_ASSERT (route != 0);
+      NS_LOG_DEBUG ("Exist route to " << route->GetDestination () << " from interface " << route->GetOutputDevice ());
+
+
+      NS_LOG_LOGIC (route->GetOutputDevice () << " forwarding to " << dst << " from " << origin << " through " << route->GetGateway () << " packet " << p->GetUid ());
+
+      ucb (route, p, header);
+      return true;
     }
   else
     {

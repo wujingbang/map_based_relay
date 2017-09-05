@@ -26,6 +26,8 @@ public:
 
 	void Setup (Ipv4InterfaceContainer & i,
 			  Ipv4InterfaceContainer & iData,
+			  NetDeviceContainer & beaconDevices,
+			  NetDeviceContainer & dataDevices,
 			  int nodeId,
 			  Time totalTime,
 			  uint32_t wavePacketSize, // bytes
@@ -132,6 +134,9 @@ private:
   double m_gpsAccuracyNs;
   Ipv4InterfaceContainer * m_beaconInterfaces;
   Ipv4InterfaceContainer * m_dataInterfaces;
+  NetDeviceContainer * m_beaconDevices;
+  NetDeviceContainer * m_dataDevices;
+
   std::vector<int> * m_nodesMoving;
   Ptr<UniformRandomVariable> m_unirv;
   int m_nodeId;

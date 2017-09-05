@@ -21,6 +21,7 @@
 #define MBR_NEIGHBOR_HELPER_H
 
 #include <vector>
+#include <string>
 #include "ns3/mbr-neighbor-app.h"
 #include "ns3/object-factory.h"
 #include "ns3/application-container.h"
@@ -93,11 +94,15 @@ public:
    */
   void Install (Ipv4InterfaceContainer & i,
                 Ipv4InterfaceContainer & iData,
+		NetDeviceContainer &d,
+		NetDeviceContainer &dData,
                 Time totalTime,          // seconds
                 uint32_t wavePacketSize, // bytes
                 Time waveInterval,       // seconds
                 double gpsAccuracyNs,    // clock drift range in number of ns
-                Time txMaxDelay);        // max delay prior to transmit
+                Time txMaxDelay,       // max delay prior to transmit
+		std::string netFileString,
+		bool openRelay);
 
   /**
    * Assign a fixed random variable stream number to the random variables

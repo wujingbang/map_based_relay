@@ -66,7 +66,14 @@ public:
    */
   double GetLoss (Ptr<MobilityModel> a, Ptr<MobilityModel> b) const;
 
+    uint32_t
+    getForbeacon () const
+    {
+      return m_forbeacon;
+    }
+
 private:
+  uint32_t m_forbeacon;
 
   // inherited from PropagationLossModel
   virtual double DoCalcRxPower (double txPowerDbm,

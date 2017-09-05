@@ -2391,13 +2391,17 @@ VanetRoutingExperiment::SetupWaveMessages ()
 
   m_MbrNeighborHelper.Install(m_adhocTxInterfaces,
 		  	  	  	  	  	  m_adhocTxInterfacesData,
+							  m_adhocTxDevices,
+							  m_adhocTxDevicesData,
 							  Seconds (m_TotalSimTime),//Seconds(4),//
 							  m_wavePacketSize,
 							  Seconds (m_waveInterval),
 							  // GPS accuracy (i.e, clock drift), in number of ns
 							  m_gpsAccuracyNs,
 							  // tx max delay before transmit, in ms
-							  MilliSeconds (m_txMaxDelayMs));
+							  MilliSeconds (m_txMaxDelayMs),
+                                                          "",
+							  true);
 
   UdpEchoServerHelper echoServer (9);
 // 0 --- 2 --- 1

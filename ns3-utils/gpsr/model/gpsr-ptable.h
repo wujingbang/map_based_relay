@@ -15,6 +15,9 @@
 #include "ns3/random-variable-stream.h"
 #include <complex>
 
+#include "ns3/ptr.h"
+#include "ns3/node.h"
+
 namespace ns3 {
 namespace gpsr {
 
@@ -27,6 +30,7 @@ class PositionTable
 public:
   /// c-tor
   PositionTable ();
+  PositionTable (bool nbFromMbr);
 
   /**
    * \brief Gets the last time the entry was updated
@@ -105,9 +109,33 @@ public:
   //Gives angle between the vector CentrePos-Refpos to the vector CentrePos-node counterclockwise
   double GetAngle (Vector centrePos, Vector refPos, Vector node);
 
+  bool
+  isNbFromMbr () const
+  {
+    return m_nbFromMbr;
+  }
 
+  void
+  setNbFromMbr (bool nbFromMbr)
+  {
+    m_nbFromMbr = nbFromMbr;
+  }
+
+  const Ptr<Node>
+  getNode () const
+  {
+    return m_node;
+  }
+
+  void
+  setNode (const Ptr<Node> node)
+  {
+    m_node = node;
+  }
 
 private:
+  bool m_nbFromMbr;
+  Ptr<Node> m_node;
   Time m_entryLifeTime;
   std::map<Ipv4Address, std::pair<Vector, Time> > m_table;
   // TX error callback

@@ -3,6 +3,9 @@
 #include "ns3/log.h"
 #include <algorithm>
 
+#include "ns3/mbr-neighbor-app.h"
+#include "ns3/core-module.h"
+
 NS_LOG_COMPONENT_DEFINE ("GpsrTable");
 
 
@@ -12,9 +15,17 @@ namespace gpsr {
 /*
   GPSR position table
 */
-
 PositionTable::PositionTable ()
 {
+  m_nbFromMbr = false;
+  m_txErrorCallback = MakeCallback (&PositionTable::ProcessTxError, this);
+  m_entryLifeTime = Seconds (2); //FIXME fazer isto parametrizavel de acordo com tempo de hello
+
+}
+
+PositionTable::PositionTable (bool nbFromMbr)
+{
+  m_nbFromMbr = nbFromMbr;
   m_txErrorCallback = MakeCallback (&PositionTable::ProcessTxError, this);
   m_entryLifeTime = Seconds (2); //FIXME fazer isto parametrizavel de acordo com tempo de hello
 
@@ -27,8 +38,25 @@ PositionTable::GetEntryUpdateTime (Ipv4Address id)
     {
       return Time (Seconds (0));
     }
-  std::map<Ipv4Address, std::pair<Vector, Time> >::iterator i = m_table.find (id);
-  return i->second.second;
+  if (m_nbFromMbr)
+    {
+//      Ptr<Application> app = m_node->GetApplication(0);
+//      Ptr<mbr::MbrNeighborApp> nbapp = DynamicCast<mbr::MbrNeighborApp> (app);
+      Ptr<mbr::MbrNeighborApp> nbapp;
+      for (uint32_t j = 0; j < m_node->GetNApplications (); j++)
+	{
+	  nbapp = DynamicCast<mbr::MbrNeighborApp> (m_node->GetApplication(j));
+	  if (nbapp)
+	    break;
+	}
+      NS_ASSERT(nbapp);
+      return nbapp->getNb()->GetSettingTime(id);
+    }
+  else
+    {
+      std::map<Ipv4Address, std::pair<Vector, Time> >::iterator i = m_table.find (id);
+      return i->second.second;
+    }
 }
 
 /**
@@ -37,6 +65,9 @@ PositionTable::GetEntryUpdateTime (Ipv4Address id)
 void 
 PositionTable::AddEntry (Ipv4Address id, Vector position)
 {
+  if (m_nbFromMbr)
+    return;
+
   std::map<Ipv4Address, std::pair<Vector, Time> >::iterator i = m_table.find (id);
   if (i != m_table.end () || id.IsEqual (i->first))
     {
@@ -54,6 +85,9 @@ PositionTable::AddEntry (Ipv4Address id, Vector position)
  */
 void PositionTable::DeleteEntry (Ipv4Address id)
 {
+  if (m_nbFromMbr)
+    return;
+
   m_table.erase (id);
 }
 
@@ -65,18 +99,33 @@ void PositionTable::DeleteEntry (Ipv4Address id)
 Vector 
 PositionTable::GetPosition (Ipv4Address id)
 {
-
-  NodeList::Iterator listEnd = NodeList::End ();
-  for (NodeList::Iterator i = NodeList::Begin (); i != listEnd; i++)
+  if (m_nbFromMbr)
     {
-      Ptr<Node> node = *i;
-      if (node->GetObject<Ipv4> ()->GetAddress (1, 0).GetLocal () == id)
-        {
-          return node->GetObject<MobilityModel> ()->GetPosition ();
-        }
+      Ptr<mbr::MbrNeighborApp> nbapp;
+      for (uint32_t j = 0; j < m_node->GetNApplications (); j++)
+	{
+	  nbapp = DynamicCast<mbr::MbrNeighborApp> (m_node->GetApplication(j));
+	  if (nbapp)
+	    break;
+	}
+//      Ptr<Application> app = m_node->GetApplication(0);
+//      Ptr<mbr::MbrNeighborApp> nbapp = DynamicCast<mbr::MbrNeighborApp> (app);
+      NS_ASSERT(nbapp);
+      return nbapp->getNb()->GetPositionFromIp(id);
     }
-  return PositionTable::GetInvalidPosition ();
-
+  else
+    {
+      NodeList::Iterator listEnd = NodeList::End ();
+      for (NodeList::Iterator i = NodeList::Begin (); i != listEnd; i++)
+	{
+	  Ptr<Node> node = *i;
+	  if (node->GetObject<Ipv4> ()->GetAddress (1, 0).GetLocal () == id)
+	    {
+	      return node->GetObject<MobilityModel> ()->GetPosition ();
+	    }
+	}
+      return PositionTable::GetInvalidPosition ();
+    }
 }
 
 /**
@@ -87,11 +136,25 @@ PositionTable::GetPosition (Ipv4Address id)
 bool
 PositionTable::isNeighbour (Ipv4Address id)
 {
-
- std::map<Ipv4Address, std::pair<Vector, Time> >::iterator i = m_table.find (id);
-  if (i != m_table.end () || id.IsEqual (i->first))
+  if (m_nbFromMbr)
     {
-      return true;
+      for (uint32_t j = 0; j < m_node->GetNApplications (); j++)
+	{
+	  Ptr<mbr::MbrNeighborApp> nbapp = DynamicCast<mbr::MbrNeighborApp> (m_node->GetApplication(j));
+	  if (nbapp)
+	    return nbapp->getNb()->IsNeighbor(id);
+	}
+//      Ptr<Application> app = m_node->GetApplication(0);
+//      Ptr<mbr::MbrNeighborApp> nbapp = DynamicCast<mbr::MbrNeighborApp> (app);
+//      return nbapp->getNb()->IsNeighbor(id);
+    }
+  else
+    {
+      std::map<Ipv4Address, std::pair<Vector, Time> >::iterator i = m_table.find (id);
+      if (i != m_table.end () || id.IsEqual (i->first))
+	{
+	  return true;
+	}
     }
 
   return false;
@@ -104,6 +167,8 @@ PositionTable::isNeighbour (Ipv4Address id)
 void 
 PositionTable::Purge ()
 {
+  if (m_nbFromMbr)
+    return;
 
   if(m_table.empty ())
     {
@@ -142,6 +207,9 @@ PositionTable::Purge ()
 void 
 PositionTable::Clear ()
 {
+  if (m_nbFromMbr)
+    return;
+
   m_table.clear ();
 }
 
@@ -154,26 +222,60 @@ PositionTable::Clear ()
 Ipv4Address 
 PositionTable::BestNeighbor (Vector position, Vector nodePos)
 {
-  Purge ();
-
+  Ipv4Address bestFoundID;
+  double bestFoundDistance;
   double initialDistance = CalculateDistance (nodePos, position);
 
-  if (m_table.empty ())
+  if (m_nbFromMbr)
     {
-      NS_LOG_DEBUG ("BestNeighbor table is empty; Position: " << position);
-      return Ipv4Address::GetZero ();
-    }     //if table is empty (no neighbours)
+      Ptr<mbr::MbrNeighborApp> nbapp;
+      for (uint32_t j = 0; j < m_node->GetNApplications (); j++)
+	{
+	  nbapp = DynamicCast<mbr::MbrNeighborApp> (m_node->GetApplication(j));
+	  if (nbapp)
+	    break;
+	}
+      NS_ASSERT(nbapp);
+      if (nbapp->getNb()->NeighborEmpty())
+	{
+	  NS_LOG_DEBUG ("BestNeighbor table is empty; Position: " << position);
+	  return Ipv4Address::GetZero ();
+	}
 
-  Ipv4Address bestFoundID = m_table.begin ()->first;
-  double bestFoundDistance = CalculateDistance (m_table.begin ()->second.first, position);
-  std::map<Ipv4Address, std::pair<Vector, Time> >::iterator i;
-  for (i = m_table.begin (); !(i == m_table.end ()); i++)
-    {
-      if (bestFoundDistance > CalculateDistance (i->second.first, position))
+
+      bestFoundID = nbapp->getNb()->GetIp(0);
+      bestFoundDistance = CalculateDistance (nbapp->getNb()->GetPosition(0), position);
+      int i;
+      for (i = 1; i < nbapp->getNb()->GetTableSize(); i++)
         {
-          bestFoundID = i->first;
-          bestFoundDistance = CalculateDistance (i->second.first, position);
+	  double dist = CalculateDistance (nbapp->getNb()->GetPosition(i), position);
+          if (bestFoundDistance > dist)
+            {
+              bestFoundID = nbapp->getNb()->GetIp(i);
+              bestFoundDistance = dist;
+            }
         }
+    }
+  else
+    {
+      Purge ();
+      if (m_table.empty ())
+	{
+	  NS_LOG_DEBUG ("BestNeighbor table is empty; Position: " << position);
+	  return Ipv4Address::GetZero ();
+	}     //if table is empty (no neighbours)
+
+      bestFoundID = m_table.begin ()->first;
+      bestFoundDistance = CalculateDistance (m_table.begin ()->second.first, position);
+      std::map<Ipv4Address, std::pair<Vector, Time> >::iterator i;
+      for (i = m_table.begin (); !(i == m_table.end ()); i++)
+	{
+	  if (bestFoundDistance > CalculateDistance (i->second.first, position))
+	    {
+	      bestFoundID = i->first;
+	      bestFoundDistance = CalculateDistance (i->second.first, position);
+	    }
+	}
     }
 
   if(initialDistance > bestFoundDistance)
@@ -193,32 +295,71 @@ PositionTable::BestNeighbor (Vector position, Vector nodePos)
 Ipv4Address
 PositionTable::BestAngle (Vector previousHop, Vector nodePos)
 {
-  Purge ();
-
-  if (m_table.empty ())
-    {
-      NS_LOG_DEBUG ("BestNeighbor table is empty; Position: " << nodePos);
-      return Ipv4Address::GetZero ();
-    }     //if table is empty (no neighbours)
-
   double tmpAngle;
   Ipv4Address bestFoundID = Ipv4Address::GetZero ();
   double bestFoundAngle = 360;
-  std::map<Ipv4Address, std::pair<Vector, Time> >::iterator i;
+  NS_LOG_LOGIC("previousHop: "<<previousHop<<" myPos: "<<nodePos);
 
-  for (i = m_table.begin (); !(i == m_table.end ()); i++)
+  if (m_nbFromMbr)
     {
-      tmpAngle = GetAngle(nodePos, previousHop, i->second.first);
-      if (bestFoundAngle > tmpAngle && tmpAngle != 0)
+//      Ptr<Application> app = m_node->GetApplication(0);
+//      Ptr<mbr::MbrNeighborApp> nbapp = DynamicCast<mbr::MbrNeighborApp> (app);
+      Ptr<mbr::MbrNeighborApp> nbapp;
+      for (uint32_t j = 0; j < m_node->GetNApplications (); j++)
 	{
-	  bestFoundID = i->first;
-	  bestFoundAngle = tmpAngle;
+	  nbapp = DynamicCast<mbr::MbrNeighborApp> (m_node->GetApplication(j));
+	  if (nbapp)
+	    break;
 	}
+      if (nbapp->getNb()->NeighborEmpty())
+	{
+	  NS_LOG_DEBUG ("BestNeighbor table is empty; Position: " << nodePos);
+	  return Ipv4Address::GetZero ();
+	}
+
+      int i;
+      for (i = 0; i < nbapp->getNb()->GetTableSize(); i++)
+        {
+	  tmpAngle = GetAngle(nodePos, previousHop, nbapp->getNb()->GetPosition(i));
+	  if (bestFoundAngle > tmpAngle && tmpAngle != 0)
+	    {
+	      bestFoundID = nbapp->getNb()->GetIp(i);
+	      bestFoundAngle = tmpAngle;
+	    }
+        }
+      if(bestFoundID == Ipv4Address::GetZero ()) //only if the only neighbour is who sent the packet
+        {
+          bestFoundID = nbapp->getNb()->GetIp(0);
+        }
     }
-  if(bestFoundID == Ipv4Address::GetZero ()) //only if the only neighbour is who sent the packet
+  else
     {
-      bestFoundID = m_table.begin ()->first;
+      Purge ();
+
+      if (m_table.empty ())
+	{
+	  NS_LOG_DEBUG ("BestNeighbor table is empty; Position: " << nodePos);
+	  return Ipv4Address::GetZero ();
+	}     //if table is empty (no neighbours)
+
+      std::map<Ipv4Address, std::pair<Vector, Time> >::iterator i;
+
+      for (i = m_table.begin (); !(i == m_table.end ()); i++)
+	{
+	  tmpAngle = GetAngle(nodePos, previousHop, i->second.first);
+	  if (bestFoundAngle > tmpAngle && tmpAngle != 0)
+	    {
+	      bestFoundID = i->first;
+	      bestFoundAngle = tmpAngle;
+	    }
+	}
+      if(bestFoundID == Ipv4Address::GetZero ()) //only if the only neighbour is who sent the packet
+        {
+          bestFoundID = m_table.begin ()->first;
+        }
     }
+
+
   return bestFoundID;
 }
 

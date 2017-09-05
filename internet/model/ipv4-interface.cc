@@ -263,10 +263,23 @@ Ipv4Interface::Send (Ptr<Packet> p, const Ipv4Header & hdr, Ipv4Address dest)
 		}
 	  }
 	  if (ret != -1)
-             ret = mbr::MbrRoute::mbr_forward(dest, to_mac, relay_mac, m_node);
+	    {
+	      ret = mbr::MbrRoute::mbr_forward(dest, to_mac, relay_mac, m_node);
+	      mbr::MbrTag mbrtag;
+
+	      bool foundtag = p->PeekPacketTag(mbrtag);
+	      if (foundtag)
+	       {
+		 Mac48Address t;
+		 t.CopyFrom(mbrtag.getRelayMac());
+		 NS_LOG_LOGIC ("Exist tag: relaymac_tag: " << t);
+		 p->RemovePacketTag(mbrtag);
+	       }
+	    }
 	  if(ret == 0)
 	  {
 		 NS_LOG_LOGIC ("Sent by Mbr");
+
 		 mbr::MbrTag mbrtag;
 		 mbrtag.setRelayflag(true);
 		 memcpy(mbrtag.getRelayMac(), relay_mac, 6);
