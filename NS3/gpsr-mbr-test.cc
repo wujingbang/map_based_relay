@@ -144,8 +144,8 @@ GpsrExample::GpsrExample () :
   pcap (true),
   m_lossModel (3),
   m_lossModelName (""),
-  m_phyMode ("OfdmRate6MbpsBW10MHz"),
-  m_txp (5),
+  m_phyMode ("OfdmRate12MbpsBW10MHz"),
+  m_txp (10),
   m_traceFile(""),
   m_loadBuildings(true),
   m_nSinks(1),
@@ -170,6 +170,8 @@ GpsrExample::Configure (int argc, char **argv)
   cmd.AddValue ("pcap", "Write PCAP traces.", pcap);
   cmd.AddValue ("size", "Number of nodes.", m_nNodes);
   cmd.AddValue ("time", "Simulation time, s.", totalTime);
+
+  cmd.AddValue ("txp", "tx power db", m_txp);
 
   cmd.AddValue ("buildings", "Load building (obstacles)", m_loadBuildings);
   cmd.AddValue ("sinks", "Number of routing sinks", m_nSinks);
@@ -331,7 +333,7 @@ GpsrExample::CreateDevices ()
    wifiChannel.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
    // two-ray requires antenna height (else defaults to Friss)
    wifiChannel.AddPropagationLoss (m_lossModelName, "Frequency", DoubleValue (freq), "HeightAboveZ", DoubleValue (1.5));
-   wifiChannel.AddPropagationLoss ("ns3::ObstacleShadowingPropagationLossModel", "ForBeacon", UintegerValue(1));
+   wifiChannel.AddPropagationLoss ("ns3::ObstacleShadowingPropagationLossModel", "ForBeacon", UintegerValue(1), "IsSub1G", UintegerValue(0));
    Ptr<YansWifiChannel> channel0 = wifiChannel.Create ();
    YansWifiPhyHelper wifiPhy =  YansWifiPhyHelper::Default ();
    wifiPhy.SetChannel (channel0);
@@ -344,8 +346,8 @@ GpsrExample::CreateDevices ()
                                         "DataMode",StringValue ("OfdmRate3MbpsBW10MHz"),
                                         "ControlMode",StringValue ("OfdmRate3MbpsBW10MHz"));
    // Set Tx Power
-   wifiPhy.Set ("TxPowerStart",DoubleValue (20));
-   wifiPhy.Set ("TxPowerEnd", DoubleValue (20));
+   wifiPhy.Set ("TxPowerStart",DoubleValue (m_txp));
+   wifiPhy.Set ("TxPowerEnd", DoubleValue (m_txp));
 
    beaconDevices = wifi80211pBeacon.Install (wifiPhy, wifi80211pMacBeacon, m_nodesContainer);
 
@@ -390,7 +392,7 @@ GpsrExample::InstallApplications ()
 			      beaconDevices,
 			      dataDevices,
 			      Seconds (totalTime),//Seconds(4),//
-			      200,//m_wavePacketSize,
+			      100,//m_wavePacketSize,
 			      Seconds (0.1),//m_waveInterval
 			      // GPS accuracy (i.e, clock drift), in number of ns
 			      40,//m_gpsAccuracyNs,
@@ -424,20 +426,18 @@ GpsrExample::SetupScenario()
     }
   else if (m_scenario == 2)
     {
-      m_traceFile = "/home/wu/workspace/ns-3/ns-3.26/src/wave/examples/simplemobility.ns2";
-
       m_mobility = 2; //static relay
       m_nNodes = 3;
-      totalTime = 30;
+      totalTime = 10;
       m_nSinks = 1;
       m_lossModel = 3; // two-ray ground
 
-      m_mbr = true;
-      m_netFileString = "";
+      //m_mbr = true;
+      m_netFileString = "/home/wu/workspace/ns-3/ns-3.26/src/wave/examples/20170831/output.net.xml";
 
       if (m_loadBuildings != 0)
         {
-          std::string bldgFile = "/home/wu/workspace/ns-3/ns-3.26/src/wave/examples/simple.buildings.xml";
+          std::string bldgFile = "/home/wu/workspace/ns-3/ns-3.26/src/wave/examples/20170831/buildings.xml";
           NS_LOG_UNCOND ("Loading buildings file " << bldgFile);
           Topology::LoadBuildings(bldgFile);
         }
@@ -452,7 +452,7 @@ GpsrExample::SetupScenario()
       totalTime = 30;
       m_nSinks = 40;
       m_lossModel = 3; // two-ray ground
-      m_mbr = true;
+      //m_mbr = true;
       m_netFileString = "/home/wu/workspace/ns-3/ns-3.26/src/wave/examples/20170827/output.net.xml";
       if (m_loadBuildings != 0)
         {
@@ -495,9 +495,15 @@ GpsrExample::SetupAdhocMobilityNodes ()
       MobilityHelper mobility;
       // place two nodes at specific positions (100,0) and (0,100)
       Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator> ();
-      positionAlloc->Add (Vector (85, 0, 0));
-      positionAlloc->Add (Vector (250, 105, 0));
-      positionAlloc->Add (Vector (243, 1, 0)); //relay
+      positionAlloc->Add (Vector (3, 467, 0)); //0
+      positionAlloc->Add (Vector (0, 586, 0));
+//      positionAlloc->Add (Vector (30, 588, 0));
+//      positionAlloc->Add (Vector (85, 593, 0));
+//      positionAlloc->Add (Vector (154, 596, 0));
+      positionAlloc->Add (Vector (249, 600, 0));
+
+//      positionAlloc->Add (Vector (386, 453, 0));
+
       mobility.SetPositionAllocator(positionAlloc);
       mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
       mobility.Install (m_nodesContainer);
@@ -506,7 +512,7 @@ GpsrExample::SetupAdhocMobilityNodes ()
     {
       MobilityHelper mobility;
       Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator> ();
-      positionAlloc->Add (Vector (3, 525, 0)); //0
+      positionAlloc->Add (Vector (3, 467, 0)); //0
 
       positionAlloc->Add (Vector (0, 586, 0));
       positionAlloc->Add (Vector (30, 588, 0));
@@ -523,7 +529,7 @@ GpsrExample::SetupAdhocMobilityNodes ()
       positionAlloc->Add (Vector (375, 544, 0));
       positionAlloc->Add (Vector (386, 453, 0));
       positionAlloc->Add (Vector (396, 398, 0));
-      positionAlloc->Add (Vector (401, 333, 0));
+      positionAlloc->Add (Vector (401, 333, 0)); //13
       positionAlloc->Add (Vector (408, 240, 0));
       positionAlloc->Add (Vector (415, 106, 0));
 
@@ -558,7 +564,7 @@ GpsrExample::SetupRoutingMessages (NodeContainer & c,
   Ptr<UniformRandomVariable> var = CreateObject<UniformRandomVariable> ();
   int64_t stream = 2;
   var->SetStream (stream);
-  if (m_scenario != 4)
+  if (m_scenario != 4 && m_scenario!=2)
     {
       for (uint32_t i = 0; i < m_nSinks; i++)
 	{
@@ -574,30 +580,31 @@ GpsrExample::SetupRoutingMessages (NodeContainer & c,
 	  temp.Stop (Seconds (totalTime));
 	}
     }
-  else if (m_scenario == 4)
+  else if (m_scenario == 4 || m_scenario == 2)
     {
-//	Ptr<Socket> sink = SetupRoutingPacketReceive (adhocTxInterfaces.GetAddress (25), c.Get (25));
-//	AddressValue remoteAddress (InetSocketAddress (adhocTxInterfaces.GetAddress (25), m_port));
-//	onoff1.SetAttribute ("Remote", remoteAddress);
+	Ptr<Socket> sink = SetupRoutingPacketReceive (adhocTxInterfaces.GetAddress (13), c.Get (13));
+	AddressValue remoteAddress (InetSocketAddress (adhocTxInterfaces.GetAddress (13), m_port));
+	onoff1.SetAttribute ("Remote", remoteAddress);
+	onoff1.SetAttribute ("PacketSize", UintegerValue (1400));
+
+	ApplicationContainer temp = onoff1.Install (c.Get (0));
+	temp.Start (Seconds (var->GetValue (1.0,2.0)));
+	temp.Stop (Seconds (totalTime));
+
+//      UdpEchoServerHelper echoServer (9);
+//    // 0 --- 2 --- 1
+//      ApplicationContainer serverApps = echoServer.Install (c.Get (13));
+//      serverApps.Start (Seconds (1.0));
+//      serverApps.Stop (Seconds (10.0));
 //
-//	ApplicationContainer temp = onoff1.Install (c.Get (0));
-//	temp.Start (Seconds (var->GetValue (1.0,2.0)));
-//	temp.Stop (Seconds (totalTime));
-
-      UdpEchoServerHelper echoServer (9);
-    // 0 --- 2 --- 1
-      ApplicationContainer serverApps = echoServer.Install (c.Get (25));
-      serverApps.Start (Seconds (1.0));
-      serverApps.Stop (Seconds (10.0));
-
-      UdpEchoClientHelper echoClient (adhocTxInterfaces.GetAddress (25), 9); //Data interface
-      echoClient.SetAttribute ("MaxPackets", UintegerValue (1));
-      echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
-      echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
-
-      ApplicationContainer clientApps = echoClient.Install (c.Get (0));
-      clientApps.Start (Seconds (6.0));
-      clientApps.Stop (Seconds (10.0));
+//      UdpEchoClientHelper echoClient (adhocTxInterfaces.GetAddress (13), 9); //Data interface
+//      echoClient.SetAttribute ("MaxPackets", UintegerValue (1));
+//      echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
+//      echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
+//
+//      ApplicationContainer clientApps = echoClient.Install (c.Get (0));
+//      clientApps.Start (Seconds (6.0));
+//      clientApps.Stop (Seconds (10.0));
     }
 }
 Ptr<Socket>

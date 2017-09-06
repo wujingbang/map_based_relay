@@ -41,9 +41,13 @@ ObstacleShadowingPropagationLossModel::GetTypeId (void)
 
   .SetParent<PropagationLossModel> ()
   .AddConstructor<ObstacleShadowingPropagationLossModel> ()
-  .AddAttribute ("ForBeacon", "sub 1Ghz beacon",
+  .AddAttribute ("ForBeacon", "beacons",
 		   UintegerValue (0),
 		   MakeUintegerAccessor (&ObstacleShadowingPropagationLossModel::m_forbeacon),
+		   MakeUintegerChecker<uint32_t> (0))
+  .AddAttribute ("IsSub1G", "sub 1Ghz beacon",
+		   UintegerValue (0),
+		   MakeUintegerAccessor (&ObstacleShadowingPropagationLossModel::m_isSub1G),
 		   MakeUintegerChecker<uint32_t> (0))
   ;
   return tid;
@@ -51,7 +55,8 @@ ObstacleShadowingPropagationLossModel::GetTypeId (void)
 
 ObstacleShadowingPropagationLossModel::ObstacleShadowingPropagationLossModel ()
   : PropagationLossModel (),
-    m_forbeacon(0)
+    m_forbeacon(0),
+    m_isSub1G(0)
 {
 }
 
@@ -83,10 +88,10 @@ ObstacleShadowingPropagationLossModel::GetLoss (Ptr<MobilityModel> a, Ptr<Mobili
       Point p1(p1_x, p1_y);
       Point p2(p2_x, p2_y);
       // and testing for obstacles within r=200m
-      double r = 300.0;
+      double r = 150.0;
 
       // get the obstructed loss, from the topology class
-      L_obs = topology->GetObstructedLossBetween(p1, p2, r, m_forbeacon);
+      L_obs = topology->GetObstructedLossBetween(p1, p2, r, m_forbeacon, m_isSub1G);
       NS_LOG_DEBUG("LOSS:"<<L_obs);    
     }
 

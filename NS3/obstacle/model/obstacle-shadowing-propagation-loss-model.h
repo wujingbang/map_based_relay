@@ -74,6 +74,7 @@ public:
 
 private:
   uint32_t m_forbeacon;
+  uint32_t m_isSub1G;
 
   // inherited from PropagationLossModel
   virtual double DoCalcRxPower (double txPowerDbm,
