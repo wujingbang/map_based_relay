@@ -100,6 +100,7 @@ public:
   Time GetEntryUpdateTime (Ipv4Address ip);
   int GetTableSize();
   Vector GetPosition(int i);
+  Vector GetCartesianPosition(int i);
   Ipv4Address GetIp(int i);
 
   /// Get callback to ProcessTxError

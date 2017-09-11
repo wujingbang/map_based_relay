@@ -511,6 +511,8 @@ RoutingProtocol::RecvGPSR (Ptr<Socket> socket)
   Ipv4Address sender = inetSourceAddr.GetIpv4 ();
   Ipv4Address receiver = m_socketAddresses[socket].GetLocal ();
 
+  Ptr<Node> n = this->GetObject<Node>();
+  //NS_LOG_LOGIC ("Node " << n->GetId() << " Recv Hello From " << Position );
   UpdateRouteToNeighbor (sender, receiver, Position);
 
 }
@@ -823,20 +825,20 @@ RoutingProtocol::AddHeaders (Ptr<Packet> p, Ipv4Address source, Ipv4Address dest
   myPos.x = MM->GetPosition ().x;
   myPos.y = MM->GetPosition ().y;  
  
-  Ipv4Address nextHop;
+//  Ipv4Address nextHop;
 
-  if(destination != m_ipv4->GetAddress (1, 0).GetBroadcast ())
-    {
-      if(m_neighbors.isNeighbour (destination))
-	{
-	  nextHop = destination;
-	}
-      else
-	{
-	  nextHop = m_neighbors.BestNeighbor (m_locationService->GetPosition (destination), myPos);
-	}
-      NS_LOG_FUNCTION (this <<" nexthop "<< nextHop);
-    }
+//  if(destination != m_ipv4->GetAddress (1, 0).GetBroadcast ())
+//    {
+//      if(m_neighbors.isNeighbour (destination))
+//	{
+//	  nextHop = destination;
+//	}
+//      else
+//	{
+//	  nextHop = m_neighbors.BestNeighbor (m_locationService->GetPosition (destination), myPos);
+//	}
+//      NS_LOG_FUNCTION (this <<" nexthop "<< nextHop);
+//    }
   uint16_t positionX = 0;
   uint16_t positionY = 0;
   uint32_t hdrTime = 0;
@@ -1091,6 +1093,7 @@ RoutingProtocol::RouteOutput (Ptr<Packet> p, const Ipv4Header &header,
       route->SetDestination (header.GetDestination ());
       NS_ASSERT (route != 0);
       NS_LOG_DEBUG ("Exist route to " << route->GetDestination () << " from interface " << route->GetSource ());
+      NS_LOG_DEBUG (this <<" nexthop "<< nextHop << " Location: "<<m_locationService->GetPosition(nextHop));
       if (oif != 0 && route->GetOutputDevice () != oif)
         {
           NS_LOG_DEBUG ("Output device doesn't match. Dropped.");

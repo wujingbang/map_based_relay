@@ -3,6 +3,10 @@
 #include "neighbor.h"
 
 #include "ns3/log.h"
+#include "ns3/node-list.h"
+#include "ns3/ipv4.h"
+#include "ns3/node.h"
+#include "ns3/mobility-model.h"
 #include <algorithm>
 
 
@@ -64,8 +68,8 @@ Neighbors::GetSettingTime (Ipv4Address addr)
 void
 Neighbors::Update (Ipv4Address addr, Time expire, const uint8_t *mac, uint64_t geohash, uint16_t direction, double x, double y)
 {
-	Mac48Address tempmac;
-	tempmac.CopyFrom(mac);
+  Mac48Address tempmac;
+  tempmac.CopyFrom(mac);
   for (std::vector<Neighbor>::iterator i = m_nb.begin (); i != m_nb.end (); ++i)
     if (i->m_ipAddress == addr)
       {
@@ -120,20 +124,24 @@ Neighbors::ScheduleTimer ()
  * return
  *
  */
-uint64_t Neighbors::GetGeohashFromMacInNb(uint8_t* mac, double *x, double *y)
+uint64_t
+Neighbors::GetGeohashFromMacInNb (uint8_t* mac, double *x, double *y)
 {
-	Mac48Address tempmac;
-	tempmac.CopyFrom(mac);
-	for (std::vector<Neighbor>::iterator i = m_nb.begin (); i != m_nb.end (); ++i)
-		if (i->m_hardwareAddress == tempmac) {
-			*x = i->m_x;
-			*y = i->m_y;
+  Purge ();
+  Mac48Address tempmac;
+  tempmac.CopyFrom (mac);
+  for (std::vector<Neighbor>::iterator i = m_nb.begin (); i != m_nb.end ();
+      ++i)
+    if (i->m_hardwareAddress == tempmac)
+      {
+	*x = i->m_x;
+	*y = i->m_y;
 
-			return i->m_geohash;
+	return i->m_geohash;
 
-		}
+      }
 
-	return 0;
+  return 0;
 }
 
 /**
@@ -141,17 +149,21 @@ uint64_t Neighbors::GetGeohashFromMacInNb(uint8_t* mac, double *x, double *y)
  * return
  *
  */
-uint64_t Neighbors::GetGeohashFromIpInNb(Ipv4Address ip, uint8_t* to_mac, double *x, double *y)
+uint64_t
+Neighbors::GetGeohashFromIpInNb (Ipv4Address ip, uint8_t* to_mac, double *x,
+				 double *y)
 {
-	for (std::vector<Neighbor>::iterator i = m_nb.begin (); i != m_nb.end (); ++i)
-		if (i->m_ipAddress == ip)
-		{
-			*x = i->m_x;
-			*y = i->m_y;
-			i->m_hardwareAddress.CopyTo(to_mac);
-			return i->m_geohash;
-		}
-	return 0;
+  Purge ();
+  for (std::vector<Neighbor>::iterator i = m_nb.begin (); i != m_nb.end ();
+      ++i)
+    if (i->m_ipAddress == ip)
+      {
+	*x = i->m_x;
+	*y = i->m_y;
+	i->m_hardwareAddress.CopyTo (to_mac);
+	return i->m_geohash;
+      }
+  return 0;
 }
 
 Vector
@@ -160,6 +172,7 @@ Neighbors::GetPositionFromIp (Ipv4Address ip)
   Vector p;
   p.x = -1;
   p.y = -1;
+  Purge();
   for (std::vector<Neighbor>::iterator i = m_nb.begin (); i != m_nb.end (); ++i)
     if (i->m_ipAddress == ip)
       {
@@ -189,6 +202,9 @@ int Neighbors::GetTableSize()
   return m_nb.size();
 }
 
+/**
+ * Attention! this position is GPS
+ */
 Vector Neighbors::GetPosition(int i)
 {
   Vector p;
@@ -196,6 +212,31 @@ Vector Neighbors::GetPosition(int i)
   p.y = m_nb[i].m_y;
   p.z = 0;
   return p;
+}
+
+
+
+Vector Neighbors::GetCartesianPosition(int i)
+{
+  uint32_t n = NodeList().GetNNodes ();
+  uint32_t j;
+  Ptr<Node> node;
+
+  //NS_LOG_UNCOND("Position of " << adr);
+
+  for(j = 0; j < n; j++)
+    {
+      node = NodeList().GetNode (j);
+      Ptr<Ipv4> ipv4 = node->GetObject<Ipv4> ();
+
+      //NS_LOG_UNCOND("Have " << ipv4->GetAddress (1, 0).GetLocal ());
+      if(ipv4->GetAddress (1, 0).GetLocal () == m_nb[i].m_ipAddress)
+	{
+	  return (*node->GetObject<MobilityModel>()).GetPosition ();
+	}
+    }
+  Vector v;
+  return v;
 }
 
 Ipv4Address Neighbors::GetIp(int i)
@@ -206,96 +247,121 @@ Ipv4Address Neighbors::GetIp(int i)
  * get a random node which is in the range of the geohash set.
  * return 0 if unmatched.
  */
-int Neighbors::GetnbFromsetRandom(Mac48Address *mac, GeoHashSetCoordinate *geohashset)
+int
+Neighbors::GetnbFromsetRandom (Mac48Address *mac,
+			       GeoHashSetCoordinate *geohashset)
 {
-	int j,k;
-
-	if(geohashset->sx != 3 && geohashset->sy != 3) {
+  int j, k;
+  Purge ();
+  if (geohashset->sx != 3 && geohashset->sy != 3)
+    {
 //		mbr_dbg(debug_level, ANY, "neighbor_getnode_fromset_random: does not support sx: %d, sy: %d!\n",
 //				geohashset->sx, geohashset->sy);
-		return 0;
-	}
-	for (std::vector<Neighbor>::iterator i = m_nb.begin (); i != m_nb.end (); ++i)
-		for(j = 0; j < geohashset->sy; j++) {
-			for(k=0; k < geohashset->sx; k++) {
-				if(i->m_geohash == geohashset->geohashset[j][k]) {
-					*mac = i->m_hardwareAddress;
-					return 1;
-				}
-			}
-		}
+      return 0;
+    }
+  for (std::vector<Neighbor>::iterator i = m_nb.begin (); i != m_nb.end ();
+      ++i)
+    for (j = 0; j < geohashset->sy; j++)
+      {
+	for (k = 0; k < geohashset->sx; k++)
+	  {
+	    if (i->m_geohash == geohashset->geohashset[j][k])
+	      {
+		*mac = i->m_hardwareAddress;
+		return 1;
+	      }
+	  }
+      }
 
-	return 0;
+  return 0;
 }
 
-int Neighbors::GetDtime(uint64_t geohash, uint16_t direct, GeoHashSetCoordinate *geohashset)
+int
+Neighbors::GetDtime (uint64_t geohash, uint16_t direct,
+		     GeoHashSetCoordinate *geohashset)
 {
-	int i, j;
+  int i, j;
 
-	if(geohashset->sx != 3 && geohashset->sy != 3) {
+  if (geohashset->sx != 3 && geohashset->sy != 3)
+    {
 //		mbr_dbg(debug_level, ANY, "get_dtime: does not support sx: %d, sy: %d!\n",
 //				geohashset->sx, geohashset->sy);
-		return -1;
-	}
+      return -1;
+    }
 
-	for(i = 0; i < geohashset->sy; i++) {
-		for(j=0; j < geohashset->sx; j++) {
-			if(geohash == geohashset->geohashset[i][j])
-			{
-				if(45 <= direct && direct < 135) { //East
-					return geohashset->sx - j;
-					}
-				if(225 <= direct && direct < 315) { //West
-					return j + 1;
-					}
-				if(135 <= direct && direct < 225) { //South
-					return geohashset->sy - i;
-					}
-				if(315 <= direct || direct < 45) { //North
-					return i + 1;
-					}
-			}
+  for (i = 0; i < geohashset->sy; i++)
+    {
+      for (j = 0; j < geohashset->sx; j++)
+	{
+	  if (geohash == geohashset->geohashset[i][j])
+	    {
+	      if (45 <= direct && direct < 135)
+		{ //East
+		  return geohashset->sx - j;
 		}
+	      if (225 <= direct && direct < 315)
+		{ //West
+		  return j + 1;
+		}
+	      if (135 <= direct && direct < 225)
+		{ //South
+		  return geohashset->sy - i;
+		}
+	      if (315 <= direct || direct < 45)
+		{ //North
+		  return i + 1;
+		}
+	    }
 	}
-	return -1;
+    }
+  return -1;
 }
 
 /**
  * get the best node which is in the range of the geohash set based on the "relay zone dwelling time".
  * return 0 if unmatched.
  */
-int Neighbors::GetnbFromsetBest(Mac48Address *ret_mac, GeoHashSetCoordinate *geohashset)
+int
+Neighbors::GetnbFromsetBest (Mac48Address *ret_mac,
+			     GeoHashSetCoordinate *geohashset)
 {
 //	unsigned int i;
-	Mac48Address best, temp;
-	int dtime_best = 0;
-	int dtime_curr = 0;
-	int dtime_max = (geohashset->sx > geohashset->sy) ? geohashset->sx : geohashset->sy;
-
-	if(geohashset->sx != 3 && geohashset->sy != 3) {
+  Mac48Address best, temp;
+  int dtime_best = 0;
+  int dtime_curr = 0;
+  int dtime_max =
+      (geohashset->sx > geohashset->sy) ? geohashset->sx : geohashset->sy;
+  Purge ();
+  if (geohashset->sx != 3 && geohashset->sy != 3)
+    {
 //		mbr_dbg(debug_level, ANY, "neighbor_getnode_fromset_best: does not support sx: %d, sy: %d!\n",
 //				geohashset->sx, geohashset->sy);
-		return 0;
-	}
+      return 0;
+    }
 
-	for (std::vector<Neighbor>::iterator i = m_nb.begin (); i != m_nb.end (); ++i) {
-		dtime_curr = GetDtime(i->m_geohash, i->m_direction, geohashset);
-		if ( dtime_curr == dtime_max ) {
-			*ret_mac = i->m_hardwareAddress;
-			return 1;
-		}
-		else if(dtime_curr > dtime_best) {
-			dtime_best = dtime_curr;
-			best = i->m_hardwareAddress;
-		}
+  for (std::vector<Neighbor>::iterator i = m_nb.begin (); i != m_nb.end ();
+      ++i)
+    {
+      dtime_curr = GetDtime (i->m_geohash, i->m_direction, geohashset);
+      if (dtime_curr == dtime_max)
+	{
+	  *ret_mac = i->m_hardwareAddress;
+	  return 1;
 	}
+      else if (dtime_curr > dtime_best)
+	{
+	  dtime_best = dtime_curr;
+	  best = i->m_hardwareAddress;
+	}
+    }
 
-	if(dtime_best > 0)	{
-		*ret_mac = best;
-		return 1;
-	}
-	else
-		return 0;
+  if (dtime_best > 0)
+    {
+      *ret_mac = best;
+      return 1;
+    }
+  else
+    return 0;
 }
 }
 }

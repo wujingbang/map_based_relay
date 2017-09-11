@@ -242,13 +242,13 @@ PositionTable::BestNeighbor (Vector position, Vector nodePos)
 	  return Ipv4Address::GetZero ();
 	}
 
-
+      Vector p;
       bestFoundID = nbapp->getNb()->GetIp(0);
-      bestFoundDistance = CalculateDistance (nbapp->getNb()->GetPosition(0), position);
+      bestFoundDistance = CalculateDistance (nbapp->getNb()->GetCartesianPosition(0), position);
       int i;
       for (i = 1; i < nbapp->getNb()->GetTableSize(); i++)
         {
-	  double dist = CalculateDistance (nbapp->getNb()->GetPosition(i), position);
+	  double dist = CalculateDistance (nbapp->getNb()->GetCartesianPosition(i), position);
           if (bestFoundDistance > dist)
             {
               bestFoundID = nbapp->getNb()->GetIp(i);

@@ -294,7 +294,7 @@ void MbrNeighborApp::ReceiveWavePacket (Ptr<Socket> socket)
   Ipv4Address dst = mbrHeader.GetDst ();
   NS_LOG_LOGIC ("MBR Hello destination " << dst << " origin " << mbrHeader.GetOrigin ());
 
-  m_neighbors->Update (mbrHeader.GetOrigin (), Time (Seconds(1)),/*Time (MilliSeconds(350)),Time (Seconds(10)),*/
+  m_neighbors->Update (mbrHeader.GetOrigin (), Time (Seconds(1)),/*Time (MilliSeconds(350)),*/
 		  mbrHeader.getMac(), mbrHeader.getGeohash(), mbrHeader.getDirection(),
 		  mbrHeader.getLongitude(), mbrHeader.getLatitude());
 
