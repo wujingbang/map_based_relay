@@ -38,6 +38,7 @@ def build(bld):
         'model/mbr_sumomap.cpp',
         'model/tinyxml2.cpp',
         'model/mbr-utils.c',
+        'model/mbr-packet-tag.cc',
         ]
 
     module_test = bld.create_ns3_module_test_library('wave')
@@ -76,6 +77,7 @@ def build(bld):
         'model/mbr_sumomap.h',
         'model/tinyxml2.h',
         'model/mbr-utils.h',
+        'model/mbr-packet-tag.h',
         ]
 
     if bld.env.ENABLE_EXAMPLES:
