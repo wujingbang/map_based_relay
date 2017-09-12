@@ -27,11 +27,16 @@
 #include "ns3/mbr-neighbor-helper.h"
 #include "ns3/flow-monitor-helper.h"
 
+#include "ns3/aodv-module.h"
+
 #include <iostream>
 #include <cmath>
 
 using namespace ns3;
 using namespace mbr;
+
+#define AODV 1
+#define GPSR 2
 
 NS_LOG_COMPONENT_DEFINE ("gpsr-mbr-test");
 
@@ -84,6 +89,7 @@ private:
   std::string m_lossModelName;
   std::string m_phyMode;
   double m_txp;
+  uint32_t m_pktSize;
 
   std::string m_traceFile;
   bool m_loadBuildings;
@@ -96,6 +102,8 @@ private:
   bool m_mbr;
   std::string m_netFileString;
   bool m_openRelay;
+  int32_t m_routingProtocol;
+  std::string m_routingProtocolStr;
 
   NodeContainer m_nodesContainer;
   NetDeviceContainer beaconDevices;
@@ -146,6 +154,7 @@ GpsrExample::GpsrExample () :
   m_lossModelName (""),
   m_phyMode ("OfdmRate12MbpsBW10MHz"),
   m_txp (10),
+  m_pktSize (1400),
   m_traceFile(""),
   m_loadBuildings(true),
   m_nSinks(1),
@@ -154,7 +163,8 @@ GpsrExample::GpsrExample () :
   m_scenario(2),
   m_mbr(false),
   m_netFileString(""),
-  m_openRelay(false)
+  m_openRelay(false),
+  m_routingProtocol(AODV)
 {
 }
 
@@ -172,6 +182,8 @@ GpsrExample::Configure (int argc, char **argv)
   cmd.AddValue ("time", "Simulation time, s.", totalTime);
 
   cmd.AddValue ("txp", "tx power db", m_txp);
+  cmd.AddValue ("phyMode", "Wifi Phy mode for Data channel", m_phyMode);
+  cmd.AddValue ("pktsize", "udp packet size", m_pktSize);
 
   cmd.AddValue ("buildings", "Load building (obstacles)", m_loadBuildings);
   cmd.AddValue ("sinks", "Number of routing sinks", m_nSinks);
@@ -180,7 +192,20 @@ GpsrExample::Configure (int argc, char **argv)
   cmd.AddValue ("relay", "open relay", m_openRelay);
   cmd.AddValue ("mbrnb", "use MBR Neighbor", m_mbr);
 
+  cmd.AddValue ("routing", "name of routing protocol", m_routingProtocolStr);
+
   cmd.Parse (argc, argv);
+
+  if (m_routingProtocolStr == "aodv")
+    m_routingProtocol = AODV;
+  else if (m_routingProtocolStr == "gpsr")
+    m_routingProtocol = GPSR;
+  else
+    {
+      NS_LOG_UNCOND("Routing Protocol ERROR !!!!!!!!!!!");
+      return false;
+    }
+
   return true;
 }
 
@@ -196,8 +221,11 @@ GpsrExample::Run ()
   InstallInternetStack ();
   InstallApplications ();
 
-  GpsrHelper gpsr;
-  gpsr.Install (m_mbr);
+  if(m_routingProtocol == GPSR)
+    {
+      GpsrHelper gpsr;
+      gpsr.Install (m_mbr);
+    }
 
   SetupRoutingMessages(m_nodesContainer, dataInterfaces);
   
@@ -308,7 +336,8 @@ GpsrExample::CreateDevices ()
   // Setup 802.11p stuff
   wifi80211p.SetRemoteStationManager ("ns3::ConstantRateWifiManager",
                                        "DataMode",StringValue (m_phyMode),
-                                       "ControlMode",StringValue (m_phyMode));
+                                       "ControlMode",StringValue (m_phyMode),
+				       "NonUnicastMode", StringValue ("OfdmRate3MbpsBW10MHz"));
   // Set Tx Power
   wifiPhy2.Set ("TxPowerStart",DoubleValue (m_txp));
   wifiPhy2.Set ("TxPowerEnd", DoubleValue (m_txp));
@@ -329,28 +358,31 @@ GpsrExample::CreateDevices ()
   /**
     * Beacon channel
     */
-   YansWifiChannelHelper wifiChannel;
-   wifiChannel.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
-   // two-ray requires antenna height (else defaults to Friss)
-   wifiChannel.AddPropagationLoss (m_lossModelName, "Frequency", DoubleValue (freq), "HeightAboveZ", DoubleValue (1.5));
-   wifiChannel.AddPropagationLoss ("ns3::ObstacleShadowingPropagationLossModel", "ForBeacon", UintegerValue(1), "IsSub1G", UintegerValue(0));
-   Ptr<YansWifiChannel> channel0 = wifiChannel.Create ();
-   YansWifiPhyHelper wifiPhy =  YansWifiPhyHelper::Default ();
-   wifiPhy.SetChannel (channel0);
-   wifiPhy.SetPcapDataLinkType (YansWifiPhyHelper::DLT_IEEE802_11);
-   NqosWaveMacHelper wifi80211pMacBeacon = NqosWaveMacHelper::Default ();
-   Wifi80211pHelper wifi80211pBeacon = Wifi80211pHelper::Default ();
+  if (m_mbr)
+    {
+      YansWifiChannelHelper wifiChannel;
+      wifiChannel.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
+      // two-ray requires antenna height (else defaults to Friss)
+      wifiChannel.AddPropagationLoss (m_lossModelName, "Frequency", DoubleValue (freq), "HeightAboveZ", DoubleValue (1.5));
+      wifiChannel.AddPropagationLoss ("ns3::ObstacleShadowingPropagationLossModel", "ForBeacon", UintegerValue(0), "IsSub1G", UintegerValue(0));
+      Ptr<YansWifiChannel> channel0 = wifiChannel.Create ();
+      YansWifiPhyHelper wifiPhy =  YansWifiPhyHelper::Default ();
+      wifiPhy.SetChannel (channel0);
+      wifiPhy.SetPcapDataLinkType (YansWifiPhyHelper::DLT_IEEE802_11);
+      NqosWaveMacHelper wifi80211pMacBeacon = NqosWaveMacHelper::Default ();
+      Wifi80211pHelper wifi80211pBeacon = Wifi80211pHelper::Default ();
 
-   // Setup 802.11p stuff
-   wifi80211pBeacon.SetRemoteStationManager ("ns3::ConstantRateWifiManager",
-                                        "DataMode",StringValue ("OfdmRate3MbpsBW10MHz"),
-                                        "ControlMode",StringValue ("OfdmRate3MbpsBW10MHz"));
-   // Set Tx Power
-   wifiPhy.Set ("TxPowerStart",DoubleValue (m_txp));
-   wifiPhy.Set ("TxPowerEnd", DoubleValue (m_txp));
+      // Setup 802.11p stuff
+      wifi80211pBeacon.SetRemoteStationManager ("ns3::ConstantRateWifiManager",
+					  "DataMode",StringValue ("OfdmRate3MbpsBW10MHz"),
+					  "ControlMode",StringValue ("OfdmRate3MbpsBW10MHz"),
+					  "NonUnicastMode", StringValue ("OfdmRate3MbpsBW10MHz"));
+      // Set Tx Power
+      wifiPhy.Set ("TxPowerStart",DoubleValue (m_txp));
+      wifiPhy.Set ("TxPowerEnd", DoubleValue (m_txp));
 
-   beaconDevices = wifi80211pBeacon.Install (wifiPhy, wifi80211pMacBeacon, m_nodesContainer);
-
+      beaconDevices = wifi80211pBeacon.Install (wifiPhy, wifi80211pMacBeacon, m_nodesContainer);
+    }
 
 
 
@@ -366,11 +398,27 @@ GpsrExample::CreateDevices ()
 void
 GpsrExample::InstallInternetStack ()
 {
-  GpsrHelper gpsr;
-  // you can configure GPSR attributes here using gpsr.Set(name, value)
   InternetStackHelper stack;
-  stack.SetRoutingHelper (gpsr);
-  stack.Install (m_nodesContainer);
+  switch (m_routingProtocol)
+  {
+    case (AODV):
+    {
+      AodvHelper aodv;
+      // you can configure AODV attributes here using aodv.Set(name, value)
+      stack.SetRoutingHelper (aodv); // has effect on the next Install ()
+      stack.Install (m_nodesContainer);
+      break;
+    }
+    case (GPSR):
+    {
+      GpsrHelper gpsr;
+      // you can configure GPSR attributes here using gpsr.Set(name, value)
+      stack.SetRoutingHelper (gpsr);
+      stack.Install (m_nodesContainer);
+      break;
+    }
+  }
+
 
   Ipv4AddressHelper addressAdhocData;
   addressAdhocData.SetBase ("10.1.0.0", "255.255.0.0");
@@ -467,8 +515,8 @@ GpsrExample::SetupScenario()
       m_traceFile = "";
       m_mobility = 3;
       m_nNodes = 26;
-      totalTime = 20;
-      m_nSinks = 1;
+      totalTime = 10;
+      //m_nSinks = 1;
       m_lossModel = 3; // two-ray ground
       //m_mbr = true;
       m_netFileString = "/home/wu/workspace/ns-3/ns-3.26/src/wave/examples/20170831/output.net.xml";
@@ -512,7 +560,7 @@ GpsrExample::SetupAdhocMobilityNodes ()
     {
       MobilityHelper mobility;
       Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator> ();
-      positionAlloc->Add (Vector (3, 467, 0)); //0
+      positionAlloc->Add (Vector (3, 550, 0)); //0
 
       positionAlloc->Add (Vector (0, 586, 0));
       positionAlloc->Add (Vector (30, 588, 0));
@@ -582,10 +630,21 @@ GpsrExample::SetupRoutingMessages (NodeContainer & c,
     }
   else if (m_scenario == 4 || m_scenario == 2)
     {
-	Ptr<Socket> sink = SetupRoutingPacketReceive (adhocTxInterfaces.GetAddress (13), c.Get (13));
-	AddressValue remoteAddress (InetSocketAddress (adhocTxInterfaces.GetAddress (13), m_port));
+//      for (uint32_t i = 1; i <= m_nSinks; i++)
+//	{
+//	  Ptr<Socket> sink = SetupRoutingPacketReceive (adhocTxInterfaces.GetAddress (i), c.Get (i));
+//	  AddressValue remoteAddress (InetSocketAddress (adhocTxInterfaces.GetAddress (i), m_port));
+//	  onoff1.SetAttribute ("Remote", remoteAddress);
+//	  onoff1.SetAttribute ("PacketSize", UintegerValue (m_pktSize));
+//	  ApplicationContainer temp = onoff1.Install (c.Get (0));
+//	  temp.Start (Seconds (var->GetValue (1.0,2.0)));
+//	  temp.Stop (Seconds (totalTime));
+//	}
+
+	Ptr<Socket> sink = SetupRoutingPacketReceive (adhocTxInterfaces.GetAddress (m_nSinks), c.Get (m_nSinks));
+	AddressValue remoteAddress (InetSocketAddress (adhocTxInterfaces.GetAddress (m_nSinks), m_port));
 	onoff1.SetAttribute ("Remote", remoteAddress);
-	onoff1.SetAttribute ("PacketSize", UintegerValue (1400));
+	onoff1.SetAttribute ("PacketSize", UintegerValue (m_pktSize));
 
 	ApplicationContainer temp = onoff1.Install (c.Get (0));
 	temp.Start (Seconds (var->GetValue (1.0,2.0)));
