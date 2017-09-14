@@ -29,6 +29,12 @@
 #include "vendor-specific-action.h"
 #include "wave-net-device.h"
 
+#include "ns3/object.h"
+#include "ns3/uinteger.h"
+#include "ns3/traced-value.h"
+#include "ns3/trace-source-accessor.h"
+
+
 #include "graph.h"
 
 namespace ns3 {
@@ -178,6 +184,7 @@ private:
   virtual void Receive (Ptr<Packet> packet, const WifiMacHeader *hdr);
 
   VendorSpecificContentManager m_vscManager;
+  TracedValue<uint32_t> m_relayedPkt;
 
 //  /**
 //   * Map based relay staff

@@ -105,6 +105,9 @@ private:
   int32_t m_routingProtocol;
   std::string m_routingProtocolStr;
 
+  std::string m_flowOutFile;
+  std::string m_throughputOutFile;
+
   NodeContainer m_nodesContainer;
   NetDeviceContainer beaconDevices;
   Ipv4InterfaceContainer beaconInterfaces;
@@ -164,7 +167,9 @@ GpsrExample::GpsrExample () :
   m_mbr(false),
   m_netFileString(""),
   m_openRelay(false),
-  m_routingProtocol(AODV)
+  m_routingProtocol(AODV),
+  m_flowOutFile("flowmonitor-output.xml"),
+  m_throughputOutFile("throughput-ouput.txt")
 {
 }
 
@@ -194,6 +199,9 @@ GpsrExample::Configure (int argc, char **argv)
 
   cmd.AddValue ("routing", "name of routing protocol", m_routingProtocolStr);
 
+  cmd.AddValue ("flowout", "Flowmonitor output file name", m_flowOutFile);
+  cmd.AddValue ("throughputout", "Throughput output file name", m_throughputOutFile);
+
   cmd.Parse (argc, argv);
 
   if (m_routingProtocolStr == "aodv")
@@ -206,7 +214,18 @@ GpsrExample::Configure (int argc, char **argv)
       return false;
     }
 
+  if (m_openRelay)
+    m_mbr = true;
+
   return true;
+}
+
+uint32_t relayedPktNum = 0;
+void
+IntTrace (uint32_t oldValue, uint32_t newValue)
+{
+//  std::cout << "Traced " << oldValue << " to " << newValue << std::endl;
+  relayedPktNum++;
 }
 
 void
@@ -230,18 +249,24 @@ GpsrExample::Run ()
   SetupRoutingMessages(m_nodesContainer, dataInterfaces);
   
   //	Flow	monitor
-//  Ptr<FlowMonitor>	flowMonitor;
-//  FlowMonitorHelper	flowHelper;
-//  flowMonitor = flowHelper.InstallAll();
+  Ptr<FlowMonitor>	flowMonitor;
+  FlowMonitorHelper	flowHelper;
+  flowMonitor = flowHelper.InstallAll();
 
   std::cout << "Starting simulation for " << totalTime << " s ...\n";
+
+
+  if (m_mbr)
+    {
+      Config::ConnectWithoutContext ("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Mac/RelayedPktNum", MakeCallback (&IntTrace));
+    }
 
   CheckThroughput();
 
   Simulator::Stop (Seconds (totalTime));
   Simulator::Run ();
 
-//  flowMonitor->SerializeToXmlFile("gpsr-mbr-test-flow.xml",true,true);
+  flowMonitor->SerializeToXmlFile(m_flowOutFile,true,true);
 
   Simulator::Destroy ();
 }
@@ -404,6 +429,13 @@ GpsrExample::InstallInternetStack ()
     case (AODV):
     {
       AodvHelper aodv;
+      aodv.Set("Mbr", UintegerValue (1));
+      //Ptr<OutputStreamWrapper> routingStream = Create<OutputStreamWrapper> ("aodv.routes", std::ios::out);
+
+      //AsciiTraceHelper ascii;
+      //Ptr<OutputStreamWrapper> routingStream = ascii.CreateFileStream ("routing_table");
+      //aodv.PrintRoutingTableAllAt (Seconds (8), routingStream);
+
       // you can configure AODV attributes here using aodv.Set(name, value)
       stack.SetRoutingHelper (aodv); // has effect on the next Install ()
       stack.Install (m_nodesContainer);
@@ -441,7 +473,7 @@ GpsrExample::InstallApplications ()
 			      dataDevices,
 			      Seconds (totalTime),//Seconds(4),//
 			      100,//m_wavePacketSize,
-			      Seconds (0.1),//m_waveInterval
+			      Seconds (0.25),//m_waveInterval
 			      // GPS accuracy (i.e, clock drift), in number of ns
 			      40,//m_gpsAccuracyNs,
 			      // tx max delay before transmit, in ms
@@ -523,6 +555,25 @@ GpsrExample::SetupScenario()
       if (m_loadBuildings != 0)
         {
           std::string bldgFile = "/home/wu/workspace/ns-3/ns-3.26/src/wave/examples/20170831/buildings.xml";
+          NS_LOG_UNCOND ("Loading buildings file " << bldgFile);
+          Topology::LoadBuildings(bldgFile);
+        }
+
+    }
+  else if (m_scenario == 5)
+    {
+      m_traceFile = "src/wave/examples/newyork/newyorkmobility.ns2";
+
+      m_mobility = 1;
+      m_nNodes = 600;
+      //totalTime = 30;
+      m_nSinks = 300;
+      m_lossModel = 3; // two-ray ground
+      //m_mbr = true;
+      m_netFileString = "src/wave/examples/newyork/output.net.xml";
+      if (m_loadBuildings != 0)
+        {
+          std::string bldgFile = "src/wave/examples/newyork/buildings.xml";
           NS_LOG_UNCOND ("Loading buildings file " << bldgFile);
           Topology::LoadBuildings(bldgFile);
         }
@@ -684,16 +735,18 @@ GpsrExample::CheckThroughput ()
   double kbs = (bytesTotal * 8.0) / 1000;
   bytesTotal = 0;
 
-  std::ofstream out ("gpst-test-csv", std::ios::app);
+  std::ofstream out (m_throughputOutFile, std::ios::app);
 
   out << (Simulator::Now ()).GetSeconds () << ","
       << kbs << ","
       << packetsReceived << ","
+      << relayedPktNum << ","
       << m_nSinks << ","
       << m_txp << ""
       << std::endl;
 
   out.close ();
+  relayedPktNum = 0;
   packetsReceived = 0;
   Simulator::Schedule (Seconds (1.0), &GpsrExample::CheckThroughput, this);
 }

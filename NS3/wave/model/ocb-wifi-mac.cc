@@ -54,11 +54,14 @@ OcbWifiMac::GetTypeId (void)
     .SetParent<RegularWifiMac> ()
     .SetGroupName ("Wave")
     .AddConstructor<OcbWifiMac> ()
+    .AddTraceSource ("RelayedPktNum",
+                     "Packet number through MBR relaying.",
+                     MakeTraceSourceAccessor (&OcbWifiMac::m_relayedPkt))
   ;
   return tid;
 }
 
-OcbWifiMac::OcbWifiMac (void)
+OcbWifiMac::OcbWifiMac (void):m_relayedPkt(0)
 {
   NS_LOG_FUNCTION (this);
   // Let the lower layers know that we are acting as an OCB node
@@ -254,6 +257,8 @@ OcbWifiMac::Enqueue (Ptr<const Packet> packet, Mac48Address to)
   if(mbrtag.isRelaying())
   {
           NS_LOG_LOGIC ("Relaying !");
+          m_relayedPkt++;
+
 	  relay_mac_ns.CopyFrom(mbrtag.getRelayMac());
 	  hdr.SetTypeMBRData();
 	  hdr.SetAddr1(relay_mac_ns);
