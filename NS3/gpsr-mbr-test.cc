@@ -101,6 +101,7 @@ private:
 
   bool m_mbr;
   std::string m_netFileString;
+  std::string m_osmFileString;
   bool m_openRelay;
   int32_t m_routingProtocol;
   std::string m_routingProtocolStr;
@@ -479,6 +480,7 @@ GpsrExample::InstallApplications ()
 			      // tx max delay before transmit, in ms
 			      MilliSeconds (10),//m_txMaxDelayMs
 			      m_netFileString,
+			      m_osmFileString,
 			      m_openRelay);
   // fix random number streams
   m_MbrNeighborHelper.AssignStreams (m_nodesContainer, 0);
@@ -571,6 +573,7 @@ GpsrExample::SetupScenario()
       m_lossModel = 3; // two-ray ground
       //m_mbr = true;
       m_netFileString = "src/wave/examples/newyork/output.net.xml";
+      m_osmFileString = "src/wave/examples/newyork/output.osm";
       if (m_loadBuildings != 0)
         {
           std::string bldgFile = "src/wave/examples/newyork/buildings.xml";

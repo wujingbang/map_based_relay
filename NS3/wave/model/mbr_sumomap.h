@@ -56,7 +56,7 @@ public:
 	uint64_t GetNodeCurrentGeohash(Ptr<Node> node);
 	void GetNodeCurrentXY(Ptr<Node> node, double *x, double *y);
 	Graph* loadSumoMap(std::string sumoMapFilename);
-	void Initialize(std::string sumoMapFilename = "");
+	void Initialize(std::string sumoMapFilename = "", std::string osmMapFileName = "");
 	/**
 	* \brief Gets the topology instance
 	* \return the topology instance
@@ -101,6 +101,7 @@ public:
 	NetDeviceContainer  m_netdevicelist;
 	std::map<std::string, int> m_map_roadid;
 	std::string m_sumoMapFilename = "/home/wu/workspace/ns-3/ns-3.26/src/wave/examples/simple.net.xml";//sumo-osm-no-internal.net.xml";
+	std::string m_osmMapFileName;
 	//private constructor
 	MbrSumo(){
 		m_graph = NULL;
@@ -111,7 +112,8 @@ public:
 	void Tokenize(const std::string& str,
 			std::vector<std::string>& tokens,
 	        const std::string& delimiters);
-	std::string parseRoadid(std::string str);
+	std::string parseOsmWayid(std::string str);
+	std::string parseOsmRoadName(std::string wayid);
 	void parseBoundary(tinyxml2::XMLElement *location);
 	void parseShapeAndUpdateGraph(const char *fromid, const char *toid, int roadid, std::string shape);
 

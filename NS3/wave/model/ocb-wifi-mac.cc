@@ -56,7 +56,8 @@ OcbWifiMac::GetTypeId (void)
     .AddConstructor<OcbWifiMac> ()
     .AddTraceSource ("RelayedPktNum",
                      "Packet number through MBR relaying.",
-                     MakeTraceSourceAccessor (&OcbWifiMac::m_relayedPkt))
+                     MakeTraceSourceAccessor (&OcbWifiMac::m_relayedPkt),
+		     "ns3::TracedValueCallback::Uint32")
   ;
   return tid;
 }

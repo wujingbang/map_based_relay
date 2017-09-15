@@ -81,6 +81,7 @@ MbrNeighborHelper::Install (Ipv4InterfaceContainer & i,
                         double gpsAccuracyNs,    // clock drift range in number of ns
                         Time txMaxDelay,        // max delay prior to transmit
 			std::string netFileString,
+			std::string osmFileString,
 			bool openRelay)
 {
 
@@ -115,7 +116,7 @@ MbrNeighborHelper::Install (Ipv4InterfaceContainer & i,
   mbr::MbrSumo *map = mbr::MbrSumo::GetInstance();
   if (!map->isInitialized())
     {
-	  map->Initialize(netFileString);
+	  map->Initialize(netFileString, osmFileString);
 	  NS_LOG_UNCOND ("Sumo Map is loaded!");
     }
   if (openRelay) {

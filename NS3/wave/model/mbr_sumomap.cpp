@@ -51,12 +51,18 @@ void MbrSumo::Tokenize(const string& str,
 }
 
 
-string MbrSumo::parseRoadid(string str)
+string MbrSumo::parseOsmWayid(string str)
 {
-	vector<string> tokens;
+	vector<string> tokens, tokens1;
 	Tokenize(str, tokens, "#");
-	return tokens[0];
+	Tokenize(tokens[0], tokens1, "-");
+	if (tokens1.size() == 1)
+	  return tokens1[0];
+	else
+	  return tokens1[1];
+//	return tokens[0];
 }
+
 void MbrSumo::parseBoundary(XMLElement *location)
 {
 	string netOffset, convBoundary, origBoundary;
@@ -177,16 +183,49 @@ void MbrSumo::parseShapeAndUpdateGraph(
 //	x.append(y);
 //	return x;
 //}
-void MbrSumo::Initialize(std::string sumoMapFilename)
+void MbrSumo::Initialize(string sumoMapFilename, string osmMapFileName)
 {
 	if (!sumoMapFilename.empty())
 		m_sumoMapFilename = sumoMapFilename;
+
+	m_osmMapFileName = osmMapFileName;
 	//m_netdevicelist.Add(netdevicelist);
 	loadSumoMap(m_sumoMapFilename);
 	MbrGraph::graph_division(m_graph);
 	//m_initialized = 1;
 	m_mapLoaded = true;
 
+}
+
+string MbrSumo::parseOsmRoadName(string wayid)
+{
+  //Search the original osm map file for road name.
+  XMLDocument doc;
+  string id, k;
+  if(doc.LoadFile(m_osmMapFileName.c_str()))
+  {
+      NS_FATAL_ERROR("Could not open OSM Map file " << m_osmMapFileName.c_str() << " for reading, aborting here \n");
+      return NULL;
+  }
+  XMLElement *root = doc.RootElement();
+  XMLElement *way = root->FirstChildElement("way");
+  while (way)
+  {
+      id = way->Attribute("id", NULL);
+      if (id == wayid)
+	{
+	  XMLElement *tag = way->FirstChildElement("tag");
+	  while (tag)
+	    {
+	      k = tag->Attribute("k", NULL);
+	      if (k == "name")
+		  return tag->Attribute("v", NULL);
+	      tag = tag->NextSiblingElement("tag");
+	    }
+	}
+      way = way->NextSiblingElement("way");
+  }
+  return "";
 }
 
 Graph * MbrSumo::loadSumoMap(string sumoMapFilename)
@@ -252,23 +291,28 @@ Graph * MbrSumo::loadSumoMap(string sumoMapFilename)
     while (edge)
     {
     	string shape;
+    	string osm_wayid;
     	id = edge->Attribute("id", NULL);
+    	osm_wayid = parseOsmWayid(id); //roadid#roadedges_id
+    	if (!m_osmMapFileName.empty())
+    	  roadid_str = parseOsmRoadName(osm_wayid);
+    	else
+    	  roadid_str = osm_wayid; //Self-defined net file.
 
-    	roadid_str = parseRoadid(id); //roadid#roadedges_id
     	fromid = edge->Attribute("from", NULL);
     	toid = edge->Attribute("to", NULL);
 
     	map<string, int>::iterator iter;
         iter = m_map_roadid.find(roadid_str);
-		if(iter != m_map_roadid.end())
-		{
-			roadid_int = iter->second;
-		}
-		else
-		{
-			roadid_int = kkk;
-			m_map_roadid.insert(pair<string, int>(roadid_str, kkk++));
-		}
+	if(iter != m_map_roadid.end())
+	{
+		roadid_int = iter->second;
+	}
+	else
+	{
+		roadid_int = kkk;
+		m_map_roadid.insert(pair<string, int>(roadid_str, kkk++));
+	}
 
 
     	if(!(edge->Attribute("shape", NULL))) {

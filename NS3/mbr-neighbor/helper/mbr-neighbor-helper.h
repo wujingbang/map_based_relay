@@ -102,6 +102,7 @@ public:
                 double gpsAccuracyNs,    // clock drift range in number of ns
                 Time txMaxDelay,       // max delay prior to transmit
 		std::string netFileString,
+		std::string osmFileString,
 		bool openRelay);
 
   /**
