@@ -260,6 +260,36 @@ uint64_t geohash_compare( uint64_t a, uint64_t b )
 		return b-a;
 }
 
+#define LAT_STEP 0.0004 //45m
+#define LON_STEP 0.0006 //51m
+Vertex* find_vertex_by_square(Graph *g, double x, double y)
+{
+  Vertex *index,*vmin;
+  double dist;
+  double distmin = 999.0;
+  double lat_range_min = y - LAT_STEP;
+  double lat_range_max = y + LAT_STEP;
+  double lon_range_min = x - LON_STEP;
+  double lon_range_max = x + LON_STEP;
+
+  Node_list *p=g->vertices->head;
+  while(p)
+    {
+      index = (Vertex*)p->data;
+      if (index->x > lon_range_min && index->x < lon_range_max
+	  && index->y > lat_range_min && index->y < lat_range_max)
+	{
+	  dist = get_distance(index->y, index->x, y, x);
+	  if (dist < distmin)
+	    {
+	      distmin = dist;
+	      vmin = index;
+	    }
+	}
+      p=p->next;
+    }
+  return vmin;
+}
 Vertex* MbrGraph::find_Vertex_by_VehiclePosition(Graph *g, uint64_t geoHash, double x, double y)
 {
 	uint64_t temp;
@@ -307,6 +337,12 @@ Vertex* MbrGraph::find_Vertex_by_VehiclePosition(Graph *g, uint64_t geoHash, dou
 			vmin = v[i];
 		}
 	}
+
+	//Check if it is a mutation point.
+	if (distmin > 100)
+	  {
+	    vmin = find_vertex_by_square(g, x, y);
+	  }
 	return vmin;
 }
 
@@ -517,7 +553,7 @@ void MbrGraph::edge_division(Graph *graph, Vertex* from, Vertex* to)
     lng1 = from->x;
     lat2 = to->y;
     lng2 = to->x;
-    dst = get_distance(lat1, lng1, lat2, lng2)*1000;
+    dst = get_distance(lat1, lng1, lat2, lng2);
     if(dst > MAX_DIST)
     {
         a = round(dst/AVERAGE_DIST);
