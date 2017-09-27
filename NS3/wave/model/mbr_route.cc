@@ -7,11 +7,15 @@
 #include "ns3/mbr-neighbor-app.h"
 #include <string.h>
 #include "ns3/core-module.h"
+#include "ns3/mobility-model.h"
 
 using namespace ns3;
 using namespace mbr;
 
 NS_LOG_COMPONENT_DEFINE ("MbrRoute");
+
+uint32_t mbr::MbrRoute::m_relayedPktNum = 0;
+uint32_t mbr::MbrRoute::m_noNeighborPktNum = 0;
 
 MbrRoute::MbrRoute()
 {
@@ -41,7 +45,7 @@ void vertexlist_free(vertexlist *head)
 //	return p;
 //}
 
-int MbrRoute::mbr_forward(Ipv4Address dest, uint8_t * to_mac, uint8_t * relay_mac, Ptr<Node> thisnode)
+int MbrRoute::mbr_forward(Ipv4Address dest, uint8_t * to_mac, uint8_t * relay_mac, Ptr<Node> thisnode, uint32_t pktsize)
 {
 	/**
 	 * �����ھӱ�õ��õ��Geohash
@@ -75,11 +79,15 @@ int MbrRoute::mbr_forward(Ipv4Address dest, uint8_t * to_mac, uint8_t * relay_ma
 	if (!nbapp) return -1;
 //	dst_geohash = neighbor_getgeohash_frommac(to);
 	dst_geohash = nbapp->getNb()->GetGeohashFromIpInNb(dest, to_mac, &x_dst, &y_dst);
-	if(dst_geohash == 0) {
-		mbr_dbg(debug_level, ANY, "mbr_forward: nexthop does not exist in the neighbors!\n");
-		NS_LOG_LOGIC("mbr_forward: nexthop does not exist in the neighbors!\n");
+	if(dst_geohash == 0)
+	  {
+	    Ptr<MobilityModel> mob = thisnode->GetObject<MobilityModel> ();
+	    Vector3D pos = mob->GetPosition ();
+		NS_LOG_LOGIC("Node:"<<thisnode->GetId()<<" x:" << pos.x <<" y:" << pos.y
+			     <<"nexthop does not exist in nb!, dstIP:"<<dest);
+//		nbapp->getNb()->PrintNBTable();
 		return -1;
-	}
+	  }
 
 	this_geohash = sumomap->GetNodeCurrentGeohash(thisnode);
 	sumomap->GetNodeCurrentXY(thisnode, &x_this, &y_this);
@@ -93,7 +101,7 @@ int MbrRoute::mbr_forward(Ipv4Address dest, uint8_t * to_mac, uint8_t * relay_ma
 	*/
 	if(intersectionlist == NULL)
 	  {
-	    NS_LOG_LOGIC("intersectionlist is NULL ! this_v: "<<this_vertex->idStr << " dst_v: "<<dst_vertex->idStr);
+//	    NS_LOG_LOGIC("null, this_v: "<<this_vertex->idStr << " dst_v: "<<dst_vertex->idStr);
 	    return -1;
 	  }
 
@@ -117,6 +125,12 @@ int MbrRoute::mbr_forward(Ipv4Address dest, uint8_t * to_mac, uint8_t * relay_ma
 	//ret = neighbor_getnode_fromset_random(&neighbor_entry, &geohashset);
 		Mac48Address relaymac;
 
+		if (geohash_is_geohash_in_set(dst_geohash, geohashset))
+		  {
+		    NS_LOG_LOGIC("dest node is in the range of intersection.");
+		    return -1;
+		  }
+
 		ret = nbapp->getNb()->GetnbFromsetBest(&relaymac, &geohashset);
 		if(ret == 0)
 		{
@@ -124,15 +138,48 @@ int MbrRoute::mbr_forward(Ipv4Address dest, uint8_t * to_mac, uint8_t * relay_ma
 			continue;
 		} //unmatched!
 
+		double d1,d2,d3,d4;
+#define MAXD 40.0
+#define MIND 10.0
+		d1 = get_distance(y_this, x_this, temp->v->y, temp->v->x);
+		d2 = get_distance(y_dst, x_dst, temp->v->y, temp->v->x);
+		//d3 = (MAXD/d1) * (MAXD - d1);
+
+		if (d1 <= MIND || d2 <=MIND)
+		  {
+		    NS_LOG_LOGIC ("optimize: InRANGE! " << d1 << ", "<<d2);
+		    return -1;
+		  }
+
+		d3 = (1.0 + (MAXD-d1)/(d1-MIND))*(MAXD-d1);
+		d4 = (1.0 + (MAXD-d2)/(d2-MIND))*(MAXD-d2);
+
+		if (d1 > MIND && d1 < MAXD && d2 < d3)
+		  {
+		    NS_LOG_LOGIC ("optimize: InRANGE2! " << d3 );
+		    return -1;
+		  }
+		else if (d2 > MIND && d2 < MAXD && d1 < d4)
+		  {
+		    NS_LOG_LOGIC ("optimize: InRANGE3! " << d4 );
+		    return -1;
+		  }
+
 		NS_LOG_LOGIC ("node="<< thisnode->GetId() <<
-									", This Area " << this_vertex->idStr <<
-									", Dest Area " << dst_vertex->idStr <<
-									", Relay Area " << temp->v->idStr <<
-											", Dest IP "<< dest);
+					", This Area " << this_vertex->idStr <<
+					", Dest Area " << dst_vertex->idStr <<
+					", Relay Area " << temp->v->idStr <<
+							", Dest IP "<< dest <<
+					", PktSize " << pktsize);
+
 		relaymac.CopyTo(relay_mac);
 		vertexlist_free(intersectionlist);
+
+		m_relayedPktNum++;
 		return 0;
 	}
+	NS_LOG_LOGIC ("no neighbor in the range of intersectionlist.");
+	m_noNeighborPktNum++;
 	vertexlist_free(intersectionlist);
 	return -1;
 }

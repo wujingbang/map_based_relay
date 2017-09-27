@@ -474,65 +474,132 @@ RoutingProtocol::RouteInput (Ptr<const Packet> p, const Ipv4Header &header,
     }
 
   // Broadcast local delivery/forwarding
-  for (std::map<Ptr<Socket>, Ipv4InterfaceAddress>::const_iterator j =
-         m_socketAddresses.begin (); j != m_socketAddresses.end (); ++j)
+  if (m_mbr)
     {
+      std::map<Ptr<Socket>, Ipv4InterfaceAddress>::const_iterator j =
+	     m_socketAddresses.begin ();
+      for (uint32_t kk = 1; kk < m_mbr; kk++)
+        j++;
+
       Ipv4InterfaceAddress iface = j->second;
       if (m_ipv4->GetInterfaceForAddress (iface.GetLocal ()) == iif)
-        if (dst == iface.GetBroadcast () || dst.IsBroadcast ())
-          {
-            if (m_dpd.IsDuplicate (p, header))
-              {
-                NS_LOG_DEBUG ("Duplicated packet " << p->GetUid () << " from " << origin << ". Drop.");
-                return true;
-              }
-            UpdateRouteLifeTime (origin, m_activeRouteTimeout);
-            Ptr<Packet> packet = p->Copy ();
-            if (lcb.IsNull () == false)
-              {
-                NS_LOG_LOGIC ("Broadcast local delivery to " << iface.GetLocal ());
-                lcb (p, header, iif);
-                // Fall through to additional processing
-              }
-            else
-              {
-                NS_LOG_ERROR ("Unable to deliver packet locally due to null callback " << p->GetUid () << " from " << origin);
-                ecb (p, header, Socket::ERROR_NOROUTETOHOST);
-              }
-            if (!m_enableBroadcast)
-              {
-                return true;
-              }
-            if (header.GetProtocol () == UdpL4Protocol::PROT_NUMBER)
-              {
-                UdpHeader udpHeader;
-                p->PeekHeader (udpHeader);
-                if (udpHeader.GetDestinationPort () == AODV_PORT)
-                  {
-                    // AODV packets sent in broadcast are already managed
-                    return true;
-                  }
-              }
-            if (header.GetTtl () > 1)
-              {
-                NS_LOG_LOGIC ("Forward broadcast. TTL " << (uint16_t) header.GetTtl ());
-                RoutingTableEntry toBroadcast;
-                if (m_routingTable.LookupRoute (dst, toBroadcast))
-                  {
-                    Ptr<Ipv4Route> route = toBroadcast.GetRoute ();
-                    ucb (route, packet, header);
-                  }
-                else
-                  {
-                    NS_LOG_DEBUG ("No route to forward broadcast. Drop packet " << p->GetUid ());
-                  }
-              }
-            else
-              {
-                NS_LOG_DEBUG ("TTL exceeded. Drop packet " << p->GetUid ());
-              }
-            return true;
-          }
+	if (dst == iface.GetBroadcast () || dst.IsBroadcast ())
+	  {
+	    if (m_dpd.IsDuplicate (p, header))
+	      {
+		NS_LOG_DEBUG ("Duplicated packet " << p->GetUid () << " from " << origin << ". Drop.");
+		return true;
+	      }
+	    UpdateRouteLifeTime (origin, m_activeRouteTimeout);
+	    Ptr<Packet> packet = p->Copy ();
+	    if (lcb.IsNull () == false)
+	      {
+		NS_LOG_LOGIC ("Broadcast local delivery to " << iface.GetLocal ());
+		lcb (p, header, iif);
+		// Fall through to additional processing
+	      }
+	    else
+	      {
+		NS_LOG_ERROR ("Unable to deliver packet locally due to null callback " << p->GetUid () << " from " << origin);
+		ecb (p, header, Socket::ERROR_NOROUTETOHOST);
+	      }
+	    if (!m_enableBroadcast)
+	      {
+		return true;
+	      }
+	    if (header.GetProtocol () == UdpL4Protocol::PROT_NUMBER)
+	      {
+		UdpHeader udpHeader;
+		p->PeekHeader (udpHeader);
+		if (udpHeader.GetDestinationPort () == AODV_PORT)
+		  {
+		    // AODV packets sent in broadcast are already managed
+		    return true;
+		  }
+	      }
+	    if (header.GetTtl () > 1)
+	      {
+		NS_LOG_LOGIC ("Forward broadcast. TTL " << (uint16_t) header.GetTtl ());
+		RoutingTableEntry toBroadcast;
+		if (m_routingTable.LookupRoute (dst, toBroadcast))
+		  {
+		    Ptr<Ipv4Route> route = toBroadcast.GetRoute ();
+		    ucb (route, packet, header);
+		  }
+		else
+		  {
+		    NS_LOG_DEBUG ("No route to forward broadcast. Drop packet " << p->GetUid ());
+		  }
+	      }
+	    else
+	      {
+		NS_LOG_DEBUG ("TTL exceeded. Drop packet " << p->GetUid ());
+	      }
+	    return true;
+	  }
+    }
+  else
+    {
+      for (std::map<Ptr<Socket>, Ipv4InterfaceAddress>::const_iterator j =
+	     m_socketAddresses.begin (); j != m_socketAddresses.end (); ++j)
+	{
+	  Ipv4InterfaceAddress iface = j->second;
+	  if (m_ipv4->GetInterfaceForAddress (iface.GetLocal ()) == iif)
+	    if (dst == iface.GetBroadcast () || dst.IsBroadcast ())
+	      {
+		if (m_dpd.IsDuplicate (p, header))
+		  {
+		    NS_LOG_DEBUG ("Duplicated packet " << p->GetUid () << " from " << origin << ". Drop.");
+		    return true;
+		  }
+		UpdateRouteLifeTime (origin, m_activeRouteTimeout);
+		Ptr<Packet> packet = p->Copy ();
+		if (lcb.IsNull () == false)
+		  {
+		    NS_LOG_LOGIC ("Broadcast local delivery to " << iface.GetLocal ());
+		    lcb (p, header, iif);
+		    // Fall through to additional processing
+		  }
+		else
+		  {
+		    NS_LOG_ERROR ("Unable to deliver packet locally due to null callback " << p->GetUid () << " from " << origin);
+		    ecb (p, header, Socket::ERROR_NOROUTETOHOST);
+		  }
+		if (!m_enableBroadcast)
+		  {
+		    return true;
+		  }
+		if (header.GetProtocol () == UdpL4Protocol::PROT_NUMBER)
+		  {
+		    UdpHeader udpHeader;
+		    p->PeekHeader (udpHeader);
+		    if (udpHeader.GetDestinationPort () == AODV_PORT)
+		      {
+			// AODV packets sent in broadcast are already managed
+			return true;
+		      }
+		  }
+		if (header.GetTtl () > 1)
+		  {
+		    NS_LOG_LOGIC ("Forward broadcast. TTL " << (uint16_t) header.GetTtl ());
+		    RoutingTableEntry toBroadcast;
+		    if (m_routingTable.LookupRoute (dst, toBroadcast))
+		      {
+			Ptr<Ipv4Route> route = toBroadcast.GetRoute ();
+			ucb (route, packet, header);
+		      }
+		    else
+		      {
+			NS_LOG_DEBUG ("No route to forward broadcast. Drop packet " << p->GetUid ());
+		      }
+		  }
+		else
+		  {
+		    NS_LOG_DEBUG ("TTL exceeded. Drop packet " << p->GetUid ());
+		  }
+		return true;
+	      }
+	}
     }
 
   // Unicast local delivery

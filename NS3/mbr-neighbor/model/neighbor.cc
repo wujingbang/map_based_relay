@@ -8,7 +8,8 @@
 #include "ns3/node.h"
 #include "ns3/mobility-model.h"
 #include <algorithm>
-
+#include <sstream>
+#include <iomanip>
 
 namespace ns3
 {
@@ -66,6 +67,19 @@ Neighbors::GetSettingTime (Ipv4Address addr)
 }
 
 void
+Neighbors::PrintNBTable ()
+{
+
+  for (std::vector<Neighbor>::iterator i = m_nb.begin (); i != m_nb.end ();
+      ++i)
+    {
+      std::ostringstream buf;
+      buf<<"x:"<<std::setprecision(9)<<i->m_x<<",y:"<<std::setprecision(9)<<i->m_y;
+      NS_LOG_LOGIC("IP: " << i->m_ipAddress << " "<<buf.str());
+    }
+}
+
+void
 Neighbors::Update (Ipv4Address addr, Time expire, const uint8_t *mac, uint64_t geohash, uint16_t direction, double x, double y)
 {
   Mac48Address tempmac;
@@ -85,7 +99,7 @@ Neighbors::Update (Ipv4Address addr, Time expire, const uint8_t *mac, uint64_t g
         return;
       }
 
-  NS_LOG_LOGIC ("Open link to " << addr);
+//  NS_LOG_LOGIC ("Open link to " << addr);
   Neighbor neighbor (addr, tempmac, expire + Simulator::Now (), Simulator::Now (), geohash, direction, x, y);
   m_nb.push_back (neighbor);
   Purge ();
@@ -161,13 +175,14 @@ Neighbors::GetGeohashFromIpInNb (Ipv4Address ip, uint8_t* to_mac, double *x,
 	*x = i->m_x;
 	*y = i->m_y;
 	i->m_hardwareAddress.CopyTo (to_mac);
+	NS_ASSERT(i->m_geohash > 0);
 	return i->m_geohash;
       }
   return 0;
 }
 
 Vector
-Neighbors::GetPositionFromIp (Ipv4Address ip)
+Neighbors::GetGPSPositionFromIp (Ipv4Address ip)
 {
   Vector p;
   p.x = -1;
@@ -181,6 +196,23 @@ Neighbors::GetPositionFromIp (Ipv4Address ip)
 	p.z = 0;
 	return p;
       }
+  return p;
+}
+
+Vector
+Neighbors::GetCartesianPositionFromIp (Ipv4Address ip)
+{
+  Vector p;
+  p.x = -1;
+  p.y = -1;
+  Purge();
+  for(int i = 0; i < (int)m_nb.size(); i++)
+    {
+      if(ip == m_nb[i].m_ipAddress)
+	{
+	  return GetCartesianPosition(i);
+	}
+    }
   return p;
 }
 
@@ -205,7 +237,7 @@ int Neighbors::GetTableSize()
 /**
  * Attention! this position is GPS
  */
-Vector Neighbors::GetPosition(int i)
+Vector Neighbors::GetGPSPosition(int i)
 {
   Vector p;
   p.x = m_nb[i].m_x;

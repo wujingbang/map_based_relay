@@ -79,6 +79,7 @@ public:
   Time GetExpireTime (Ipv4Address addr);
 
   Time GetSettingTime (Ipv4Address addr);
+  void PrintNBTable();
   /// Check that node with address addr  is neighbor
   bool IsNeighbor (Ipv4Address addr);
   /// Update expire time for entry with address addr, if it exists, else add new entry
@@ -95,11 +96,12 @@ public:
   int GetnbFromsetRandom(Mac48Address *mac, GeoHashSetCoordinate *geohashset);
   int GetnbFromsetBest(Mac48Address *ret_mac, GeoHashSetCoordinate *geohashset);
 
-  Vector GetPositionFromIp(Ipv4Address ip);
+  Vector GetGPSPositionFromIp(Ipv4Address ip);
+  Vector GetCartesianPositionFromIp(Ipv4Address ip);
   bool NeighborEmpty();
   Time GetEntryUpdateTime (Ipv4Address ip);
   int GetTableSize();
-  Vector GetPosition(int i);
+  Vector GetGPSPosition(int i);
   Vector GetCartesianPosition(int i);
   Ipv4Address GetIp(int i);
 

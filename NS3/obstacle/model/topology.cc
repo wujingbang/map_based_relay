@@ -367,15 +367,17 @@ Topology::GetObstructedLossBetween(const Point &p1, const Point &p2, double r, b
   double dy = p2y - p1y;
   double distP1toP2sq = dx * dx + dy * dy;
   // distance must be less then (2r)^2 = 4r^2
-  double x4rSq = 4.0 * rSq;
-  if (distP1toP2sq < x4rSq)
+//  double x4rSq = 4.0 * rSq;
+
+//  if (distP1toP2sq < x4rSq)
+  if (distP1toP2sq < rSq)
     {
       // now search by range tree search
       // get bounding box, and extend by r is all directions
-      double xmin = std::min(p1x, p2x) - r;
-      double xmax = std::max(p1x, p2x) + r;
-      double ymin = std::min(p1y, p2y) - r;
-      double ymax = std::max(p1y, p2y) + r;
+      double xmin = std::min(p1x, p2x) - 1000;
+      double xmax = std::max(p1x, p2x) + 1000;
+      double ymin = std::min(p1y, p2y) - 1000;
+      double ymax = std::max(p1y, p2y) + 1000;
       Point pLow(xmin, ymin);
       Point pHigh(xmax, ymax);
       Interval win(Interval(pLow, pHigh));
@@ -385,25 +387,7 @@ Topology::GetObstructedLossBetween(const Point &p1, const Point &p2, double r, b
       while (current != m_outputList.end())
         {
           Obstacle obstacle = (*current).second;
-//          std::string id = obstacle.GetId();
-//          Point center = obstacle.GetCenter();
 
-//          double dx1 = CGAL::to_double(center.x()) - p1x;
-//          double dy1 = CGAL::to_double(center.y()) - p1y;
-//          double distCtoP1sq = dx1 * dx1 + dy1 * dy1;
-//
-//          double dx2 = CGAL::to_double(center.x()) - p2x;
-//          double dy2 = CGAL::to_double(center.y()) - p2y;
-//          double distCtoP2sq = dx2 * dx2 + dy2 * dy2;
-//
-//          double t1 = distCtoP1sq - rSq;
-//          double t2 = distCtoP2sq - rSq;
-////          if (((distCtoP1sq - rSq) < 0)
-////              && ((distCtoP2sq - rSq) < 0))
-//          if (t1 < 0 && t2 < 0)
-//            {
-              // obtstacle is within range
-//              countFound++;
 
               double obstructedDistanceBetween = 0.0;
               int intersections = 0;
@@ -425,22 +409,15 @@ Topology::GetObstructedLossBetween(const Point &p1, const Point &p2, double r, b
                   double gamma = obstacle.GetGamma();
                   if (forbeacon)
                     {
-                      if (isSub1G)
-                	{
-			  beta = beta/4;
-			  gamma = gamma/4;
-                	}
-                      else
-                	{
-			  beta = beta/2;
-			  gamma = gamma/2;
-                	}
+			  beta = beta * 0.7;
+			  gamma = gamma * 0.7;
                     }
+                  if (obstructedDistanceBetween < 2)
+                    intersections = 1;
 
                   obstructedLoss += beta * (double) intersections + gamma * obstructedDistanceBetween;
                               
                 }
-//            }
           current++;
         }
     }

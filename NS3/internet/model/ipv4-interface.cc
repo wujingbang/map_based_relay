@@ -264,7 +264,7 @@ Ipv4Interface::Send (Ptr<Packet> p, const Ipv4Header & hdr, Ipv4Address dest)
 	  }
 	  if (ret != -1)
 	    {
-	      ret = mbr::MbrRoute::mbr_forward(dest, to_mac, relay_mac, m_node);
+	      ret = mbr::MbrRoute::mbr_forward(dest, to_mac, relay_mac, m_node, p->GetSize());
 	      mbr::MbrTag mbrtag;
 
 	      bool foundtag = p->PeekPacketTag(mbrtag);

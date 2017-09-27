@@ -148,6 +148,8 @@ private:
   bool m_nbFromMbr;
   bool m_start;
 
+  TracedCallback<Ptr<Packet> > m_recCount;
+  TracedCallback<Ptr<Packet> > m_dropPkt;
 
 };
 }

@@ -375,22 +375,30 @@ int find_vertex(path *head,path *index,Vertex *v)   //�ж�ͼ�ڵ��Ƿ�
 
 Vertex* print_crossnode(path *p)    //����BFS����·���ϵĽ���ڵ���Ϣ��
 {
-    int first,second;
+    int first,second,count = 0;
     Vertex *ver = NULL;
-    second=p->e->road_id;
-    p=p->ancest;
+    if(p != NULL && p->ancest != NULL)
+    {
+        second=p->e->road_id;
+        p=p->ancest;
+    }
+    else
+    {
+        return NULL;
+    }
     while(p->ancest != NULL)
     {
         first=second;
         second=p->e->road_id;
         if(first != second)
         {
-            ver = p->v;
-            break;
+            if(ver == NULL)
+                ver = p->v;
+            ++count;
         }
         p=p->ancest;
     }
-    if(ver != NULL)
+    if(count == 1)
         return ver;
     else
     {

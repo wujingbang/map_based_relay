@@ -19,7 +19,7 @@ PositionTable::PositionTable ()
 {
   m_nbFromMbr = false;
   m_txErrorCallback = MakeCallback (&PositionTable::ProcessTxError, this);
-  m_entryLifeTime = Seconds (2); //FIXME fazer isto parametrizavel de acordo com tempo de hello
+  m_entryLifeTime = Seconds (1); //FIXME fazer isto parametrizavel de acordo com tempo de hello
 
 }
 
@@ -27,7 +27,7 @@ PositionTable::PositionTable (bool nbFromMbr)
 {
   m_nbFromMbr = nbFromMbr;
   m_txErrorCallback = MakeCallback (&PositionTable::ProcessTxError, this);
-  m_entryLifeTime = Seconds (2); //FIXME fazer isto parametrizavel de acordo com tempo de hello
+  m_entryLifeTime = Seconds (1); //FIXME fazer isto parametrizavel de acordo com tempo de hello
 
 }
 
@@ -111,7 +111,7 @@ PositionTable::GetPosition (Ipv4Address id)
 //      Ptr<Application> app = m_node->GetApplication(0);
 //      Ptr<mbr::MbrNeighborApp> nbapp = DynamicCast<mbr::MbrNeighborApp> (app);
       NS_ASSERT(nbapp);
-      return nbapp->getNb()->GetPositionFromIp(id);
+      return nbapp->getNb()->GetCartesianPositionFromIp(id);
     }
   else
     {
@@ -320,7 +320,7 @@ PositionTable::BestAngle (Vector previousHop, Vector nodePos)
       int i;
       for (i = 0; i < nbapp->getNb()->GetTableSize(); i++)
         {
-	  tmpAngle = GetAngle(nodePos, previousHop, nbapp->getNb()->GetPosition(i));
+	  tmpAngle = GetAngle(nodePos, previousHop, nbapp->getNb()->GetCartesianPosition(i));
 	  if (bestFoundAngle > tmpAngle && tmpAngle != 0)
 	    {
 	      bestFoundID = nbapp->getNb()->GetIp(i);
