@@ -98,6 +98,18 @@ public:
     m_node = node;
   }
 
+  bool
+  isNbFromMbr () const
+  {
+    return m_nbFromMbr;
+  }
+
+  void
+  setNbFromMbr (bool nbFromMbr)
+  {
+    m_nbFromMbr = nbFromMbr;
+  }
+
 private:
   /// link failure callback
   Callback<void, Ipv4Address> m_handleLinkFailure;

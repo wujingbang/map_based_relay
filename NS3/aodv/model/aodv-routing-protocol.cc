@@ -156,7 +156,8 @@ RoutingProtocol::RoutingProtocol () :
   m_rreqRateLimitTimer (Timer::CANCEL_ON_DESTROY),
   m_rerrRateLimitTimer (Timer::CANCEL_ON_DESTROY),
   m_lastBcastTime (Seconds (0)),
-  m_mbr(0)
+  m_mbr(0),
+  m_rreqTimeoutCount(0)
 {
   m_nb.SetCallback (MakeCallback (&RoutingProtocol::SendRerrWhenBreaksLinkToNextHop, this));
 }
@@ -282,6 +283,11 @@ RoutingProtocol::GetTypeId (void)
 		   UintegerValue (0),
 		   MakeUintegerAccessor (&RoutingProtocol::m_mbr),
 		   MakeUintegerChecker<uint16_t> ())
+    .AddTraceSource ("RreqTimeoutCount",
+		     "RREQ Time Expire Counter.",
+		     MakeTraceSourceAccessor (&RoutingProtocol::m_rreqTimeoutCount),
+		     "ns3::TracedValueCallback::Uint32")
+
   ;
   return tid;
 }
@@ -713,6 +719,7 @@ RoutingProtocol::SetIpv4 (Ptr<Ipv4> ipv4)
   m_routingTable.AddRoute (rt);
 
   m_nb.setNode(ipv4->GetObject<Node>());
+  m_nb.setNbFromMbr(m_mbr);
 
   Simulator::ScheduleNow (&RoutingProtocol::Start, this);
 }
@@ -1847,6 +1854,8 @@ RoutingProtocol::RouteRequestTimerExpire (Ipv4Address dst)
       NS_LOG_LOGIC ("route to " << dst << " found");
       return;
     }
+
+  m_rreqTimeoutCount++;
   /*
    *  If a route discovery has been attempted RreqRetries times at the maximum TTL without
    *  receiving any RREP, all data packets destined for the corresponding destination SHOULD be

@@ -31,6 +31,9 @@
 #include "ns3/mbr-neighbor-app.h"
 #include <algorithm>
 
+#include "ns3/node-list.h"
+#include "ns3/mbr_sumomap.h"
+#include "ns3/mobility-model.h"
 
 namespace ns3
 {
@@ -110,23 +113,69 @@ Neighbors::GetExpireTime (Ipv4Address addr)
     }
 }
 
+Vector
+GetPosition(Ipv4Address adr)
+{
+  uint32_t n = NodeList().GetNNodes ();
+  uint32_t i;
+  Ptr<Node> node;
+
+  for(i = 0; i < n; i++)
+    {
+      node = NodeList().GetNode (i);
+      Ptr<Ipv4> ipv4 = node->GetObject<Ipv4> ();
+
+      if(ipv4->GetAddress (1, 0).GetLocal () == adr)
+	{
+	  return (*node->GetObject<MobilityModel>()).GetPosition ();
+	}
+    }
+  Vector v;
+  return v;
+}
+
 void
 Neighbors::Update (Ipv4Address addr, Time expire)
 {
-  for (std::vector<Neighbor>::iterator i = m_nb.begin (); i != m_nb.end (); ++i)
-    if (i->m_neighborAddress == addr)
-      {
-        i->m_expireTime
-          = std::max (expire + Simulator::Now (), i->m_expireTime);
-        if (i->m_hardwareAddress == Mac48Address ())
-          i->m_hardwareAddress = LookupMacAddress (i->m_neighborAddress);
-        return;
-      }
+  if (m_nbFromMbr)
+    {
+      Ptr<mbr::MbrNeighborApp> nbapp;
+      for (uint32_t j = 0; j < m_node->GetNApplications (); j++)
+	{
+	  nbapp = DynamicCast<mbr::MbrNeighborApp> (m_node->GetApplication(j));
+	  if (nbapp)
+	    break;
+	}
+      NS_ASSERT(nbapp);
+      Vector p = GetPosition(addr);
+      double x,y;
+      uint64_t geohash;
+      uint8_t mac[6];
+      LookupMacAddress(addr).CopyTo(mac);
+      mbr::MbrSumo::GetInstance()->sumoCartesian2GPS(p.x, p.y, &x, &y);
+      geohash = mbr::MbrSumo::GetInstance()->sumoCartesian2Geohash(p.x,p.y);
 
-  NS_LOG_LOGIC ("Open link to " << addr);
-  Neighbor neighbor (addr, LookupMacAddress (addr), expire + Simulator::Now ());
-  m_nb.push_back (neighbor);
-  Purge ();
+      nbapp->getNb()->Update(addr, expire, (const uint8_t*)mac, geohash, 0, x, y);
+      nbapp->getNb()->Purge();
+    }
+  else
+    {
+      for (std::vector<Neighbor>::iterator i = m_nb.begin (); i != m_nb.end (); ++i)
+	if (i->m_neighborAddress == addr)
+	  {
+	    i->m_expireTime
+	      = std::max (expire + Simulator::Now (), i->m_expireTime);
+	    if (i->m_hardwareAddress == Mac48Address ())
+	      i->m_hardwareAddress = LookupMacAddress (i->m_neighborAddress);
+	    return;
+	  }
+
+      NS_LOG_LOGIC ("Open link to " << addr);
+
+      Neighbor neighbor (addr, LookupMacAddress (addr), expire + Simulator::Now ());
+      m_nb.push_back (neighbor);
+      Purge ();
+    }
 }
 
 struct CloseNeighbor

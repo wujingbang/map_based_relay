@@ -395,6 +395,35 @@ Neighbors::GetnbFromsetBest (Mac48Address *ret_mac,
   else
     return 0;
 }
+
+void
+Neighbors::AddArpCache (Ptr<ArpCache> a)
+{
+  m_arp.push_back (a);
+}
+
+void
+Neighbors::DelArpCache (Ptr<ArpCache> a)
+{
+  m_arp.erase (std::remove (m_arp.begin (), m_arp.end (), a), m_arp.end ());
+}
+
+Mac48Address
+Neighbors::LookupMacAddress (Ipv4Address addr)
+{
+  Mac48Address hwaddr;
+  for (std::vector<Ptr<ArpCache> >::const_iterator i = m_arp.begin ();
+       i != m_arp.end (); ++i)
+    {
+      ArpCache::Entry * entry = (*i)->Lookup (addr);
+      if (entry != 0 && (entry->IsAlive () || entry->IsPermanent ()) && !entry->IsExpired ())
+        {
+          hwaddr = Mac48Address::ConvertFrom (entry->GetMacAddress ());
+          break;
+        }
+    }
+  return hwaddr;
+}
 }
 }
 

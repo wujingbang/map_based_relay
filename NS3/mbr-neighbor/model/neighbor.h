@@ -108,6 +108,13 @@ public:
   /// Get callback to ProcessTxError
 //  Callback<void, WifiMacHeader const &> GetTxErrorCallback () const { return m_txErrorCallback; }
 
+  /// Add ARP cache to be used to allow layer 2 notifications processing
+  void AddArpCache (Ptr<ArpCache>);
+  /// Don't use given ARP cache any more (interface is down)
+  void DelArpCache (Ptr<ArpCache>);
+  /// Find MAC address by IP using list of ARP caches
+  Mac48Address LookupMacAddress (Ipv4Address);
+
 private:
 
   int GetDtime(uint64_t geohash, uint16_t direct, GeoHashSetCoordinate *geohashset);
@@ -117,6 +124,7 @@ private:
   Timer m_ntimer;
   /// vector of entries
   std::vector<Neighbor> m_nb;
+  std::vector<Ptr<ArpCache> > m_arp;
 
   /// Find MAC address by IP using list of ARP caches
 //  Mac48Address LookupMacAddress (Ipv4Address);

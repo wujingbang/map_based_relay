@@ -277,6 +277,7 @@ private:
   Time m_lastBcastTime;
 
   uint32_t m_mbr;
+  TracedValue<uint32_t> m_rreqTimeoutCount;
 };
 
 }
