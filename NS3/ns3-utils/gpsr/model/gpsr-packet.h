@@ -64,7 +64,7 @@ class HelloHeader : public Header
 {
 public:
   /// c-tor
-  HelloHeader (uint64_t originPosx = 0, uint64_t originPosy = 0);
+  HelloHeader (double originPosx = 0, double originPosy = 0);
 
   ///\name Header serialization/deserialization
   //\{
@@ -78,19 +78,19 @@ public:
 
   ///\name Fields
   //\{
-  void SetOriginPosx (uint64_t posx)
+  void SetOriginPosx (double posx)
   {
     m_originPosx = posx;
   }
-  uint64_t GetOriginPosx () const
+  double GetOriginPosx () const
   {
     return m_originPosx;
   }
-  void SetOriginPosy (uint64_t posy)
+  void SetOriginPosy (double posy)
   {
     m_originPosy = posy;
   }
-  uint64_t GetOriginPosy () const
+  double GetOriginPosy () const
   {
     return m_originPosy;
   }
@@ -99,8 +99,8 @@ public:
 
   bool operator== (HelloHeader const & o) const;
 private:
-  uint64_t         m_originPosx;          ///< Originator Position x
-  uint64_t         m_originPosy;          ///< Originator Position x
+  double         m_originPosx;          ///< Originator Position x
+  double         m_originPosy;          ///< Originator Position x
 };
 
 std::ostream & operator<< (std::ostream & os, HelloHeader const &);
@@ -109,7 +109,11 @@ class PositionHeader : public Header
 {
 public:
   /// c-tor
-  PositionHeader (uint64_t dstPosx = 0, uint64_t dstPosy = 0, uint32_t updated = 0, uint64_t recPosx = 0, uint64_t recPosy = 0, uint8_t inRec  = 0, uint64_t lastPosx = 0, uint64_t lastPosy = 0);
+  PositionHeader();
+  PositionHeader (double srcPosx, double srcPosy,
+		  double dstPosx, double dstPosy, uint32_t updated,
+		  double recPosx, double recPosy, uint8_t inRec,
+		  double lastPosx, double lastPosy);
 
   ///\name Header serialization/deserialization
   //\{
@@ -123,19 +127,19 @@ public:
 
   ///\name Fields
   //\{
-  void SetDstPosx (uint64_t posx)
+  void SetDstPosx (double posx)
   {
     m_dstPosx = posx;
   }
-  uint64_t GetDstPosx () const
+  double GetDstPosx () const
   {
     return m_dstPosx;
   }
-  void SetDstPosy (uint64_t posy)
+  void SetDstPosy (double posy)
   {
     m_dstPosy = posy;
   }
-  uint64_t GetDstPosy () const
+  double GetDstPosy () const
   {
     return m_dstPosy;
   }
@@ -147,19 +151,19 @@ public:
   {
     return m_updated;
   }
-  void SetRecPosx (uint64_t posx)
+  void SetRecPosx (double posx)
   {
     m_recPosx = posx;
   }
-  uint64_t GetRecPosx () const
+  double GetRecPosx () const
   {
     return m_recPosx;
   }
-  void SetRecPosy (uint64_t posy)
+  void SetRecPosy (double posy)
   {
     m_recPosy = posy;
   }
-  uint64_t GetRecPosy () const
+  double GetRecPosy () const
   {
     return m_recPosy;
   }
@@ -171,35 +175,62 @@ public:
   {
     return m_inRec;
   }
-  void SetLastPosx (uint64_t posx)
+  void SetLastPosx (double posx)
   {
     m_lastPosx = posx;
   }
-  uint64_t GetLastPosx () const
+  double GetLastPosx () const
   {
     return m_lastPosx;
   }
-  void SetLastPosy (uint64_t posy)
+  void SetLastPosy (double posy)
   {
     m_lastPosy = posy;
   }
-  uint64_t GetLastPosy () const
+  double GetLastPosy () const
   {
     return m_lastPosy;
+  }
+  double
+  getSrcPosx () const
+  {
+	return m_srcPosx;
+  }
+
+  void
+  setSrcPosx (double srcPosx)
+  {
+	m_srcPosx = srcPosx;
+  }
+
+  double
+  getSrcPosy () const
+  {
+	return m_srcPosy;
+  }
+
+  void
+  setSrcPosy (double srcPosy)
+  {
+	m_srcPosy = srcPosy;
   }
 
 
   bool operator== (PositionHeader const & o) const;
-private:
-  uint64_t         m_dstPosx;          ///< Destination Position x
-  uint64_t         m_dstPosy;          ///< Destination Position x
-  uint32_t         m_updated;          ///< Time of last update
-  uint64_t         m_recPosx;          ///< x of position that entered Recovery-mode
-  uint64_t         m_recPosy;          ///< y of position that entered Recovery-mode
-  uint8_t          m_inRec;          ///< 1 if in Recovery-mode, 0 otherwise
-  uint64_t         m_lastPosx;          ///< x of position of previous hop
-  uint64_t         m_lastPosy;          ///< y of position of previous hop
 
+
+private:
+  double         m_dstPosx;          ///< Destination Position x
+  double         m_dstPosy;          ///< Destination Position x
+  uint32_t         m_updated;          ///< Time of last update
+  double         m_recPosx;          ///< x of position that entered Recovery-mode
+  double         m_recPosy;          ///< y of position that entered Recovery-mode
+  uint8_t          m_inRec;          ///< 1 if in Recovery-mode, 0 otherwise
+  double         m_lastPosx;          ///< x of position of previous hop
+  double         m_lastPosy;          ///< y of position of previous hop
+
+  double	m_srcPosx;
+  double	m_srcPosy;
 };
 
 std::ostream & operator<< (std::ostream & os, PositionHeader const &);

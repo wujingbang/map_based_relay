@@ -321,8 +321,8 @@ RoutingProtocol::SendPacketFromQueue (Ipv4Address dst)
       }
     if(recovery)
       {
-        
-        Vector Position;
+        Vector srcPos;
+        Vector dstPos;
         Vector previousHop;
         uint32_t updated = 0;
         
@@ -343,12 +343,16 @@ RoutingProtocol::SendPacketFromQueue (Ipv4Address dst)
               {
                 PositionHeader hdr;
                 p->RemoveHeader (hdr);
-                Position.x = hdr.GetDstPosx ();
-                Position.y = hdr.GetDstPosy ();
+                srcPos.x = hdr.getSrcPosx();
+                srcPos.y = hdr.getSrcPosy();
+                dstPos.x = hdr.GetDstPosx ();
+                dstPos.y = hdr.GetDstPosy ();
+                previousHop.x = hdr.GetLastPosx();
+                previousHop.y = hdr.GetLastPosy();
                 updated = hdr.GetUpdated (); 
               }
             
-            PositionHeader posHeader (Position.x, Position.y,  updated, myPos.x, myPos.y, (uint8_t) 1, Position.x, Position.y); 
+            PositionHeader posHeader (srcPos.x, srcPos.y, dstPos.x, dstPos.y,  updated, myPos.x, myPos.y, (uint8_t) 1, previousHop.x, previousHop.y);
             p->AddHeader (posHeader); //enters in recovery with last edge from Dst
             p->AddHeader (tHeader);
             
@@ -392,19 +396,17 @@ RoutingProtocol::RecoveryMode(Ipv4Address dst, Ptr<Packet> p, UnicastForwardCall
 
   m_recCount(p);
 
-  Vector Position;
+  Vector srcPos;
+  Vector dstPos;
   Vector previousHop;
   uint32_t updated = 0;
-  uint64_t positionX;
-  uint64_t positionY;
+
   Vector myPos;
   Vector recPos;
 
   Ptr<MobilityModel> MM = m_ipv4->GetObject<MobilityModel> ();
-  positionX = MM->GetPosition ().x;
-  positionY = MM->GetPosition ().y;
-  myPos.x = positionX;
-  myPos.y = positionY;  
+  myPos.x = MM->GetPosition ().x;
+  myPos.y = MM->GetPosition ().y;
 
   TypeHeader tHeader (GPSRTYPE_POS);
   p->RemoveHeader (tHeader);
@@ -417,8 +419,10 @@ RoutingProtocol::RecoveryMode(Ipv4Address dst, Ptr<Packet> p, UnicastForwardCall
     {
       PositionHeader hdr;
       p->RemoveHeader (hdr);
-      Position.x = hdr.GetDstPosx ();
-      Position.y = hdr.GetDstPosy ();
+      srcPos.x = hdr.getSrcPosx();
+      srcPos.y = hdr.getSrcPosy();
+      dstPos.x = hdr.GetDstPosx ();
+      dstPos.y = hdr.GetDstPosy ();
       updated = hdr.GetUpdated (); 
       recPos.x = hdr.GetRecPosx ();
       recPos.y = hdr.GetRecPosy ();
@@ -426,13 +430,14 @@ RoutingProtocol::RecoveryMode(Ipv4Address dst, Ptr<Packet> p, UnicastForwardCall
       previousHop.y = hdr.GetLastPosy ();
    }
 
-  PositionHeader posHeader (Position.x, Position.y,  updated, recPos.x, recPos.y, (uint8_t) 1, myPos.x, myPos.y); 
+  PositionHeader posHeader (srcPos.x, srcPos.y, dstPos.x, dstPos.y,  updated, recPos.x, recPos.y, (uint8_t) 1, myPos.x, myPos.y);
   p->AddHeader (posHeader);
   p->AddHeader (tHeader);
 
-
-
-  Ipv4Address nextHop = m_neighbors.BestAngle (previousHop, myPos); 
+//  Ipv4Address nextHop = m_neighbors.peri_nexthop(previousHop, srcPos, dstPos);
+//  NS_LOG_DEBUG("peri_nexthop return: nextHop " << nextHop << " Pos: " << m_locationService->GetPosition(nextHop)
+//	       << " Src: " << srcPos << " Dst: " << dstPos);
+  Ipv4Address nextHop = m_neighbors.BestAngle (previousHop, myPos);
   NS_LOG_DEBUG("BestAngle return: nextHop " << nextHop);
   if (nextHop == Ipv4Address::GetZero ())
     {
@@ -692,7 +697,7 @@ RoutingProtocol::SetIpv4 (Ptr<Ipv4> ipv4)
       Simulator::ScheduleNow (&RoutingProtocol::Start, this);
       m_start = true;
     }
-
+  m_neighbors.setNode(m_ipv4->GetObject<Node> ());
 }
 
 void
@@ -722,7 +727,7 @@ RoutingProtocol::SendHello ()
     {
       Ptr<Socket> socket = j->first;
       Ipv4InterfaceAddress iface = j->second;
-      HelloHeader helloHeader (((uint64_t) positionX),((uint64_t) positionY));
+      HelloHeader helloHeader (positionX,positionY);
 
       Ptr<Packet> packet = Create<Packet> ();
       packet->AddHeader (helloHeader);
@@ -842,24 +847,22 @@ RoutingProtocol::AddHeaders (Ptr<Packet> p, Ipv4Address source, Ipv4Address dest
 //  NS_LOG_DEBUG (this << " source " << source << " destination " << destination);
  
   Vector myPos;
+  Vector srcPos, dstPos;
   Ptr<MobilityModel> MM = m_ipv4->GetObject<MobilityModel> ();
   myPos.x = MM->GetPosition ().x;
   myPos.y = MM->GetPosition ().y;  
  
-  uint16_t positionX = 0;
-  uint16_t positionY = 0;
   uint32_t hdrTime = 0;
 
 //  if(destination != m_ipv4->GetAddress (1, 0).GetBroadcast ())
   if(!IsBoardcast(destination) )
     {
       NS_LOG_DEBUG (this << " source " << source << " destination " << destination);
-      positionX = m_locationService->GetPosition (destination).x;
-      positionY = m_locationService->GetPosition (destination).y;
+      dstPos = m_locationService->GetPosition (destination);
       hdrTime = (uint32_t) m_locationService->GetEntryUpdateTime (destination).GetSeconds ();
     }
 
-  PositionHeader posHeader (positionX, positionY,  hdrTime, (uint64_t) 0,(uint64_t) 0, (uint8_t) 0, myPos.x, myPos.y); 
+  PositionHeader posHeader (myPos.x, myPos.y, dstPos.x, dstPos.y,  hdrTime, 0.0, 0.0, 0, myPos.x, myPos.y);
   p->AddHeader (posHeader);
   TypeHeader tHeader (GPSRTYPE_POS);
   p->AddHeader (tHeader);
@@ -881,7 +884,7 @@ RoutingProtocol::Forwarding (Ptr<const Packet> packet, const Ipv4Header & header
   m_neighbors.Purge ();
   
   uint32_t updated = 0;
-  Vector Position;
+  Vector srcPos, dstPos;
   Vector RecPosition;
   uint8_t inRec = 0;
 
@@ -897,8 +900,10 @@ RoutingProtocol::Forwarding (Ptr<const Packet> packet, const Ipv4Header & header
     {
 
       p->RemoveHeader (hdr);
-      Position.x = hdr.GetDstPosx ();
-      Position.y = hdr.GetDstPosy ();
+      srcPos.x = hdr.getSrcPosx();
+      srcPos.y = hdr.getSrcPosy();
+      dstPos.x = hdr.GetDstPosx ();
+      dstPos.y = hdr.GetDstPosy ();
       updated = hdr.GetUpdated ();
       RecPosition.x = hdr.GetRecPosx ();
       RecPosition.y = hdr.GetRecPosy ();
@@ -912,8 +917,8 @@ RoutingProtocol::Forwarding (Ptr<const Packet> packet, const Ipv4Header & header
 
   if(inRec == 1)// && CalculateDistance (myPos, Position) < CalculateDistance (RecPosition, Position)){
     {
-      double d1 = CalculateDistance (myPos, Position);
-      double d2 = CalculateDistance (RecPosition, Position);
+      double d1 = CalculateDistance (myPos, dstPos);
+      double d2 = CalculateDistance (RecPosition, dstPos);
       if (d1 < d2)
 	{
 	  inRec = 0;
@@ -923,12 +928,6 @@ RoutingProtocol::Forwarding (Ptr<const Packet> packet, const Ipv4Header & header
       else
 	NS_LOG_DEBUG ("d1:"<< d1 << " d2:" << d2);
   }
-//  if(inRec == 1)
-//    {
-//	inRec = 0;
-//	hdr.SetInRec(0);
-//	NS_LOG_DEBUG ("No longer in Recovery to " << dst << " in " << myPos);
-//    }
 
   if(inRec){
     p->AddHeader (hdr);
@@ -942,8 +941,7 @@ RoutingProtocol::Forwarding (Ptr<const Packet> packet, const Ipv4Header & header
   uint32_t myUpdated = (uint32_t) m_locationService->GetEntryUpdateTime (dst).GetSeconds ();
   if (myUpdated > updated) //check if node has an update to the position of destination
     {
-      Position.x = m_locationService->GetPosition (dst).x;
-      Position.y = m_locationService->GetPosition (dst).y;
+      dstPos = m_locationService->GetPosition (dst);
       updated = myUpdated;
     }
 
@@ -954,7 +952,7 @@ RoutingProtocol::Forwarding (Ptr<const Packet> packet, const Ipv4Header & header
     {
       NS_LOG_DEBUG(dst << " is neighbor !");
       nextHop = dst;
-      PositionHeader posHeader (Position.x, Position.y,  updated, (uint64_t) 0, (uint64_t) 0, (uint8_t) 0, myPos.x, myPos.y);
+      PositionHeader posHeader (srcPos.x, srcPos.y, dstPos.x, dstPos.y,  updated, 0.0, 0.0, 0, myPos.x, myPos.y);
       p->AddHeader (posHeader);
       p->AddHeader (tHeader);
 
@@ -980,10 +978,10 @@ RoutingProtocol::Forwarding (Ptr<const Packet> packet, const Ipv4Header & header
   else
     {
 
-      nextHop = m_neighbors.BestNeighbor (Position, myPos);
+      nextHop = m_neighbors.BestNeighbor (dstPos, myPos);
       if (nextHop != Ipv4Address::GetZero ())
         {
-          PositionHeader posHeader (Position.x, Position.y,  updated, (uint64_t) 0, (uint64_t) 0, (uint8_t) 0, myPos.x, myPos.y);
+          PositionHeader posHeader (srcPos.x, srcPos.y, dstPos.x, dstPos.y,  updated, 0.0, 0.0, 0, myPos.x, myPos.y);
           p->AddHeader (posHeader);
           p->AddHeader (tHeader);
           
@@ -1010,8 +1008,8 @@ RoutingProtocol::Forwarding (Ptr<const Packet> packet, const Ipv4Header & header
   hdr.SetInRec(1);
   hdr.SetRecPosx (myPos.x);
   hdr.SetRecPosy (myPos.y); 
-  hdr.SetLastPosx (Position.x); //when entering Recovery, the first edge is the Dst
-  hdr.SetLastPosy (Position.y); 
+  hdr.SetLastPosx (dstPos.x); //when entering Recovery, the first edge is the Dst
+  hdr.SetLastPosy (dstPos.y);
 
 
   p->AddHeader (hdr);
@@ -1069,6 +1067,29 @@ RoutingProtocol::RouteOutput (Ptr<Packet> p, const Ipv4Header &header,
   if (!IsBoardcast(dst))
     {
       dstPos = m_locationService->GetPosition (dst);
+    }
+  else
+    {
+      route->SetDestination (dst);
+      if (header.GetSource () == Ipv4Address ("102.102.102.102"))
+        {
+          route->SetSource (m_ipv4->GetAddress (1, 0).GetLocal ());
+        }
+      else
+        {
+          route->SetSource (header.GetSource ());
+        }
+      route->SetGateway (dst);
+      route->SetOutputDevice (m_ipv4->GetNetDevice (m_ipv4->GetInterfaceForAddress (route->GetSource ())));
+
+      NS_ASSERT (route != 0);
+      if (oif != 0 && route->GetOutputDevice () != oif)
+        {
+          NS_LOG_DEBUG ("Output device doesn't match. Dropped.");
+          sockerr = Socket::ERROR_NOROUTETOHOST;
+          return Ptr<Ipv4Route> ();
+        }
+      return route;
     }
 
   if (CalculateDistance (dstPos, m_locationService->GetInvalidPosition ()) == 0 && m_locationService->IsInSearch (dst))

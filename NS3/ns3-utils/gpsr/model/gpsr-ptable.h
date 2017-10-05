@@ -21,6 +21,10 @@
 namespace ns3 {
 namespace gpsr {
 
+#define PI 3.141593
+#define MAX(a, b) (a>=b?a:b)
+#define MIN(a, b) (a>=b?b:a)
+
 /*
  * \ingroup gpsr
  * \brief Position table used by GPSR
@@ -121,17 +125,18 @@ public:
     m_nbFromMbr = nbFromMbr;
   }
 
-  const Ptr<Node>
+  Ptr<Node>
   getNode () const
   {
     return m_node;
   }
 
   void
-  setNode (const Ptr<Node> node)
+  setNode (Ptr<Node> node)
   {
     m_node = node;
   }
+  Ipv4Address peri_nexthop(Vector last, Vector srcPos, Vector DstPos);
 
 private:
   bool m_nbFromMbr;
@@ -142,8 +147,9 @@ private:
   Callback<void, WifiMacHeader const &> m_txErrorCallback;
   // Process layer 2 TX error notification
   void ProcessTxError (WifiMacHeader const&);
-
-
+  std::map<Ipv4Address, std::pair<Vector, Time> >  rng_planarize();
+  double angle(Vector v1, Vector v2);
+  int intersect(Ipv4Address theother, Vector srcPos, Vector dstPos);
 
 
 };

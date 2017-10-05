@@ -104,7 +104,7 @@ operator<< (std::ostream & os, TypeHeader const & h)
 //-----------------------------------------------------------------------------
 // HELLO
 //-----------------------------------------------------------------------------
-HelloHeader::HelloHeader (uint64_t originPosx, uint64_t originPosy)
+HelloHeader::HelloHeader (double originPosx, double originPosy)
   : m_originPosx (originPosx),
     m_originPosy (originPosy)
 {
@@ -139,9 +139,11 @@ HelloHeader::Serialize (Buffer::Iterator i) const
 {
   NS_LOG_DEBUG ("Serialize X " << m_originPosx << " Y " << m_originPosy);
 
-
-  i.WriteHtonU64 (m_originPosx);
-  i.WriteHtonU64 (m_originPosy);
+  uint64_t x,y;
+  memcpy(&x, &m_originPosx, 8);
+  memcpy(&y, &m_originPosy, 8);
+  i.WriteHtonU64 (x);
+  i.WriteHtonU64 (y);
 
 }
 
@@ -150,9 +152,11 @@ HelloHeader::Deserialize (Buffer::Iterator start)
 {
 
   Buffer::Iterator i = start;
-
-  m_originPosx = i.ReadNtohU64 ();
-  m_originPosy = i.ReadNtohU64 ();
+  uint64_t x,y;
+  x = i.ReadNtohU64 ();
+  y = i.ReadNtohU64 ();
+  memcpy(&m_originPosx, &x, 8);
+  memcpy(&m_originPosy, &y, 8);
 
   NS_LOG_DEBUG ("Deserialize X " << m_originPosx << " Y " << m_originPosy);
 
@@ -190,7 +194,24 @@ HelloHeader::operator== (HelloHeader const & o) const
 //-----------------------------------------------------------------------------
 // Position
 //-----------------------------------------------------------------------------
-PositionHeader::PositionHeader (uint64_t dstPosx, uint64_t dstPosy, uint32_t updated, uint64_t recPosx, uint64_t recPosy, uint8_t inRec, uint64_t lastPosx, uint64_t lastPosy)
+PositionHeader::PositionHeader()
+  : m_dstPosx (0.0),
+    m_dstPosy (0.0),
+    m_updated (0),
+    m_recPosx (0.0),
+    m_recPosy (0.0),
+    m_inRec (0),
+    m_lastPosx (0.0),
+    m_lastPosy (0.0),
+    m_srcPosx (0.0),
+    m_srcPosy (0.0)
+{
+
+}
+PositionHeader::PositionHeader (double srcPosx, double srcPosy,
+				double dstPosx, double dstPosy, uint32_t updated,
+				double recPosx, double recPosy, uint8_t inRec,
+				double lastPosx, double lastPosy)
   : m_dstPosx (dstPosx),
     m_dstPosy (dstPosy),
     m_updated (updated),
@@ -198,7 +219,9 @@ PositionHeader::PositionHeader (uint64_t dstPosx, uint64_t dstPosy, uint32_t upd
     m_recPosy (recPosy),
     m_inRec (inRec),
     m_lastPosx (lastPosx),
-    m_lastPosy (lastPosy)
+    m_lastPosy (lastPosy),
+    m_srcPosx (srcPosx),
+    m_srcPosy (srcPosy)
 {
 }
 
@@ -223,34 +246,56 @@ PositionHeader::GetInstanceTypeId () const
 uint32_t
 PositionHeader::GetSerializedSize () const
 {
-  return 53;
+  return 69;//53;
 }
 
 void
 PositionHeader::Serialize (Buffer::Iterator i) const
 {
-  i.WriteU64 (m_dstPosx);
-  i.WriteU64 (m_dstPosy);
+  uint64_t x,y;
+  memcpy(&x, &m_srcPosx, 8);
+  memcpy(&y, &m_srcPosy, 8);
+  i.WriteHtonU64 (x);
+  i.WriteHtonU64 (y);
+  memcpy(&x, &m_dstPosx, 8);
+  memcpy(&y, &m_dstPosy, 8);
+  i.WriteHtonU64 (x);
+  i.WriteHtonU64 (y);
   i.WriteU32 (m_updated);
-  i.WriteU64 (m_recPosx);
-  i.WriteU64 (m_recPosy);
+  memcpy(&x, &m_recPosx, 8);
+  memcpy(&y, &m_recPosy, 8);
+  i.WriteHtonU64 (x);
+  i.WriteHtonU64 (y);
   i.WriteU8 (m_inRec);
-  i.WriteU64 (m_lastPosx);
-  i.WriteU64 (m_lastPosy);
+  memcpy(&x, &m_lastPosx, 8);
+  memcpy(&y, &m_lastPosy, 8);
+  i.WriteHtonU64 (x);
+  i.WriteHtonU64 (y);
 }
 
 uint32_t
 PositionHeader::Deserialize (Buffer::Iterator start)
 {
   Buffer::Iterator i = start;
-  m_dstPosx = i.ReadU64 ();
-  m_dstPosy = i.ReadU64 ();
+  uint64_t x,y;
+  x = i.ReadNtohU64 ();
+  y = i.ReadNtohU64 ();
+  memcpy(&m_srcPosx, &x, 8);
+  memcpy(&m_srcPosy, &y, 8);
+  x = i.ReadNtohU64 ();
+  y = i.ReadNtohU64 ();
+  memcpy(&m_dstPosx, &x, 8);
+  memcpy(&m_dstPosy, &y, 8);
   m_updated = i.ReadU32 ();
-  m_recPosx = i.ReadU64 ();
-  m_recPosy = i.ReadU64 ();
+  x = i.ReadNtohU64 ();
+  y = i.ReadNtohU64 ();
+  memcpy(&m_recPosx, &x, 8);
+  memcpy(&m_recPosy, &y, 8);
   m_inRec = i.ReadU8 ();
-  m_lastPosx = i.ReadU64 ();
-  m_lastPosy = i.ReadU64 ();
+  x = i.ReadNtohU64 ();
+  y = i.ReadNtohU64 ();
+  memcpy(&m_lastPosx, &x, 8);
+  memcpy(&m_lastPosy, &y, 8);
 
   uint32_t dist = i.GetDistanceFrom (start);
   NS_ASSERT (dist == GetSerializedSize ());
@@ -282,7 +327,7 @@ operator<< (std::ostream & os, PositionHeader const & h)
 bool
 PositionHeader::operator== (PositionHeader const & o) const
 {
-  return (m_dstPosx == o.m_dstPosx && m_dstPosy == o.m_dstPosy && m_updated == o.m_updated && m_recPosx == o.m_recPosx && m_recPosy == o.m_recPosy && m_inRec == o.m_inRec && m_lastPosx == o.m_lastPosx && m_lastPosy == o.m_lastPosy);
+  return (m_srcPosx == o.m_srcPosx && m_srcPosy == o.m_srcPosy &&m_dstPosx == o.m_dstPosx && m_dstPosy == o.m_dstPosy && m_updated == o.m_updated && m_recPosx == o.m_recPosx && m_recPosy == o.m_recPosy && m_inRec == o.m_inRec && m_lastPosx == o.m_lastPosx && m_lastPosy == o.m_lastPosy);
 }
 
 
