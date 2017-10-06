@@ -158,24 +158,25 @@ Neighbors::Update (Ipv4Address addr, Time expire)
       nbapp->getNb()->Update(addr, expire, (const uint8_t*)mac, geohash, 0, x, y);
       nbapp->getNb()->Purge();
     }
-  else
-    {
-      for (std::vector<Neighbor>::iterator i = m_nb.begin (); i != m_nb.end (); ++i)
-	if (i->m_neighborAddress == addr)
-	  {
-	    i->m_expireTime
-	      = std::max (expire + Simulator::Now (), i->m_expireTime);
-	    if (i->m_hardwareAddress == Mac48Address ())
-	      i->m_hardwareAddress = LookupMacAddress (i->m_neighborAddress);
-	    return;
-	  }
+//  else
+//    {
+  // In MBR mode, after update mbr-neighbor, aodv neighbor should also be updated.
+  for (std::vector<Neighbor>::iterator i = m_nb.begin (); i != m_nb.end (); ++i)
+    if (i->m_neighborAddress == addr)
+      {
+	i->m_expireTime
+	  = std::max (expire + Simulator::Now (), i->m_expireTime);
+	if (i->m_hardwareAddress == Mac48Address ())
+	  i->m_hardwareAddress = LookupMacAddress (i->m_neighborAddress);
+	return;
+      }
 
-      NS_LOG_LOGIC ("Open link to " << addr);
+  NS_LOG_LOGIC ("Open link to " << addr);
 
-      Neighbor neighbor (addr, LookupMacAddress (addr), expire + Simulator::Now ());
-      m_nb.push_back (neighbor);
-      Purge ();
-    }
+  Neighbor neighbor (addr, LookupMacAddress (addr), expire + Simulator::Now ());
+  m_nb.push_back (neighbor);
+  Purge ();
+//    }
 }
 
 struct CloseNeighbor
