@@ -296,7 +296,7 @@ PositionTable::rng_planarize()
 
   if (m_nbFromMbr)
     {
-      int temp, index;
+      int temp=0, index=0;
       Ptr<mbr::MbrNeighborApp> nbapp;
       for (uint32_t j = 0; j < m_node->GetNApplications (); j++)
 	{
@@ -319,12 +319,12 @@ PositionTable::rng_planarize()
 		    break;
 		}
 	    }
-	}
-      if (temp == nbapp->getNb()->GetTableSize())
-	{
-	  result.insert(std::make_pair (nbapp->getNb()->GetIp(index),
-					std::make_pair (nbapp->getNb()->GetCartesianPosition(index),
-							Simulator::Now ())));
+	  if (temp == nbapp->getNb()->GetTableSize())
+	    {
+	      result.insert(std::make_pair (nbapp->getNb()->GetIp(index),
+					    std::make_pair (nbapp->getNb()->GetCartesianPosition(index),
+							    Simulator::Now ())));
+	    }
 	}
 
     }
@@ -501,21 +501,18 @@ PositionTable::BestAngle (Vector previousHop, Vector nodePos)
   double bestFoundAngle = 360;
   NS_LOG_LOGIC("previousHop: "<<previousHop<<" myPos: "<<nodePos);
 
-  Ptr<mbr::MbrNeighborApp> nbapp;
   if (!m_nbFromMbr)
     {
-
+      if (m_table.empty ())
+	{
+	  NS_LOG_DEBUG ("BestNeighbor table is empty; Position: " << nodePos);
+	  return Ipv4Address::GetZero ();
+	}     //if table is empty (no neighbours)
       Purge ();
     }
 
   std::map<Ipv4Address, std::pair<Vector, Time> > planar_neighbors;
   planar_neighbors = rng_planarize();
-
-  if (m_table.empty ())
-    {
-      NS_LOG_DEBUG ("BestNeighbor table is empty; Position: " << nodePos);
-      return Ipv4Address::GetZero ();
-    }     //if table is empty (no neighbours)
 
   std::map<Ipv4Address, std::pair<Vector, Time> >::iterator i;
 
