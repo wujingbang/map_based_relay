@@ -149,6 +149,7 @@ void MbrSumo::parseShapeAndUpdateGraph(
 		tokens2.clear();
 		Tokenize(tokens[i], tokens2, ",");
 		geohash = sumoCartesian2Geohash(atof(tokens[0].c_str()), atof(tokens[1].c_str()));
+		NS_ASSERT(geohash > 0);
 		sumoCartesian2GPS(atof(tokens[0].c_str()), atof(tokens[1].c_str()), &x, &y);
 		v = MbrGraph::vertex_create(tokens[i].c_str(),x,y, geohash, 0 /*notIntersection*/);
 		MbrGraph::graph_add_vertex(m_graph, v);
@@ -200,6 +201,7 @@ void MbrSumo::Initialize(string sumoMapFilename, string osmMapFileName)
 string MbrSumo::parseOsmRoadName(string wayid)
 {
   //Search the original osm map file for road name.
+  //FIXME: combined road name: West 50th Street/Avenue of the Americas (Node, not edge!)
   XMLDocument doc;
   string id, k;
   if(doc.LoadFile(m_osmMapFileName.c_str()))
@@ -274,6 +276,7 @@ Graph * MbrSumo::loadSumoMap(string sumoMapFilename)
     	temp.y = atof(ystr.c_str());
 
     	temp.geohash = sumoCartesian2Geohash(temp.x, temp.y);
+    	NS_ASSERT(temp.geohash > 0);
     	sumoCartesian2GPS(temp.x, temp.y, &temp.x, &temp.y);
     	temp.id = id;
     	nodeMap[id] = temp;

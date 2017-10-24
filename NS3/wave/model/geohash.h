@@ -100,6 +100,12 @@
 #define LON_RANGE_MIN 116.16677
 #define LON_RANGE_MAX 116.73407
 
+//#define LAT_RANGE_MIN 40.644513
+//#define LAT_RANGE_MAX 40.922891
+//#define LON_RANGE_MIN -74.144698
+//#define LON_RANGE_MAX -73.65602
+
+
 #if defined(__cplusplus)
 extern "C"
 {
@@ -164,6 +170,7 @@ extern "C"
     int geohash_get_neighbors(GeoHashBits hash, GeoHashNeighbors* neighbors);
     int geohash_get_neighbor(GeoHashBits hash, GeoDirection direction, GeoHashBits* neighbor);
     int geohash_get_neighbors_in_set(GeoHashSetCoordinate * geohashset, uint64_t center_geohash, int geohash_step);
+    int geohash_is_geohash_in_set(uint64_t geohash, GeoHashSetCoordinate geohashset);
 
     GeoHashBits geohash_next_leftbottom(GeoHashBits bits);
     GeoHashBits geohash_next_rightbottom(GeoHashBits bits);

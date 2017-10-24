@@ -360,6 +360,17 @@ int geohash_get_neighbors_in_set(GeoHashSetCoordinate * geohashset, uint64_t cen
     return 0;
 }
 
+int geohash_is_geohash_in_set(uint64_t geohash, GeoHashSetCoordinate geohashset)
+{
+  int i,j;
+  for (i=0; i<3; i++)
+    for (j=0; j<3; j++)
+      if (geohashset.geohashset[i][j] == geohash)
+	return 1;
+  return 0;
+
+}
+
 
 int geohash_get_neighbor(GeoHashBits hash, GeoDirection direction, GeoHashBits* neighbor)
 {

@@ -20,11 +20,10 @@
 namespace ns3 {
 namespace mbr {
 
-#define LAT_RANGE_MIN 39.74732
-#define LAT_RANGE_MAX 40.15929
-#define LON_RANGE_MIN 116.16677
-#define LON_RANGE_MAX 116.73407
-
+//#define LAT_RANGE_MIN 39.74732
+//#define LAT_RANGE_MAX 40.15929
+//#define LON_RANGE_MIN 116.16677
+//#define LON_RANGE_MAX 116.73407
 
 
 typedef struct {
