@@ -16,6 +16,8 @@ NS_LOG_COMPONENT_DEFINE ("MbrRoute");
 
 uint32_t mbr::MbrRoute::m_relayedPktNum = 0;
 uint32_t mbr::MbrRoute::m_noNeighborPktNum = 0;
+uint32_t mbr::MbrRoute::m_mind = 10;
+uint32_t mbr::MbrRoute::m_maxd = 35;
 
 MbrRoute::MbrRoute()
 {
@@ -37,13 +39,6 @@ void vertexlist_free(vertexlist *head)
 	}
 }
 
-////Eager Singleton
-//MbrRoute* MbrRoute::p = new MbrRoute;
-//
-//MbrRoute * MbrRoute::GetInstance(void)
-//{
-//	return p;
-//}
 
 int MbrRoute::mbr_forward(Ipv4Address dest, uint8_t * to_mac, uint8_t * relay_mac, Ptr<Node> thisnode, uint32_t pktsize)
 {
@@ -63,6 +58,7 @@ int MbrRoute::mbr_forward(Ipv4Address dest, uint8_t * to_mac, uint8_t * relay_ma
 	int ret;
 	double x_this,y_this;
 	double x_dst,y_dst;
+//	bool dropFlag;
 	MbrSumo* sumomap = MbrSumo::GetInstance();
 
 	if (!sumomap->isInitialized())
@@ -116,7 +112,7 @@ int MbrRoute::mbr_forward(Ipv4Address dest, uint8_t * to_mac, uint8_t * relay_ma
 	while(temp != NULL)
 	{
 		nexthop_geohash = temp->v->geoHash;
-
+//		dropFlag = false;
 		MbrGraph::setIntersectionSize(&geohashset, this_vertex, dst_vertex);
 
 	//get neighbors of center geohash block
@@ -138,32 +134,39 @@ int MbrRoute::mbr_forward(Ipv4Address dest, uint8_t * to_mac, uint8_t * relay_ma
 			continue;
 		} //unmatched!
 
+		/**
+		 * Check the distances
+		 */
 		double d1,d2,d3,d4;
-#define MAXD 40.0
-#define MIND 10.0
+
 		d1 = get_distance(y_this, x_this, temp->v->y, temp->v->x);
 		d2 = get_distance(y_dst, x_dst, temp->v->y, temp->v->x);
 		//d3 = (MAXD/d1) * (MAXD - d1);
-
-		if (d1 <= MIND || d2 <=MIND)
+		if (d1 <= m_mind || d2 <=m_mind)
 		  {
 		    NS_LOG_LOGIC ("optimize: InRANGE! " << d1 << ", "<<d2);
 		    return -1;
 		  }
-
-		d3 = (1.0 + (MAXD-d1)/(d1-MIND))*(MAXD-d1);
-		d4 = (1.0 + (MAXD-d2)/(d2-MIND))*(MAXD-d2);
-
-		if (d1 > MIND && d1 < MAXD && d2 < d3)
+		d3 = (1.0 + (m_maxd-d1)/(d1-m_mind))*(m_maxd-d1);
+		d4 = (1.0 + (m_maxd-d2)/(d2-m_mind))*(m_maxd-d2);
+		if (d1 > m_mind && d1 < m_maxd && d2 < d3)
 		  {
 		    NS_LOG_LOGIC ("optimize: InRANGE2! " << d3 );
 		    return -1;
 		  }
-		else if (d2 > MIND && d2 < MAXD && d1 < d4)
+		else if (d2 > m_mind && d2 < m_maxd && d1 < d4)
 		  {
 		    NS_LOG_LOGIC ("optimize: InRANGE3! " << d4 );
 		    return -1;
 		  }
+
+//		ret = nbapp->getNb()->GetnbFromsetBest(&relaymac, &geohashset);
+//		if(ret == 0)
+//		{
+//		    dropFlag = true;
+//		    temp = temp->next;
+//		    continue;
+//		} //unmatched!
 
 		NS_LOG_LOGIC ("node="<< thisnode->GetId() <<
 					", This Area " << this_vertex->idStr <<
@@ -171,7 +174,7 @@ int MbrRoute::mbr_forward(Ipv4Address dest, uint8_t * to_mac, uint8_t * relay_ma
 					", Relay Area " << temp->v->idStr <<
 							", Dest IP "<< dest <<
 					", PktSize " << pktsize);
-
+		NS_ASSERT(relaymac != Mac48Address ());
 		relaymac.CopyTo(relay_mac);
 		vertexlist_free(intersectionlist);
 
@@ -181,6 +184,9 @@ int MbrRoute::mbr_forward(Ipv4Address dest, uint8_t * to_mac, uint8_t * relay_ma
 	NS_LOG_LOGIC ("no neighbor in the range of intersectionlist.");
 	m_noNeighborPktNum++;
 	vertexlist_free(intersectionlist);
+
+//	if (dropFlag)
+//	  return -2;
 	return -1;
 }
 

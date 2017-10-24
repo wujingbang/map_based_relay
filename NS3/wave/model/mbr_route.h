@@ -39,6 +39,30 @@ public:
 	m_noNeighborPktNum = noNeighborPktNum;
       }
 
+      static uint32_t
+      getMaxd ()
+      {
+	return m_maxd;
+      }
+
+      static void
+      setMaxd (uint32_t maxd)
+      {
+	m_maxd = maxd;
+      }
+
+      static uint32_t
+      getMind ()
+      {
+	return m_mind;
+      }
+
+      static void
+      setMind (uint32_t mind)
+      {
+	m_mind = mind;
+      }
+
       //	/**
 //	* \brief Gets the topology instance
 //	* \return the topology instance
@@ -50,6 +74,8 @@ private:
 //	MbrRoute(){};
 	static uint32_t m_relayedPktNum;
 	static uint32_t m_noNeighborPktNum;
+	static uint32_t m_mind;
+	static uint32_t m_maxd;
 };
 }
 }
