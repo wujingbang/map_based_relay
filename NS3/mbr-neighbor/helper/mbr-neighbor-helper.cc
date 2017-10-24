@@ -75,6 +75,7 @@ MbrNeighborHelper::Install (Ipv4InterfaceContainer & i,
 			Ipv4InterfaceContainer & iData,
 			NetDeviceContainer &d,
 			NetDeviceContainer &dData,
+			Time startTime,
                         Time totalTime,          // seconds
                         uint32_t wavePacketSize, // bytes
                         Time waveInterval,       // seconds
@@ -90,7 +91,7 @@ MbrNeighborHelper::Install (Ipv4InterfaceContainer & i,
   ApplicationContainer mbrnbApps = Install (i);
   // start BSM app immediately (BsmApplication will
   // delay transmission of first BSM by 1.0 seconds)
-  mbrnbApps.Start (Seconds (0));
+  mbrnbApps.Start (startTime);
   mbrnbApps.Stop (totalTime);
 
   // for each app, setup the app parameters

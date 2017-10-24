@@ -96,6 +96,7 @@ public:
                 Ipv4InterfaceContainer & iData,
 		NetDeviceContainer &d,
 		NetDeviceContainer &dData,
+		Time startTime,
                 Time totalTime,          // seconds
                 uint32_t wavePacketSize, // bytes
                 Time waveInterval,       // seconds
