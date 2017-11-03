@@ -1,0 +1,13 @@
+<shapes>
+    <poly id="135692669" type="building.yes" color="51,128,255" fill="1" layer="-1.00" shape="27,12 302,18 295,297 20,296 27,12"/>
+    <poly id="135692670" type="building.yes" color="51,128,255" fill="1" layer="-1.00" shape="20,323 293,325 290,592 13,590 20,323"/>
+    <poly id="135692671" type="building.yes" color="51,128,255" fill="1" layer="-1.00" shape="13,613 292,617 295,885 10,889 13,613"/>
+
+    <poly id="135692769" type="building.yes" color="51,128,255" fill="1" layer="-1.00" shape="325,18 602,20 598,300 321,298 325,18"/>
+    <poly id="135692770" type="building.yes" color="51,128,255" fill="1" layer="-1.00" shape="319,322 600,323 591,590 314,595 319,322"/>
+    <poly id="135692771" type="building.yes" color="51,128,255" fill="1" layer="-1.00" shape="314,617 590,613 595,890 316,884 314,617"/>
+
+    <poly id="135692869" type="building.yes" color="51,128,255" fill="1" layer="-1.00" shape="627,18 905,22 905,303 623,301 627,18"/>
+    <poly id="135692870" type="building.yes" color="51,128,255" fill="1" layer="-1.00" shape="622,325 903,327 898,585 614,588 622,325"/>
+    <poly id="135692871" type="building.yes" color="51,128,255" fill="1" layer="-1.00" shape="615,614 897,609 890,887 617,889 615,614"/>
+</shapes>

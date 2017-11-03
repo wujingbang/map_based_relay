@@ -1,0 +1,515 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on Tue Sep 19 18:53:25 2017 by SUMO netconvert Version 0.25.0
+<?xml version="1.0" encoding="UTF-8"?>
+
+<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/netconvertConfiguration.xsd">
+
+    <input>
+        <node-files value="node.xml"/>
+        <edge-files value="edge.xml"/>
+    </input>
+
+    <output>
+        <output-file value="output.net.xml"/>
+    </output>
+
+    <projection>
+        <proj value="+proj=utm +zone=50 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"/>
+    </projection>
+
+    <processing>
+        <no-internal-links value="true"/>
+    </processing>
+
+</configuration>
+-->
+
+<net version="0.25" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/net_file.xsd">
+
+    <location netOffset="-449835.10,-4417700.94" convBoundary="0.00,0.00,916.82,902.08" origBoundary="116.413032,39.907910,116.423826,39.916072" projParameter="+proj=utm +zone=50 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"/>
+
+    <edge id="road1#0" from="node1" to="node2" priority="75">
+        <lane id="road1#0_0" index="0" speed="40.00" length="304.42" shape="3.30,897.80 300.52,893.80"/>
+    </edge>
+    <edge id="road1#1" from="node2" to="node3" priority="75">
+        <lane id="road1#1_0" index="0" speed="40.00" length="301.14" shape="309.96,893.84 601.50,900.32"/>
+    </edge>
+    <edge id="road1#2" from="node3" to="node4" priority="75">
+        <lane id="road1#2_0" index="0" speed="40.00" length="296.57" shape="611.05,900.40 899.73,898.53"/>
+    </edge>
+    <edge id="road1#3" from="node2" to="node1" priority="75">
+        <lane id="road1#3_0" index="0" speed="40.00" length="304.42" shape="300.56,897.10 3.34,901.10"/>
+    </edge>
+    <edge id="road1#4" from="node3" to="node2" priority="75">
+        <lane id="road1#4_0" index="0" speed="40.00" length="301.14" shape="601.43,903.62 309.89,897.14"/>
+    </edge>
+    <edge id="road1#5" from="node4" to="node3" priority="75">
+        <lane id="road1#5_0" index="0" speed="40.00" length="296.57" shape="899.75,901.83 611.07,903.70"/>
+    </edge>
+    <edge id="road2#0" from="node5" to="node6" priority="75">
+        <lane id="road2#0_0" index="0" speed="40.00" length="301.01" shape="7.20,600.32 298.66,604.75"/>
+    </edge>
+    <edge id="road2#1" from="node6" to="node7" priority="75">
+        <lane id="road2#1_0" index="0" speed="40.00" length="298.81" shape="308.20,604.76 597.39,600.73"/>
+    </edge>
+    <edge id="road2#2" from="node7" to="node8" priority="75">
+        <lane id="road2#2_0" index="0" speed="40.00" length="307.53" shape="607.04,600.59 904.77,596.63"/>
+    </edge>
+    <edge id="road2#3" from="node6" to="node5" priority="75">
+        <lane id="road2#3_0" index="0" speed="40.00" length="301.01" shape="298.61,608.05 7.15,603.62"/>
+    </edge>
+    <edge id="road2#4" from="node7" to="node6" priority="75">
+        <lane id="road2#4_0" index="0" speed="40.00" length="298.81" shape="597.44,604.03 308.25,608.06"/>
+    </edge>
+    <edge id="road2#5" from="node8" to="node7" priority="75">
+        <lane id="road2#5_0" index="0" speed="40.00" length="307.53" shape="904.82,599.93 607.08,603.89"/>
+    </edge>
+    <edge id="road3#0" from="node9" to="node10" priority="75">
+        <lane id="road3#0_0" index="0" speed="40.00" length="301.05" shape="11.83,309.09 303.23,309.33"/>
+    </edge>
+    <edge id="road3#1" from="node10" to="node11" priority="75">
+        <lane id="road3#1_0" index="0" speed="40.00" length="303.20" shape="312.84,309.37 606.41,311.65"/>
+    </edge>
+    <edge id="road3#2" from="node11" to="node12" priority="75">
+        <lane id="road3#2_0" index="0" speed="40.00" length="305.34" shape="616.01,311.72 911.77,314.00"/>
+    </edge>
+    <edge id="road3#3" from="node10" to="node9" priority="75">
+        <lane id="road3#3_0" index="0" speed="40.00" length="301.05" shape="303.23,312.63 11.83,312.39"/>
+    </edge>
+    <edge id="road3#4" from="node11" to="node10" priority="75">
+        <lane id="road3#4_0" index="0" speed="40.00" length="303.20" shape="606.39,314.95 312.81,312.67"/>
+    </edge>
+    <edge id="road3#5" from="node12" to="node11" priority="75">
+        <lane id="road3#5_0" index="0" speed="40.00" length="305.34" shape="911.74,317.30 615.99,315.02"/>
+    </edge>
+    <edge id="road4#0" from="node13" to="node14" priority="75">
+        <lane id="road4#0_0" index="0" speed="40.00" length="298.96" shape="19.15,-1.58 310.05,5.05"/>
+    </edge>
+    <edge id="road4#1" from="node14" to="node15" priority="75">
+        <lane id="road4#1_0" index="0" speed="40.00" length="300.97" shape="319.44,5.16 610.94,5.31"/>
+    </edge>
+    <edge id="road4#2" from="node15" to="node16" priority="75">
+        <lane id="road4#2_0" index="0" speed="40.00" length="301.12" shape="620.51,5.38 913.64,9.86"/>
+    </edge>
+    <edge id="road4#3" from="node14" to="node13" priority="75">
+        <lane id="road4#3_0" index="0" speed="40.00" length="298.96" shape="309.98,8.35 19.08,1.72"/>
+    </edge>
+    <edge id="road4#4" from="node15" to="node14" priority="75">
+        <lane id="road4#4_0" index="0" speed="40.00" length="300.97" shape="610.94,8.61 319.44,8.46"/>
+    </edge>
+    <edge id="road4#5" from="node16" to="node15" priority="75">
+        <lane id="road4#5_0" index="0" speed="40.00" length="301.12" shape="913.59,13.16 620.46,8.68"/>
+    </edge>
+    <edge id="road5#0" from="node1" to="node5" priority="75">
+        <lane id="road5#0_0" index="0" speed="40.00" length="296.72" shape="-1.62,896.16 0.71,606.66"/>
+    </edge>
+    <edge id="road5#1" from="node5" to="node9" priority="75">
+        <lane id="road5#1_0" index="0" speed="40.00" length="291.20" shape="0.83,597.12 5.26,315.41"/>
+    </edge>
+    <edge id="road5#2" from="node9" to="node13" priority="75">
+        <lane id="road5#2_0" index="0" speed="40.00" length="310.86" shape="5.47,305.84 14.14,3.18"/>
+    </edge>
+    <edge id="road5#3" from="node5" to="node1" priority="75">
+        <lane id="road5#3_0" index="0" speed="40.00" length="296.72" shape="4.01,606.69 1.68,896.18"/>
+    </edge>
+    <edge id="road5#4" from="node9" to="node5" priority="75">
+        <lane id="road5#4_0" index="0" speed="40.00" length="291.20" shape="8.56,315.46 4.13,597.17"/>
+    </edge>
+    <edge id="road5#5" from="node13" to="node9" priority="75">
+        <lane id="road5#5_0" index="0" speed="40.00" length="310.86" shape="17.44,3.28 8.77,305.94"/>
+    </edge>
+    <edge id="road6#0" from="node2" to="node6" priority="75">
+        <lane id="road6#0_0" index="0" speed="40.00" length="288.91" shape="303.59,890.67 301.76,611.21"/>
+    </edge>
+    <edge id="road6#1" from="node6" to="node10" priority="75">
+        <lane id="road6#1_0" index="0" speed="40.00" length="295.53" shape="301.81,601.60 306.31,315.75"/>
+    </edge>
+    <edge id="road6#2" from="node10" to="node14" priority="75">
+        <lane id="road6#2_0" index="0" speed="40.00" length="304.24" shape="306.49,306.15 313.01,11.52"/>
+    </edge>
+    <edge id="road6#3" from="node6" to="node2" priority="75">
+        <lane id="road6#3_0" index="0" speed="40.00" length="288.91" shape="305.06,611.19 306.89,890.64"/>
+    </edge>
+    <edge id="road6#4" from="node10" to="node6" priority="75">
+        <lane id="road6#4_0" index="0" speed="40.00" length="295.53" shape="309.60,315.80 305.11,601.65"/>
+    </edge>
+    <edge id="road6#5" from="node14" to="node10" priority="75">
+        <lane id="road6#5_0" index="0" speed="40.00" length="304.24" shape="316.31,11.59 309.79,306.22"/>
+    </edge>
+    <edge id="road7#0" from="node3" to="node7" priority="75">
+        <lane id="road7#0_0" index="0" speed="40.00" length="299.80" shape="604.61,897.23 600.58,607.08"/>
+    </edge>
+    <edge id="road7#1" from="node7" to="node11" priority="75">
+        <lane id="road7#1_0" index="0" speed="40.00" length="289.12" shape="600.67,597.36 609.43,318.11"/>
+    </edge>
+    <edge id="road7#2" from="node11" to="node15" priority="75">
+        <lane id="road7#2_0" index="0" speed="40.00" length="306.41" shape="609.65,308.54 614.01,11.73"/>
+    </edge>
+    <edge id="road7#3" from="node7" to="node3" priority="75">
+        <lane id="road7#3_0" index="0" speed="40.00" length="299.80" shape="603.88,607.04 607.91,897.19"/>
+    </edge>
+    <edge id="road7#4" from="node11" to="node7" priority="75">
+        <lane id="road7#4_0" index="0" speed="40.00" length="289.12" shape="612.72,318.21 603.96,597.47"/>
+    </edge>
+    <edge id="road7#5" from="node15" to="node11" priority="75">
+        <lane id="road7#5_0" index="0" speed="40.00" length="306.41" shape="617.31,11.78 612.95,308.59"/>
+    </edge>
+    <edge id="road8#0" from="node4" to="node8" priority="75">
+        <lane id="road8#0_0" index="0" speed="40.00" length="302.02" shape="901.32,896.96 907.90,603.04"/>
+    </edge>
+    <edge id="road8#1" from="node8" to="node12" priority="75">
+        <lane id="road8#1_0" index="0" speed="40.00" length="282.61" shape="908.13,593.54 914.79,320.45"/>
+    </edge>
+    <edge id="road8#2" from="node12" to="node16" priority="75">
+        <lane id="road8#2_0" index="0" speed="40.00" length="304.13" shape="914.91,310.91 915.17,14.76"/>
+    </edge>
+    <edge id="road8#3" from="node8" to="node4" priority="75">
+        <lane id="road8#3_0" index="0" speed="40.00" length="302.02" shape="911.20,603.11 904.61,897.04"/>
+    </edge>
+    <edge id="road8#4" from="node12" to="node8" priority="75">
+        <lane id="road8#4_0" index="0" speed="40.00" length="282.61" shape="918.09,320.53 911.43,593.62"/>
+    </edge>
+    <edge id="road8#5" from="node16" to="node12" priority="75">
+        <lane id="road8#5_0" index="0" speed="40.00" length="304.13" shape="918.47,14.77 918.21,310.91"/>
+    </edge>
+
+    <junction id="node1" type="priority" x="0.00" y="899.49" incLanes="road1#3_0 road5#3_0" intLanes="" shape="3.36,902.70 3.28,896.20 -3.22,896.14">
+        <request index="0" response="0000" foes="1000"/>
+        <request index="1" response="0100" foes="0100"/>
+        <request index="2" response="0000" foes="0010"/>
+        <request index="3" response="0001" foes="0001"/>
+    </junction>
+    <junction id="node10" type="priority" x="308.03" y="310.98" incLanes="road3#4_0 road6#5_0 road3#0_0 road6#1_0" intLanes="" shape="312.80,314.27 312.85,307.77 311.39,306.26 304.89,306.11 303.23,307.73 303.23,314.23 304.71,315.73 311.20,315.83">
+        <request index="0" response="0000000000100000" foes="1000010000100000"/>
+        <request index="1" response="0111000001100000" foes="0111110001100000"/>
+        <request index="2" response="0110001101100000" foes="0110001111100000"/>
+        <request index="3" response="0100001000010000" foes="0100001000010000"/>
+        <request index="4" response="0000000000000000" foes="0100001000001000"/>
+        <request index="5" response="0000000000000000" foes="1100011000000111"/>
+        <request index="6" response="0011000000000000" foes="0011111000000110"/>
+        <request index="7" response="0010000100000100" foes="0010000100000100"/>
+        <request index="8" response="0010000000000000" foes="0010000010000100"/>
+        <request index="9" response="0110000001110000" foes="0110000001111100"/>
+        <request index="10" response="0110000001100011" foes="1110000001100011"/>
+        <request index="11" response="0001000001000010" foes="0001000001000010"/>
+        <request index="12" response="0000000000000000" foes="0000100001000010"/>
+        <request index="13" response="0000000000000000" foes="0000011111000110"/>
+        <request index="14" response="0000000000110000" foes="0000011000111110"/>
+        <request index="15" response="0000010000100001" foes="0000010000100001"/>
+    </junction>
+    <junction id="node11" type="priority" x="611.23" y="313.33" incLanes="road3#5_0 road7#5_0 road3#1_0 road7#1_0" intLanes="" shape="615.97,316.62 616.02,310.12 614.55,308.61 608.05,308.51 606.42,310.05 606.37,316.55 607.83,318.06 614.32,318.26">
+        <request index="0" response="0000000000000000" foes="1000010000100000"/>
+        <request index="1" response="0000000000000000" foes="0111110001100000"/>
+        <request index="2" response="0000001100000000" foes="0110001111100000"/>
+        <request index="3" response="0100001000010000" foes="0100001000010000"/>
+        <request index="4" response="0000001000000000" foes="0100001000001000"/>
+        <request index="5" response="0000011000000111" foes="1100011000000111"/>
+        <request index="6" response="0011011000000110" foes="0011111000000110"/>
+        <request index="7" response="0010000100000100" foes="0010000100000100"/>
+        <request index="8" response="0000000000000000" foes="0010000010000100"/>
+        <request index="9" response="0000000000000000" foes="0110000001111100"/>
+        <request index="10" response="0000000000000011" foes="1110000001100011"/>
+        <request index="11" response="0001000001000010" foes="0001000001000010"/>
+        <request index="12" response="0000000000000010" foes="0000100001000010"/>
+        <request index="13" response="0000011100000110" foes="0000011111000110"/>
+        <request index="14" response="0000011000110110" foes="0000011000111110"/>
+        <request index="15" response="0000010000100001" foes="0000010000100001"/>
+    </junction>
+    <junction id="node12" type="priority" x="916.56" y="315.69" incLanes="road8#5_0 road3#2_0 road8#1_0" intLanes="" shape="919.81,310.92 913.31,310.91 911.78,312.40 911.73,318.90 913.19,320.41 919.69,320.57">
+        <request index="0" response="000000000" foes="100010000"/>
+        <request index="1" response="011000000" foes="011110000"/>
+        <request index="2" response="010001000" foes="010001000"/>
+        <request index="3" response="010000000" foes="010000100"/>
+        <request index="4" response="010000011" foes="110000011"/>
+        <request index="5" response="001000010" foes="001000010"/>
+        <request index="6" response="000000000" foes="000100010"/>
+        <request index="7" response="000000000" foes="000011110"/>
+        <request index="8" response="000010001" foes="000010001"/>
+    </junction>
+    <junction id="node13" type="priority" x="15.88" y="0.00" incLanes="road4#3_0 road5#2_0" intLanes="" shape="19.04,3.32 19.19,-3.18 12.54,3.14 19.04,3.32">
+        <request index="0" response="0000" foes="1000"/>
+        <request index="1" response="0100" foes="0100"/>
+        <request index="2" response="0000" foes="0010"/>
+        <request index="3" response="0001" foes="0001"/>
+    </junction>
+    <junction id="node14" type="priority" x="314.76" y="6.81" incLanes="road4#4_0 road4#0_0 road6#2_0" intLanes="" shape="319.44,10.06 319.44,3.56 310.09,3.45 309.94,9.95 311.41,11.49 317.91,11.63">
+        <request index="0" response="000000000" foes="100010000"/>
+        <request index="1" response="000000000" foes="011110000"/>
+        <request index="2" response="010001000" foes="010001000"/>
+        <request index="3" response="000000000" foes="010000100"/>
+        <request index="4" response="000000011" foes="110000011"/>
+        <request index="5" response="001000010" foes="001000010"/>
+        <request index="6" response="000000010" foes="000100010"/>
+        <request index="7" response="000011010" foes="000011110"/>
+        <request index="8" response="000010001" foes="000010001"/>
+    </junction>
+    <junction id="node15" type="priority" x="615.73" y="6.96" incLanes="road4#5_0 road4#1_0 road7#2_0" intLanes="" shape="620.44,10.28 620.53,3.78 610.94,3.71 610.94,10.21 612.41,11.71 618.91,11.80">
+        <request index="0" response="000000000" foes="100010000"/>
+        <request index="1" response="000000000" foes="011110000"/>
+        <request index="2" response="010001000" foes="010001000"/>
+        <request index="3" response="000000000" foes="010000100"/>
+        <request index="4" response="000000011" foes="110000011"/>
+        <request index="5" response="001000010" foes="001000010"/>
+        <request index="6" response="000000010" foes="000100010"/>
+        <request index="7" response="000011010" foes="000011110"/>
+        <request index="8" response="000010001" foes="000010001"/>
+    </junction>
+    <junction id="node16" type="priority" x="916.82" y="11.56" incLanes="road8#2_0 road4#2_0" intLanes="" shape="913.57,14.76 920.07,14.77 913.67,8.26 913.57,14.76">
+        <request index="0" response="0000" foes="1000"/>
+        <request index="1" response="0100" foes="0100"/>
+        <request index="2" response="0000" foes="0010"/>
+        <request index="3" response="0001" foes="0001"/>
+    </junction>
+    <junction id="node2" type="priority" x="305.27" y="895.38" incLanes="road1#4_0 road6#3_0 road1#0_0" intLanes="" shape="309.85,898.73 310.00,892.24 308.49,890.63 301.99,890.68 300.50,892.20 300.58,898.70">
+        <request index="0" response="000000000" foes="100010000"/>
+        <request index="1" response="011000000" foes="011110000"/>
+        <request index="2" response="010001000" foes="010001000"/>
+        <request index="3" response="010000000" foes="010000100"/>
+        <request index="4" response="010000011" foes="110000011"/>
+        <request index="5" response="001000010" foes="001000010"/>
+        <request index="6" response="000000000" foes="000100010"/>
+        <request index="7" response="000000000" foes="000011110"/>
+        <request index="8" response="000010001" foes="000010001"/>
+    </junction>
+    <junction id="node3" type="priority" x="606.33" y="902.08" incLanes="road1#5_0 road7#3_0 road1#1_0" intLanes="" shape="611.08,905.30 611.04,898.80 609.51,897.16 603.01,897.25 601.53,898.72 601.39,905.22">
+        <request index="0" response="000000000" foes="100010000"/>
+        <request index="1" response="011000000" foes="011110000"/>
+        <request index="2" response="010001000" foes="010001000"/>
+        <request index="3" response="010000000" foes="010000100"/>
+        <request index="4" response="010000011" foes="110000011"/>
+        <request index="5" response="001000010" foes="001000010"/>
+        <request index="6" response="000000000" foes="000100010"/>
+        <request index="7" response="000000000" foes="000011110"/>
+        <request index="8" response="000010001" foes="000010001"/>
+    </junction>
+    <junction id="node4" type="priority" x="902.89" y="900.16" incLanes="road8#3_0 road1#2_0" intLanes="" shape="906.21,897.07 899.72,896.93 899.76,903.43">
+        <request index="0" response="0000" foes="1000"/>
+        <request index="1" response="0100" foes="0100"/>
+        <request index="2" response="0000" foes="0010"/>
+        <request index="3" response="0001" foes="0001"/>
+    </junction>
+    <junction id="node5" type="priority" x="2.40" y="601.90" incLanes="road2#3_0 road5#4_0 road5#0_0" intLanes="" shape="7.13,605.22 7.22,598.72 5.73,597.20 -0.77,597.10 -0.89,606.65 5.61,606.70">
+        <request index="0" response="000010000" foes="100010000"/>
+        <request index="1" response="011010000" foes="011110000"/>
+        <request index="2" response="010001000" foes="010001000"/>
+        <request index="3" response="000000000" foes="010000100"/>
+        <request index="4" response="000000000" foes="110000011"/>
+        <request index="5" response="001000010" foes="001000010"/>
+        <request index="6" response="000000000" foes="000100010"/>
+        <request index="7" response="000011000" foes="000011110"/>
+        <request index="8" response="000010001" foes="000010001"/>
+    </junction>
+    <junction id="node6" type="priority" x="303.38" y="606.48" incLanes="road6#0_0 road2#4_0 road6#4_0 road2#0_0" intLanes="" shape="300.16,611.22 306.66,611.18 308.27,609.66 308.18,603.16 306.71,601.68 300.21,601.58 298.68,603.15 298.58,609.65">
+        <request index="0" response="0000000000000000" foes="1000010000100000"/>
+        <request index="1" response="0000000000000000" foes="0111110001100000"/>
+        <request index="2" response="0000001100000000" foes="0110001111100000"/>
+        <request index="3" response="0100001000010000" foes="0100001000010000"/>
+        <request index="4" response="0000001000000000" foes="0100001000001000"/>
+        <request index="5" response="0000011000000111" foes="1100011000000111"/>
+        <request index="6" response="0011011000000110" foes="0011111000000110"/>
+        <request index="7" response="0010000100000100" foes="0010000100000100"/>
+        <request index="8" response="0000000000000000" foes="0010000010000100"/>
+        <request index="9" response="0000000000000000" foes="0110000001111100"/>
+        <request index="10" response="0000000000000011" foes="1110000001100011"/>
+        <request index="11" response="0001000001000010" foes="0001000001000010"/>
+        <request index="12" response="0000000000000010" foes="0000100001000010"/>
+        <request index="13" response="0000011100000110" foes="0000011111000110"/>
+        <request index="14" response="0000011000110110" foes="0000011000111110"/>
+        <request index="15" response="0000010000100001" foes="0000010000100001"/>
+    </junction>
+    <junction id="node7" type="priority" x="602.16" y="602.31" incLanes="road7#0_0 road2#5_0 road7#4_0 road2#1_0" intLanes="" shape="598.98,607.11 605.48,607.02 607.10,605.49 607.02,599.00 605.56,597.52 599.07,597.31 597.37,599.13 597.46,605.63">
+        <request index="0" response="0000000000100000" foes="1000010000100000"/>
+        <request index="1" response="0111000001100000" foes="0111110001100000"/>
+        <request index="2" response="0110001101100000" foes="0110001111100000"/>
+        <request index="3" response="0100001000010000" foes="0100001000010000"/>
+        <request index="4" response="0000000000000000" foes="0100001000001000"/>
+        <request index="5" response="0000000000000000" foes="1100011000000111"/>
+        <request index="6" response="0011000000000000" foes="0011111000000110"/>
+        <request index="7" response="0010000100000100" foes="0010000100000100"/>
+        <request index="8" response="0010000000000000" foes="0010000010000100"/>
+        <request index="9" response="0110000001110000" foes="0110000001111100"/>
+        <request index="10" response="0110000001100011" foes="1110000001100011"/>
+        <request index="11" response="0001000001000010" foes="0001000001000010"/>
+        <request index="12" response="0000000000000000" foes="0000100001000010"/>
+        <request index="13" response="0000000000000000" foes="0000011111000110"/>
+        <request index="14" response="0000000000110000" foes="0000011000111110"/>
+        <request index="15" response="0000010000100001" foes="0000010000100001"/>
+    </junction>
+    <junction id="node8" type="priority" x="909.66" y="598.21" incLanes="road8#4_0 road2#2_0 road8#0_0" intLanes="" shape="913.03,593.66 906.53,593.50 904.75,595.03 904.84,601.53 906.30,603.00 912.80,603.15">
+        <request index="0" response="000000000" foes="100010000"/>
+        <request index="1" response="011000000" foes="011110000"/>
+        <request index="2" response="010001000" foes="010001000"/>
+        <request index="3" response="010000000" foes="010000100"/>
+        <request index="4" response="010000011" foes="110000011"/>
+        <request index="5" response="001000010" foes="001000010"/>
+        <request index="6" response="000000000" foes="000100010"/>
+        <request index="7" response="000000000" foes="000011110"/>
+        <request index="8" response="000010001" foes="000010001"/>
+    </junction>
+    <junction id="node9" type="priority" x="6.99" y="310.73" incLanes="road3#3_0 road5#5_0 road5#1_0" intLanes="" shape="11.82,313.99 11.83,307.49 10.37,305.98 3.88,305.80 3.66,315.38 10.16,315.48">
+        <request index="0" response="000010000" foes="100010000"/>
+        <request index="1" response="011010000" foes="011110000"/>
+        <request index="2" response="010001000" foes="010001000"/>
+        <request index="3" response="000000000" foes="010000100"/>
+        <request index="4" response="000000000" foes="110000011"/>
+        <request index="5" response="001000010" foes="001000010"/>
+        <request index="6" response="000000000" foes="000100010"/>
+        <request index="7" response="000011000" foes="000011110"/>
+        <request index="8" response="000010001" foes="000010001"/>
+    </junction>
+
+    <connection from="road1#0" to="road6#0" fromLane="0" toLane="0" dir="r" state="M"/>
+    <connection from="road1#0" to="road1#1" fromLane="0" toLane="0" dir="s" state="M"/>
+    <connection from="road1#0" to="road1#3" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road1#1" to="road7#0" fromLane="0" toLane="0" dir="r" state="M"/>
+    <connection from="road1#1" to="road1#2" fromLane="0" toLane="0" dir="s" state="M"/>
+    <connection from="road1#1" to="road1#4" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road1#2" to="road8#0" fromLane="0" toLane="0" dir="r" state="M"/>
+    <connection from="road1#2" to="road1#5" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road1#3" to="road5#0" fromLane="0" toLane="0" dir="l" state="M"/>
+    <connection from="road1#3" to="road1#0" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road1#4" to="road1#3" fromLane="0" toLane="0" dir="s" state="M"/>
+    <connection from="road1#4" to="road6#0" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road1#4" to="road1#1" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road1#5" to="road1#4" fromLane="0" toLane="0" dir="s" state="M"/>
+    <connection from="road1#5" to="road7#0" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road1#5" to="road1#2" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road2#0" to="road6#1" fromLane="0" toLane="0" dir="r" state="m"/>
+    <connection from="road2#0" to="road2#1" fromLane="0" toLane="0" dir="s" state="m"/>
+    <connection from="road2#0" to="road6#3" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road2#0" to="road2#3" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road2#1" to="road7#1" fromLane="0" toLane="0" dir="r" state="M"/>
+    <connection from="road2#1" to="road2#2" fromLane="0" toLane="0" dir="s" state="M"/>
+    <connection from="road2#1" to="road7#3" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road2#1" to="road2#4" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road2#2" to="road8#1" fromLane="0" toLane="0" dir="r" state="m"/>
+    <connection from="road2#2" to="road8#3" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road2#2" to="road2#5" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road2#3" to="road5#3" fromLane="0" toLane="0" dir="r" state="m"/>
+    <connection from="road2#3" to="road5#1" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road2#3" to="road2#0" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road2#4" to="road6#3" fromLane="0" toLane="0" dir="r" state="m"/>
+    <connection from="road2#4" to="road2#3" fromLane="0" toLane="0" dir="s" state="m"/>
+    <connection from="road2#4" to="road6#1" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road2#4" to="road2#1" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road2#5" to="road7#3" fromLane="0" toLane="0" dir="r" state="M"/>
+    <connection from="road2#5" to="road2#4" fromLane="0" toLane="0" dir="s" state="M"/>
+    <connection from="road2#5" to="road7#1" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road2#5" to="road2#2" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road3#0" to="road6#2" fromLane="0" toLane="0" dir="r" state="m"/>
+    <connection from="road3#0" to="road3#1" fromLane="0" toLane="0" dir="s" state="m"/>
+    <connection from="road3#0" to="road6#4" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road3#0" to="road3#3" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road3#1" to="road7#2" fromLane="0" toLane="0" dir="r" state="M"/>
+    <connection from="road3#1" to="road3#2" fromLane="0" toLane="0" dir="s" state="M"/>
+    <connection from="road3#1" to="road7#4" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road3#1" to="road3#4" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road3#2" to="road8#2" fromLane="0" toLane="0" dir="r" state="m"/>
+    <connection from="road3#2" to="road8#4" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road3#2" to="road3#5" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road3#3" to="road5#4" fromLane="0" toLane="0" dir="r" state="m"/>
+    <connection from="road3#3" to="road5#2" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road3#3" to="road3#0" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road3#4" to="road6#4" fromLane="0" toLane="0" dir="r" state="m"/>
+    <connection from="road3#4" to="road3#3" fromLane="0" toLane="0" dir="s" state="m"/>
+    <connection from="road3#4" to="road6#2" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road3#4" to="road3#1" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road3#5" to="road7#4" fromLane="0" toLane="0" dir="r" state="M"/>
+    <connection from="road3#5" to="road3#4" fromLane="0" toLane="0" dir="s" state="M"/>
+    <connection from="road3#5" to="road7#2" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road3#5" to="road3#2" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road4#0" to="road4#1" fromLane="0" toLane="0" dir="s" state="M"/>
+    <connection from="road4#0" to="road6#5" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road4#0" to="road4#3" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road4#1" to="road4#2" fromLane="0" toLane="0" dir="s" state="M"/>
+    <connection from="road4#1" to="road7#5" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road4#1" to="road4#4" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road4#2" to="road8#5" fromLane="0" toLane="0" dir="l" state="M"/>
+    <connection from="road4#2" to="road4#5" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road4#3" to="road5#5" fromLane="0" toLane="0" dir="r" state="M"/>
+    <connection from="road4#3" to="road4#0" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road4#4" to="road6#5" fromLane="0" toLane="0" dir="r" state="M"/>
+    <connection from="road4#4" to="road4#3" fromLane="0" toLane="0" dir="s" state="M"/>
+    <connection from="road4#4" to="road4#1" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road4#5" to="road7#5" fromLane="0" toLane="0" dir="r" state="M"/>
+    <connection from="road4#5" to="road4#4" fromLane="0" toLane="0" dir="s" state="M"/>
+    <connection from="road4#5" to="road4#2" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road5#0" to="road5#1" fromLane="0" toLane="0" dir="s" state="M"/>
+    <connection from="road5#0" to="road2#0" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road5#0" to="road5#3" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road5#1" to="road5#2" fromLane="0" toLane="0" dir="s" state="M"/>
+    <connection from="road5#1" to="road3#0" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road5#1" to="road5#4" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road5#2" to="road4#0" fromLane="0" toLane="0" dir="l" state="M"/>
+    <connection from="road5#2" to="road5#5" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road5#3" to="road1#0" fromLane="0" toLane="0" dir="r" state="M"/>
+    <connection from="road5#3" to="road5#0" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road5#4" to="road2#0" fromLane="0" toLane="0" dir="r" state="M"/>
+    <connection from="road5#4" to="road5#3" fromLane="0" toLane="0" dir="s" state="M"/>
+    <connection from="road5#4" to="road5#1" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road5#5" to="road3#0" fromLane="0" toLane="0" dir="r" state="M"/>
+    <connection from="road5#5" to="road5#4" fromLane="0" toLane="0" dir="s" state="M"/>
+    <connection from="road5#5" to="road5#2" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road6#0" to="road2#3" fromLane="0" toLane="0" dir="r" state="M"/>
+    <connection from="road6#0" to="road6#1" fromLane="0" toLane="0" dir="s" state="M"/>
+    <connection from="road6#0" to="road2#1" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road6#0" to="road6#3" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road6#1" to="road3#3" fromLane="0" toLane="0" dir="r" state="M"/>
+    <connection from="road6#1" to="road6#2" fromLane="0" toLane="0" dir="s" state="M"/>
+    <connection from="road6#1" to="road3#1" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road6#1" to="road6#4" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road6#2" to="road4#3" fromLane="0" toLane="0" dir="r" state="m"/>
+    <connection from="road6#2" to="road4#1" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road6#2" to="road6#5" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road6#3" to="road1#1" fromLane="0" toLane="0" dir="r" state="m"/>
+    <connection from="road6#3" to="road1#3" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road6#3" to="road6#0" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road6#4" to="road2#1" fromLane="0" toLane="0" dir="r" state="M"/>
+    <connection from="road6#4" to="road6#3" fromLane="0" toLane="0" dir="s" state="M"/>
+    <connection from="road6#4" to="road2#3" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road6#4" to="road6#1" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road6#5" to="road3#1" fromLane="0" toLane="0" dir="r" state="M"/>
+    <connection from="road6#5" to="road6#4" fromLane="0" toLane="0" dir="s" state="M"/>
+    <connection from="road6#5" to="road3#3" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road6#5" to="road6#2" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road7#0" to="road2#4" fromLane="0" toLane="0" dir="r" state="m"/>
+    <connection from="road7#0" to="road7#1" fromLane="0" toLane="0" dir="s" state="m"/>
+    <connection from="road7#0" to="road2#2" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road7#0" to="road7#3" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road7#1" to="road3#4" fromLane="0" toLane="0" dir="r" state="m"/>
+    <connection from="road7#1" to="road7#2" fromLane="0" toLane="0" dir="s" state="m"/>
+    <connection from="road7#1" to="road3#2" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road7#1" to="road7#4" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road7#2" to="road4#4" fromLane="0" toLane="0" dir="r" state="m"/>
+    <connection from="road7#2" to="road4#2" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road7#2" to="road7#5" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road7#3" to="road1#2" fromLane="0" toLane="0" dir="r" state="m"/>
+    <connection from="road7#3" to="road1#4" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road7#3" to="road7#0" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road7#4" to="road2#2" fromLane="0" toLane="0" dir="r" state="m"/>
+    <connection from="road7#4" to="road7#3" fromLane="0" toLane="0" dir="s" state="m"/>
+    <connection from="road7#4" to="road2#4" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road7#4" to="road7#1" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road7#5" to="road3#2" fromLane="0" toLane="0" dir="r" state="m"/>
+    <connection from="road7#5" to="road7#4" fromLane="0" toLane="0" dir="s" state="m"/>
+    <connection from="road7#5" to="road3#4" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road7#5" to="road7#2" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road8#0" to="road2#5" fromLane="0" toLane="0" dir="r" state="M"/>
+    <connection from="road8#0" to="road8#1" fromLane="0" toLane="0" dir="s" state="M"/>
+    <connection from="road8#0" to="road8#3" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road8#1" to="road3#5" fromLane="0" toLane="0" dir="r" state="M"/>
+    <connection from="road8#1" to="road8#2" fromLane="0" toLane="0" dir="s" state="M"/>
+    <connection from="road8#1" to="road8#4" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road8#2" to="road4#5" fromLane="0" toLane="0" dir="r" state="M"/>
+    <connection from="road8#2" to="road8#5" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road8#3" to="road1#5" fromLane="0" toLane="0" dir="l" state="M"/>
+    <connection from="road8#3" to="road8#0" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road8#4" to="road8#3" fromLane="0" toLane="0" dir="s" state="M"/>
+    <connection from="road8#4" to="road2#5" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road8#4" to="road8#1" fromLane="0" toLane="0" dir="t" state="m"/>
+    <connection from="road8#5" to="road8#4" fromLane="0" toLane="0" dir="s" state="M"/>
+    <connection from="road8#5" to="road3#5" fromLane="0" toLane="0" dir="l" state="m"/>
+    <connection from="road8#5" to="road8#2" fromLane="0" toLane="0" dir="t" state="m"/>
+
+</net>
