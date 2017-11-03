@@ -192,6 +192,7 @@ MbrNeighborApp::Setup (Ipv4InterfaceContainer & i,
 				  Time totalTime,
 				  uint32_t wavePacketSize, // bytes
 				  Time waveInterval,
+				  Time waveExpire,
 				  double gpsAccuracyNs,
 				  std::vector<int> * nodesMoving,
 				  Time txMaxDelay)
@@ -203,6 +204,7 @@ MbrNeighborApp::Setup (Ipv4InterfaceContainer & i,
   m_TotalSimTime = totalTime;
   m_wavePacketSize = wavePacketSize;
   m_waveInterval = waveInterval;
+  m_waveExpire = waveExpire;
   m_gpsAccuracyNs = gpsAccuracyNs;
 
   m_nodesMoving = nodesMoving;
@@ -291,10 +293,16 @@ void MbrNeighborApp::ReceiveWavePacket (Ptr<Socket> socket)
 
   MbrHeader mbrHeader;
   packet->RemoveHeader (mbrHeader);
-  Ipv4Address dst = mbrHeader.GetDst ();
-  NS_LOG_LOGIC ("MBR Hello destination " << dst << " origin " << mbrHeader.GetOrigin ());
 
-  m_neighbors->Update (mbrHeader.GetOrigin (), Time (Seconds(1)),/*Time (MilliSeconds(350)),*/
+
+  std::pair<Ptr<Ipv4>, uint32_t> interface = m_dataInterfaces->Get (m_nodeId);
+  Ptr<Ipv4> pp = interface.first;
+  uint32_t interfaceidx = interface.second;
+  Ipv4InterfaceAddress ip_origin = pp->GetAddress(interfaceidx, 0);
+
+  NS_LOG_LOGIC ("MBR Hello recv.. " << ip_origin.GetLocal() << " From " << mbrHeader.GetOrigin ());
+
+  m_neighbors->Update (mbrHeader.GetOrigin (), m_waveExpire,/*Time (MilliSeconds(350)),*/
 		  mbrHeader.getMac(), mbrHeader.getGeohash(), mbrHeader.getDirection(),
 		  mbrHeader.getLongitude(), mbrHeader.getLatitude());
 

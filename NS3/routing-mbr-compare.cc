@@ -29,14 +29,20 @@
 
 #include "ns3/aodv-module.h"
 
+#include "ns3/mbr_route.h"
+
+#include "ns3/geoSVR-helper.h"
+
 #include <iostream>
 #include <cmath>
+#include <stdlib.h>
 
 using namespace ns3;
 using namespace mbr;
 
 #define AODV 1
 #define GPSR 2
+#define GEOSVR 3
 
 NS_LOG_COMPONENT_DEFINE ("gpsr-mbr-test");
 
@@ -108,6 +114,16 @@ private:
 
   std::string m_flowOutFile;
   std::string m_throughputOutFile;
+  std::string m_distanceOutFile;
+  std::string m_round;
+  std::string m_outputPrefix;
+
+  uint32_t m_relayedPktNum;
+  double m_startTime;
+  bool m_sub1g;
+  bool m_rsu;
+  uint32_t m_maxd;
+  uint32_t m_mind;
 
   NodeContainer m_nodesContainer;
   NetDeviceContainer beaconDevices;
@@ -116,6 +132,7 @@ private:
   Ipv4InterfaceContainer dataInterfaces;
 
   MbrNeighborHelper m_MbrNeighborHelper;
+  std::map<int, int> m_distanceMap;
 
 
 private:
@@ -130,7 +147,23 @@ private:
   Ptr<Socket> SetupRoutingPacketReceive (Ipv4Address addr, Ptr<Node> node);
   void ReceiveRoutingPacket (Ptr<Socket> socket);
   void CheckThroughput ();
+  void OutputTrace();
+  void OutputNeighbor();
 };
+
+void InstallRSU(NodeContainer &c, uint32_t size, Ptr<ListPositionAllocator> positionAlloc)
+{
+  NodeContainer rsu;
+  rsu.Create(size);
+
+  MobilityHelper mobility;
+  mobility.SetPositionAllocator(positionAlloc);
+  mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+
+  mobility.Install(rsu);
+  c.Add(rsu);
+
+}
 
 int main (int argc, char **argv)
 {
@@ -170,7 +203,14 @@ GpsrExample::GpsrExample () :
   m_openRelay(false),
   m_routingProtocol(AODV),
   m_flowOutFile("flowmonitor-output.xml"),
-  m_throughputOutFile("throughput-ouput.txt")
+  m_throughputOutFile("throughput-ouput.txt"),
+  m_distanceOutFile("distance-ouput.txt"),
+  m_relayedPktNum(0),
+  m_startTime(0.0),
+  m_sub1g(0),
+  m_rsu(0),
+  m_maxd(40),
+  m_mind(10)
 {
 }
 
@@ -203,12 +243,24 @@ GpsrExample::Configure (int argc, char **argv)
   cmd.AddValue ("flowout", "Flowmonitor output file name", m_flowOutFile);
   cmd.AddValue ("throughputout", "Throughput output file name", m_throughputOutFile);
 
+  cmd.AddValue ("round", "round for static scenario", m_round);
+  cmd.AddValue ("outpre", "m_outputPrefix", m_outputPrefix);
+
+  cmd.AddValue ("startTime", "Start time.", m_startTime);
+
+  cmd.AddValue ("sub1g", "Open sub1G mode.", m_sub1g);
+  cmd.AddValue ("rsu", "Install RSUs", m_rsu);
+  cmd.AddValue ("mind", "distance between building and road", m_mind);
+  cmd.AddValue ("maxd", "good relay distance", m_maxd);
+
   cmd.Parse (argc, argv);
 
   if (m_routingProtocolStr == "aodv")
     m_routingProtocol = AODV;
   else if (m_routingProtocolStr == "gpsr")
     m_routingProtocol = GPSR;
+  else if (m_routingProtocolStr == "geosvr")
+    m_routingProtocol = GEOSVR;
   else
     {
       NS_LOG_UNCOND("Routing Protocol ERROR !!!!!!!!!!!");
@@ -221,13 +273,98 @@ GpsrExample::Configure (int argc, char **argv)
   return true;
 }
 
-uint32_t relayedPktNum = 0;
+uint32_t rreqTimeoutCount = 0;
 void
 IntTrace (uint32_t oldValue, uint32_t newValue)
 {
 //  std::cout << "Traced " << oldValue << " to " << newValue << std::endl;
-  relayedPktNum++;
+  rreqTimeoutCount++;
 }
+uint32_t gpsrRecPktTrace = 0;
+void
+GpsrRecPktTrace (Ptr<Packet> p)
+{
+    gpsrRecPktTrace++;
+}
+uint32_t gpsrDropPktTrace = 0;
+void
+GpsrDropPktTrace (Ptr<Packet> p)
+{
+  gpsrDropPktTrace++;
+}
+
+//uint32_t lossPktNum = 0;
+//void
+//LossPktTrace (Ptr<const Packet> p)
+//{
+//  uint32_t size = p->GetSize();
+//  if (size > 1000)
+//    lossPktNum++;
+//}
+
+void GpsrExample::OutputNeighbor()
+{
+  uint32_t nodeid = 317;
+  Ptr<mbr::MbrNeighborApp> nbapp;
+  Ptr<Node> node = m_nodesContainer.Get(nodeid);
+  for (uint32_t j = 0; j < node->GetNApplications (); j++)
+	{
+	  nbapp = DynamicCast<mbr::MbrNeighborApp> (node->GetApplication(j));
+	  if (nbapp)
+	    break;
+	}
+  NS_ASSERT(nbapp);
+  Vector pos;
+  Ptr<MobilityModel> MM = node->GetObject<MobilityModel> ();
+  pos.x = MM->GetPosition ().x;
+  pos.y = MM->GetPosition ().y;
+  std::cout << "This Position: " << pos.x<<" "<< pos.y << std::endl;
+  for (int i = 1; i < nbapp->getNb()->GetTableSize(); i++)
+    {
+      pos = nbapp->getNb()->GetCartesianPosition(i);
+      std::cout<< pos.x<<" "<< pos.y << std::endl;
+    }
+  fflush(stdout);
+
+}
+/**
+ * $node_(1) set X_ 611.98
+$node_(1) set Y_ 600.52
+$node_(1) set Z_ 0
+ */
+void GpsrExample::OutputTrace()
+{
+  std::vector<uint32_t> v1;
+  for (uint32_t i=0; i<m_nodesContainer.GetN(); i++)
+    v1.push_back(i);
+  std::random_shuffle(v1.begin(), v1.end());
+  std::random_shuffle(v1.begin(), v1.end());
+  std::random_shuffle(v1.begin(), v1.end());
+
+  for (uint32_t j=0; j<m_nodesContainer.GetN(); j++)
+    {
+      uint32_t n= v1.back();
+      v1.pop_back();
+      Ptr<Node> i = m_nodesContainer.Get(n);
+      Vector p = (i->GetObject<MobilityModel>())->GetPosition ();
+      NS_LOG_UNCOND ("$node_("<< j << ") set X_ " << p.x);
+      NS_LOG_UNCOND ("$node_("<< j << ") set Y_ " << p.y);
+      NS_LOG_UNCOND ("$node_("<< j << ") set Z_ 0");
+    }
+
+
+
+//  Vector p;
+//  for (NodeContainer::Iterator i = m_nodesContainer.Begin (); i != m_nodesContainer.End (); ++i)
+//    {
+//      p = ((*i)->GetObject<MobilityModel>())->GetPosition ();
+//      NS_LOG_UNCOND ("$node_("<< (*i)->GetId() << ") set X_ " << p.x);
+//      NS_LOG_UNCOND ("$node_("<< (*i)->GetId() << ") set Y_ " << p.y);
+//      NS_LOG_UNCOND ("$node_("<< (*i)->GetId() << ") set Z_ 0");
+////      NS_LOG_UNCOND ("positionAlloc->Add (Vector (" << p.x <<"," <<p.y<<","<<"0));");
+//    }
+}
+
 
 void
 GpsrExample::Run ()
@@ -246,6 +383,11 @@ GpsrExample::Run ()
       GpsrHelper gpsr;
       gpsr.Install (m_mbr);
     }
+  if(m_routingProtocol == GEOSVR)
+    {
+      GeosvrHelper geosvr;
+      geosvr.Install (m_mbr);
+    }
 
   SetupRoutingMessages(m_nodesContainer, dataInterfaces);
   
@@ -256,18 +398,41 @@ GpsrExample::Run ()
 
   std::cout << "Starting simulation for " << totalTime << " s ...\n";
 
+//  if (m_mbr)
+//    {
+//      Config::ConnectWithoutContext ("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Mac/RelayedPktNum", MakeCallback (&IntTrace));
+//    }
+//  Config::ConnectWithoutContext ("/NodeList/*/DeviceList/0/$ns3::WifiNetDevice/Phy/PhyRxDrop", MakeCallback (&LossPktTrace));
 
-  if (m_mbr)
-    {
-      Config::ConnectWithoutContext ("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Mac/RelayedPktNum", MakeCallback (&IntTrace));
-    }
+  Config::ConnectWithoutContext ("/NodeList/*/$ns3::gpsr::RoutingProtocol/RecoveryCount", MakeCallback (&GpsrRecPktTrace));
+  Config::ConnectWithoutContext ("/NodeList/*/$ns3::gpsr::RoutingProtocol/DropPkt", MakeCallback (&GpsrDropPktTrace));
+  Config::ConnectWithoutContext ("/NodeList/*/$ns3::aodv::RoutingProtocol/RreqTimeoutCount", MakeCallback (&IntTrace));
+
+  mbr::MbrRoute::setRelayedPktNum(0);
+  mbr::MbrRoute::setNoNeighborPktNum(0);
+  mbr::MbrRoute::setMaxd(m_maxd);
+  mbr::MbrRoute::setMind(m_mind);
 
   CheckThroughput();
+
+//  Simulator::Schedule (Seconds (2.0), &GpsrExample::OutputTrace, this);
+//  Simulator::Schedule (Seconds (4.0), &GpsrExample::OutputNeighbor, this);
 
   Simulator::Stop (Seconds (totalTime));
   Simulator::Run ();
 
   flowMonitor->SerializeToXmlFile(m_flowOutFile,true,true);
+
+  for (std::map<int,int>::iterator it = m_distanceMap.begin(); it != m_distanceMap.end(); it++)
+    {
+      std::ofstream out (m_distanceOutFile, std::ios::app);
+
+      out <<std::setw(6)<< it->first << "  "
+          <<std::setw(6)<< it->second << " "
+          << std::endl;
+      out.close ();
+    }
+
 
   Simulator::Destroy ();
 }
@@ -347,7 +512,7 @@ GpsrExample::CreateDevices ()
     }
 
   if (m_loadBuildings == 1) {
-    wifiChannel2.AddPropagationLoss ("ns3::ObstacleShadowingPropagationLossModel", "ForBeacon", UintegerValue(0));
+    wifiChannel2.AddPropagationLoss ("ns3::ObstacleShadowingPropagationLossModel", "ForBeacon", UintegerValue(0), "MaxDistance", UintegerValue(200));
     //wifiChannel2.AddPropagationLoss ("ns3::NakagamiPropagationLossModel");
   }
   else
@@ -390,7 +555,7 @@ GpsrExample::CreateDevices ()
       wifiChannel.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
       // two-ray requires antenna height (else defaults to Friss)
       wifiChannel.AddPropagationLoss (m_lossModelName, "Frequency", DoubleValue (freq), "HeightAboveZ", DoubleValue (1.5));
-      wifiChannel.AddPropagationLoss ("ns3::ObstacleShadowingPropagationLossModel", "ForBeacon", UintegerValue(0), "IsSub1G", UintegerValue(0));
+      wifiChannel.AddPropagationLoss ("ns3::ObstacleShadowingPropagationLossModel", "ForBeacon", UintegerValue(m_sub1g), "MaxDistance", UintegerValue(200));
       Ptr<YansWifiChannel> channel0 = wifiChannel.Create ();
       YansWifiPhyHelper wifiPhy =  YansWifiPhyHelper::Default ();
       wifiPhy.SetChannel (channel0);
@@ -430,7 +595,18 @@ GpsrExample::InstallInternetStack ()
     case (AODV):
     {
       AodvHelper aodv;
-      aodv.Set("Mbr", UintegerValue (1));
+      aodv.Set("Mbr", UintegerValue (m_mbr));
+      aodv.Set("HelloInterval", TimeValue (Seconds (0.5)));
+      //aodv.Set("TtlThreshold", UintegerValue (40));
+      //aodv.Set("TtlStart", UintegerValue (3));
+      aodv.Set("TtlStart", UintegerValue (1));
+      aodv.Set("TtlIncrement", UintegerValue (2));
+      aodv.Set("NodeTraversalTime", TimeValue (MilliSeconds (100)));
+      aodv.Set("RreqRetries", UintegerValue (20));
+      aodv.Set("RreqRateLimit", UintegerValue (30));
+
+      aodv.Set("AllowedHelloLoss", UintegerValue (3));
+      aodv.Set("DestinationOnly", BooleanValue (true));
       //Ptr<OutputStreamWrapper> routingStream = Create<OutputStreamWrapper> ("aodv.routes", std::ios::out);
 
       //AsciiTraceHelper ascii;
@@ -445,8 +621,18 @@ GpsrExample::InstallInternetStack ()
     case (GPSR):
     {
       GpsrHelper gpsr;
+      gpsr.Set("HelloInterval", TimeValue (Seconds (0.25)));
       // you can configure GPSR attributes here using gpsr.Set(name, value)
       stack.SetRoutingHelper (gpsr);
+      stack.Install (m_nodesContainer);
+      break;
+    }
+    case (GEOSVR):
+    {
+      GeosvrHelper geosvr;
+      //geosvr.Set("HelloInterval", TimeValue (Seconds (0.25)));
+      // you can configure GPSR attributes here using gpsr.Set(name, value)
+      stack.SetRoutingHelper (geosvr);
       stack.Install (m_nodesContainer);
       break;
     }
@@ -472,9 +658,11 @@ GpsrExample::InstallApplications ()
 			      dataInterfaces,
 			      beaconDevices,
 			      dataDevices,
+			      Seconds(((m_startTime-4)<0)?0:(m_startTime-4)),//Seconds(10),//
 			      Seconds (totalTime),//Seconds(4),//
 			      100,//m_wavePacketSize,
 			      Seconds (0.25),//m_waveInterval
+			      Seconds (1),//m_waveExpire
 			      // GPS accuracy (i.e, clock drift), in number of ns
 			      40,//m_gpsAccuracyNs,
 			      // tx max delay before transmit, in ms
@@ -509,17 +697,16 @@ GpsrExample::SetupScenario()
   else if (m_scenario == 2)
     {
       m_mobility = 2; //static relay
-      m_nNodes = 3;
+      m_nNodes = 2;
       totalTime = 10;
       m_nSinks = 1;
       m_lossModel = 3; // two-ray ground
 
-      //m_mbr = true;
-      m_netFileString = "/home/wu/workspace/ns-3/ns-3.26/src/wave/examples/20170831/output.net.xml";
-
+      m_netFileString = "src/wave/examples/9gong/output.net.xml";
+      m_osmFileString = "";
       if (m_loadBuildings != 0)
         {
-          std::string bldgFile = "/home/wu/workspace/ns-3/ns-3.26/src/wave/examples/20170831/buildings.xml";
+          std::string bldgFile = "src/wave/examples/9gong/buildings.xml";
           NS_LOG_UNCOND ("Loading buildings file " << bldgFile);
           Topology::LoadBuildings(bldgFile);
         }
@@ -567,9 +754,9 @@ GpsrExample::SetupScenario()
       m_traceFile = "src/wave/examples/newyork/newyorkmobility.ns2";
 
       m_mobility = 1;
-      m_nNodes = 600;
+      //m_nNodes = 50;
       //totalTime = 30;
-      m_nSinks = 300;
+      //m_nSinks = 25;
       m_lossModel = 3; // two-ray ground
       //m_mbr = true;
       m_netFileString = "src/wave/examples/newyork/output.net.xml";
@@ -581,6 +768,175 @@ GpsrExample::SetupScenario()
           Topology::LoadBuildings(bldgFile);
         }
 
+      if (m_startTime < 1)
+	m_startTime = 1;
+    }
+  else if (m_scenario == 6)
+    {
+      m_traceFile = "src/wave/examples/9gong/9gong.ns2";
+
+      char snodes[5];
+      sprintf(snodes, "%d", m_nNodes);
+      m_flowOutFile = m_outputPrefix;
+      m_flowOutFile.append(m_routingProtocolStr);
+      if(m_openRelay)
+	{
+	  m_flowOutFile.append("-relay-");
+	}
+      else
+	{
+	  m_flowOutFile.append("-norelay-");
+	}
+      m_flowOutFile.append(snodes);
+      m_flowOutFile.append("nodes-r");
+      m_flowOutFile.append(m_round);
+      m_flowOutFile.append("-flow.xml");
+
+
+      m_throughputOutFile = m_outputPrefix;
+      m_throughputOutFile.append(m_routingProtocolStr);
+       if(m_openRelay)
+ 	{
+	   m_throughputOutFile.append("-relay-");
+ 	}
+       else
+ 	{
+	   m_throughputOutFile.append("-norelay-");
+ 	}
+      m_throughputOutFile.append(snodes);
+      m_throughputOutFile.append("nodes-r");
+      m_throughputOutFile.append(m_round);
+      m_throughputOutFile.append(".txt");
+
+      m_distanceOutFile = m_outputPrefix;
+      m_distanceOutFile.append(m_routingProtocolStr);
+       if(m_openRelay)
+ 	{
+	   m_distanceOutFile.append("-relay-");
+ 	}
+       else
+ 	{
+	   m_distanceOutFile.append("-norelay-");
+ 	}
+       m_distanceOutFile.append(snodes);
+       m_distanceOutFile.append("nodes-r");
+       m_distanceOutFile.append(m_round);
+       m_distanceOutFile.append("-distance.txt");
+
+
+      m_mobility = 1;
+      //m_nNodes = 50;
+      //totalTime = 30;
+      //m_nSinks = 25;
+      m_lossModel = 3; // two-ray ground
+      //m_mbr = true;
+      m_netFileString = "src/wave/examples/9gong/output.net.xml";
+      m_osmFileString = "";
+      if (m_loadBuildings != 0)
+        {
+          std::string bldgFile = "src/wave/examples/9gong/buildings.xml";
+          NS_LOG_UNCOND ("Loading buildings file " << bldgFile);
+          Topology::LoadBuildings(bldgFile);
+        }
+
+      if (m_startTime < 1)
+	m_startTime = 1;
+    }
+  else if (m_scenario == 7)
+    {
+      m_traceFile = "src/wave/examples/9gong/static.ns2";
+
+      m_mobility = 1;
+//      m_nNodes = 466;
+      //totalTime = 30;
+      //m_nSinks = 1;
+      m_lossModel = 3; // two-ray ground
+      //m_mbr = true;
+      m_netFileString = "src/wave/examples/9gong/output.net.xml";
+      m_osmFileString = "";
+      if (m_loadBuildings != 0)
+        {
+          std::string bldgFile = "src/wave/examples/9gong/non-buildings.xml";
+          NS_LOG_UNCOND ("Loading buildings file " << bldgFile);
+          Topology::LoadBuildings(bldgFile);
+        }
+
+      if (m_startTime < 1)
+	m_startTime = 1;
+    }
+  else if (m_scenario == 8)
+    {
+      m_traceFile = "src/wave/examples/9gong/static-";
+      m_traceFile.append(m_round);//1, 2, 3
+      m_traceFile.append(".ns2");
+
+      char snodes[5];
+      sprintf(snodes, "%d", m_nNodes);
+      m_flowOutFile = m_outputPrefix;
+      m_flowOutFile.append(m_routingProtocolStr);
+      if(m_openRelay)
+	{
+	  m_flowOutFile.append("-relay-");
+	}
+      else
+	{
+	  m_flowOutFile.append("-norelay-");
+	}
+      m_flowOutFile.append(snodes);
+      m_flowOutFile.append("nodes-r");
+      m_flowOutFile.append(m_round);
+      m_flowOutFile.append("-flow.xml");
+
+
+      m_throughputOutFile = m_outputPrefix;
+      m_throughputOutFile.append(m_routingProtocolStr);
+       if(m_openRelay)
+ 	{
+	   m_throughputOutFile.append("-relay-");
+ 	}
+       else
+ 	{
+	   m_throughputOutFile.append("-norelay-");
+ 	}
+      m_throughputOutFile.append(snodes);
+      m_throughputOutFile.append("nodes-r");
+      m_throughputOutFile.append(m_round);
+      m_throughputOutFile.append(".txt");
+
+
+      m_distanceOutFile = m_outputPrefix;
+      m_distanceOutFile.append(m_routingProtocolStr);
+       if(m_openRelay)
+ 	{
+	   m_distanceOutFile.append("-relay-");
+ 	}
+       else
+ 	{
+	   m_distanceOutFile.append("-norelay-");
+ 	}
+       m_distanceOutFile.append(snodes);
+       m_distanceOutFile.append("nodes-r");
+       m_distanceOutFile.append(m_round);
+       m_distanceOutFile.append("-distance.txt");
+
+
+      m_mobility = 1;
+//      m_nNodes = 466;
+      //totalTime = 30;
+      //m_nSinks = 1;
+      m_lossModel = 3; // two-ray ground
+      //m_mbr = true;
+      m_netFileString = "src/wave/examples/9gong/output.net.xml";
+      m_osmFileString = "";
+      if (m_loadBuildings != 0)
+        {
+          std::string bldgFile = "src/wave/examples/9gong/buildings.xml";
+          NS_LOG_UNCOND ("Loading buildings file " << bldgFile);
+          Topology::LoadBuildings(bldgFile);
+        }
+
+      if (m_startTime < 1)
+	m_startTime = 1;
     }
 }
 void
@@ -595,16 +951,11 @@ GpsrExample::SetupAdhocMobilityNodes ()
   else if (m_mobility == 2)
     {
       MobilityHelper mobility;
-      // place two nodes at specific positions (100,0) and (0,100)
       Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator> ();
-      positionAlloc->Add (Vector (3, 467, 0)); //0
-      positionAlloc->Add (Vector (0, 586, 0));
-//      positionAlloc->Add (Vector (30, 588, 0));
-//      positionAlloc->Add (Vector (85, 593, 0));
-//      positionAlloc->Add (Vector (154, 596, 0));
-      positionAlloc->Add (Vector (249, 600, 0));
+      positionAlloc->Add (Vector (601, 314, 0));
+      positionAlloc->Add (Vector (531, 313, 0));
 
-//      positionAlloc->Add (Vector (386, 453, 0));
+
 
       mobility.SetPositionAllocator(positionAlloc);
       mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
@@ -624,9 +975,13 @@ GpsrExample::SetupAdhocMobilityNodes ()
       positionAlloc->Add (Vector (249, 600, 0));
       positionAlloc->Add (Vector (293, 608, 0));
 
+      //positionAlloc->Add (Vector (310, 607, 0));//plus0
+
       positionAlloc->Add (Vector (325, 612, 0));
       positionAlloc->Add (Vector (373, 612, 0));//re 8
       positionAlloc->Add (Vector (375, 576, 0));
+      positionAlloc->Add (Vector (375, 568, 0));//plus1
+      //positionAlloc->Add (Vector (375, 558, 0));//plus2
 
       positionAlloc->Add (Vector (375, 544, 0));
       positionAlloc->Add (Vector (386, 453, 0));
@@ -648,9 +1003,46 @@ GpsrExample::SetupAdhocMobilityNodes ()
 
       positionAlloc->Add (Vector (795, 57, 0));
       positionAlloc->Add (Vector (780, 120, 0)); //25
+
       mobility.SetPositionAllocator(positionAlloc);
       mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
       mobility.Install (m_nodesContainer);
+    }
+  else if (m_mobility == 4)
+    {
+      MobilityHelper mobility;
+      // place two nodes at specific positions (100,0) and (0,100)
+      Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator> ();
+//      positionAlloc->Add (Vector (301, 721, 0)); //0
+//      positionAlloc->Add (Vector (916, 316, 0));
+
+      mobility.SetPositionAllocator(positionAlloc);
+      mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+      mobility.Install (m_nodesContainer);
+    }
+
+  if (m_rsu)
+    {
+      //Install RSUs
+      Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator> ();
+      positionAlloc->Add (Vector (1, 895, 0));
+      positionAlloc->Add (Vector (304, 893, 0));
+      positionAlloc->Add (Vector (605, 900, 0));
+      positionAlloc->Add (Vector (901, 897, 0));
+      positionAlloc->Add (Vector (2, 602, 0));
+      positionAlloc->Add (Vector (302, 604, 0));
+      positionAlloc->Add (Vector (602, 602, 0));
+      positionAlloc->Add (Vector (908, 598, 0));
+      positionAlloc->Add (Vector (7, 309, 0));
+      positionAlloc->Add (Vector (307, 310, 0));
+      positionAlloc->Add (Vector (610, 313, 0));
+      positionAlloc->Add (Vector (915, 314, 0));
+      positionAlloc->Add (Vector (15, 1, 0));
+      positionAlloc->Add (Vector (313, 7, 0));
+      positionAlloc->Add (Vector (615, 5, 0));
+      positionAlloc->Add (Vector (915, 11, 0));
+
+      InstallRSU(m_nodesContainer, 16, positionAlloc);
     }
 }
 
@@ -666,7 +1058,25 @@ GpsrExample::SetupRoutingMessages (NodeContainer & c,
   Ptr<UniformRandomVariable> var = CreateObject<UniformRandomVariable> ();
   int64_t stream = 2;
   var->SetStream (stream);
-  if (m_scenario != 4 && m_scenario!=2)
+  if (m_scenario == 6)
+    {
+      for (uint32_t i = atoi(m_round.c_str()); i < m_nSinks + atoi(m_round.c_str()); i++)
+	{
+
+	  Ptr<Socket> sink = SetupRoutingPacketReceive (adhocTxInterfaces.GetAddress (i), c.Get (i));
+
+
+	  AddressValue remoteAddress (InetSocketAddress (adhocTxInterfaces.GetAddress (i), m_port));
+	  onoff1.SetAttribute ("Remote", remoteAddress);
+	  onoff1.SetAttribute ("PacketSize", UintegerValue (m_pktSize));
+	  onoff1.SetAttribute ("DataRate", DataRateValue(DataRate ("50kb/s")));
+
+	  ApplicationContainer temp = onoff1.Install (c.Get (i + m_nSinks));
+	  temp.Start (Seconds (m_startTime));//var->GetValue (1.0,2.0)));
+	  temp.Stop (Seconds (totalTime));
+	}
+    }
+  else if (m_scenario != 4 && m_scenario!=2)
     {
       for (uint32_t i = 0; i < m_nSinks; i++)
 	{
@@ -676,13 +1086,15 @@ GpsrExample::SetupRoutingMessages (NodeContainer & c,
 
 	  AddressValue remoteAddress (InetSocketAddress (adhocTxInterfaces.GetAddress (i), m_port));
 	  onoff1.SetAttribute ("Remote", remoteAddress);
+	  onoff1.SetAttribute ("PacketSize", UintegerValue (m_pktSize));
+	  onoff1.SetAttribute ("DataRate", DataRateValue(DataRate ("50kb/s")));
 
 	  ApplicationContainer temp = onoff1.Install (c.Get (i + m_nSinks));
-	  temp.Start (Seconds (var->GetValue (1.0,2.0)));
+	  temp.Start (Seconds (m_startTime));//var->GetValue (1.0,2.0)));
 	  temp.Stop (Seconds (totalTime));
 	}
     }
-  else if (m_scenario == 4 || m_scenario == 2)
+  else
     {
 //      for (uint32_t i = 1; i <= m_nSinks; i++)
 //	{
@@ -695,29 +1107,30 @@ GpsrExample::SetupRoutingMessages (NodeContainer & c,
 //	  temp.Stop (Seconds (totalTime));
 //	}
 
-	Ptr<Socket> sink = SetupRoutingPacketReceive (adhocTxInterfaces.GetAddress (m_nSinks), c.Get (m_nSinks));
+/*	Ptr<Socket> sink = SetupRoutingPacketReceive (adhocTxInterfaces.GetAddress (m_nSinks), c.Get (m_nSinks));
 	AddressValue remoteAddress (InetSocketAddress (adhocTxInterfaces.GetAddress (m_nSinks), m_port));
 	onoff1.SetAttribute ("Remote", remoteAddress);
 	onoff1.SetAttribute ("PacketSize", UintegerValue (m_pktSize));
+	onoff1.SetAttribute ("DataRate", DataRateValue(DataRate ("50kb/s")));
 
-	ApplicationContainer temp = onoff1.Install (c.Get (0));
-	temp.Start (Seconds (var->GetValue (1.0,2.0)));
+	ApplicationContainer temp = onoff1.Install (c.Get (4));
+	temp.Start (Seconds (m_startTime));//temp.Start (Seconds (var->GetValue (1.0,2.0)));
 	temp.Stop (Seconds (totalTime));
-
+*/
 //      UdpEchoServerHelper echoServer (9);
 //    // 0 --- 2 --- 1
-//      ApplicationContainer serverApps = echoServer.Install (c.Get (13));
+//      ApplicationContainer serverApps = echoServer.Install (c.Get (9));
 //      serverApps.Start (Seconds (1.0));
-//      serverApps.Stop (Seconds (10.0));
+//      serverApps.Stop (Seconds (totalTime));
 //
-//      UdpEchoClientHelper echoClient (adhocTxInterfaces.GetAddress (13), 9); //Data interface
+//      UdpEchoClientHelper echoClient (adhocTxInterfaces.GetAddress (9), 9); //Data interface
 //      echoClient.SetAttribute ("MaxPackets", UintegerValue (1));
 //      echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
-//      echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
+//      echoClient.SetAttribute ("PacketSize", UintegerValue (1424));
 //
-//      ApplicationContainer clientApps = echoClient.Install (c.Get (0));
-//      clientApps.Start (Seconds (6.0));
-//      clientApps.Stop (Seconds (10.0));
+//      ApplicationContainer clientApps = echoClient.Install (c.Get (4));
+//      clientApps.Start (Seconds (m_startTime));
+//      clientApps.Stop (Seconds (totalTime));
     }
 }
 Ptr<Socket>
@@ -740,29 +1153,81 @@ GpsrExample::CheckThroughput ()
 
   std::ofstream out (m_throughputOutFile, std::ios::app);
 
-  out << (Simulator::Now ()).GetSeconds () << ","
-      << kbs << ","
-      << packetsReceived << ","
-      << relayedPktNum << ","
+  out << (Simulator::Now ()).GetSeconds () << " "
+      <<std::setw(6)<< kbs << " "
+      <<std::setw(6)<< packetsReceived << " "
+      <<std::setw(4)<< mbr::MbrRoute::getRelayedPktNum()  << " "
+      << "noNb:" << mbr::MbrRoute::getNoNeighborPktNum()<< ","
+      << "gpsrRec: " << gpsrRecPktTrace << ","
+      << "aodvRreqFail:" << rreqTimeoutCount << ","
       << m_nSinks << ","
       << m_txp << ""
       << std::endl;
 
+
   out.close ();
-  relayedPktNum = 0;
+  mbr::MbrRoute::setNoNeighborPktNum(0);
+  mbr::MbrRoute::setRelayedPktNum(0);
   packetsReceived = 0;
+  gpsrRecPktTrace = 0;
+  rreqTimeoutCount = 0;
   Simulator::Schedule (Seconds (1.0), &GpsrExample::CheckThroughput, this);
 }
 
+static Vector
+GetPosition(Ipv4Address adr)
+{
+  uint32_t n = NodeList().GetNNodes ();
+  uint32_t i;
+  Ptr<Node> node;
+
+  //NS_LOG_UNCOND("Position of " << adr);
+
+  for(i = 0; i < n; i++)
+    {
+      node = NodeList().GetNode (i);
+      Ptr<Ipv4> ipv4 = node->GetObject<Ipv4> ();
+
+      //NS_LOG_UNCOND("Have " << ipv4->GetAddress (1, 0).GetLocal ());
+      if(ipv4->GetAddress (1, 0).GetLocal () == adr)
+	{
+	  return (*node->GetObject<MobilityModel>()).GetPosition ();
+	}
+    }
+  Vector v;
+  return v;
+}
+static double
+CalDistance (const Vector &a, const Vector &b)
+{
+  NS_LOG_FUNCTION (a << b);
+  double dx = b.x - a.x;
+  double dy = b.y - a.y;
+  double distance = std::sqrt (dx * dx + dy * dy);
+  return distance;
+}
 void
 GpsrExample::ReceiveRoutingPacket (Ptr<Socket> socket)
 {
   Ptr<Packet> packet;
+  Vector vsrc, vdst;
+  int dis;
   Address srcAddress;
   while ((packet = socket->RecvFrom (srcAddress)))
     {
+      Ipv4Address adr;
+      InetSocketAddress ss(adr);
+      ss.ConvertFrom(srcAddress);
+      adr = ss.GetIpv4();
+
       bytesTotal += packet->GetSize ();
       packetsReceived += 1;
-      //NS_LOG_UNCOND (PrintReceivedPacket (socket, packet, senderAddress));
+      NS_LOG_LOGIC ("Packet Received");
+      vsrc = GetPosition(adr);
+      vdst = socket->GetNode()->GetObject<MobilityModel>()->GetPosition ();
+      dis = (int)CalDistance(vsrc, vdst);
+
+      m_distanceMap[dis]++;
+//      NS_LOG_UNCOND (PrintReceivedPacket (socket, packet, senderAddress));
     }
 }

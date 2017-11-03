@@ -100,6 +100,7 @@ public:
                 Time totalTime,          // seconds
                 uint32_t wavePacketSize, // bytes
                 Time waveInterval,       // seconds
+		Time waveExpire,	// seconds
                 double gpsAccuracyNs,    // clock drift range in number of ns
                 Time txMaxDelay,       // max delay prior to transmit
 		std::string netFileString,

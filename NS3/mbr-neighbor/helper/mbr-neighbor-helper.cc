@@ -79,6 +79,7 @@ MbrNeighborHelper::Install (Ipv4InterfaceContainer & i,
                         Time totalTime,          // seconds
                         uint32_t wavePacketSize, // bytes
                         Time waveInterval,       // seconds
+			Time waveExpire,       // seconds
                         double gpsAccuracyNs,    // clock drift range in number of ns
                         Time txMaxDelay,        // max delay prior to transmit
 			std::string netFileString,
@@ -109,6 +110,7 @@ MbrNeighborHelper::Install (Ipv4InterfaceContainer & i,
 		        totalTime,
 		        wavePacketSize,
 		        waveInterval,
+			waveExpire,
 		        gpsAccuracyNs,
 		        &nodesMoving,
 		        txMaxDelay);

@@ -32,6 +32,7 @@ public:
 			  Time totalTime,
 			  uint32_t wavePacketSize, // bytes
 			  Time waveInterval,
+			  Time waveExpire,
 			  double gpsAccuracyNs,
 			  std::vector<int> * nodesMoving,
 			  Time txDelay);
@@ -131,6 +132,7 @@ private:
   uint32_t m_wavePacketSize; // bytes
   uint32_t m_numWavePackets;
   Time m_waveInterval;
+  Time m_waveExpire;
   double m_gpsAccuracyNs;
   Ipv4InterfaceContainer * m_beaconInterfaces;
   Ipv4InterfaceContainer * m_dataInterfaces;
