@@ -11,6 +11,7 @@
 #include "ns3/nstime.h"
 #include "ns3/vector.h"
 
+
 namespace ns3 {
 namespace geoSVR {
 
@@ -124,7 +125,7 @@ public:
                     double         sy = 0,
                     double         dx = 0,
                     double         dy = 0,
-                    char           *path = NULL);
+                    uint8_t      *path = NULL);
               
 
   // Header serialization/deserialization
@@ -155,7 +156,7 @@ public:
   void SetDy (double dy) { m_dy = dy; }
   double GetDy () const { return m_dy; }
 
-  char* GetPath() const { return m_path;}
+  uint8_t* GetPath() const { return m_path;}
 
 
   bool encode_path(const std::vector<int>& paths);
@@ -174,7 +175,7 @@ private:
   double          m_sy;
   double          m_dx;
   double          m_dy;
-  char           *m_path;
+  uint8_t       *m_path;
 // char           app[0];
 };
 

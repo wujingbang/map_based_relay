@@ -403,7 +403,7 @@ MsvrMap::getPaths(double x1, double y1, double x2, double y2)
         }
     }
 
-    int path_point1, path_point2, dst_point1, dst_point2, temp;
+    int path_point1, path_point2, dst_point1, dst_point2, temp, flag = 0;
     path_point1 = res.at(res.size()-1);
     res.pop_back();
     path_point2 = res.at(res.size()-1);
@@ -420,8 +420,12 @@ MsvrMap::getPaths(double x1, double y1, double x2, double y2)
             {
                 dst_point1 = map_[*vi].id_;
                 dst_point2 = map_[*ai].id_;
+                flag = 1;
+                break;
             }
         }
+        if(flag)
+        	break;
     }
     if((path_point1 == dst_point1 && path_point2 == dst_point2) || (path_point1 == dst_point2 && path_point2 == dst_point1))
     	return res;
@@ -440,35 +444,54 @@ MsvrMap::getSrcAndDst(double x1, double y1, double x2, double y2)
 {
     std::pair<int, int> path;
     Road srcRoad, dstRoad;
-    double x, y;
+//    double x, y;
     //int temp = 0;//标志变量,先算第一个点的, 再算第二个点
 
     srcRoad = getRoadByPos(x1, y1);
     dstRoad = getRoadByPos(x2, y2);
 
     graph_traits<Map>::edge_iterator ei, eend;
+
+    if(srcRoad.id_ == dstRoad.id_)
+    {
+    	for (tie(ei, eend) = edges(map_); ei != eend; ++ei)
+    	{
+    	    if ( map_[*ei].id_ == srcRoad.id_)
+    	    {
+    	    	vertex_descriptor srcVer = source(*ei, map_);
+    	    	vertex_descriptor dstVer = target(*ei, map_);
+    	        double srclen1 = msvr_cal_dist(map_[srcVer].x_, map_[srcVer].y_, x1, y1);
+    	        double srclen2 = msvr_cal_dist(map_[srcVer].x_, map_[srcVer].y_, x2, y2);
+    	        if( srclen1 < srclen2 )
+    	        {
+    	        	path.first =  map_[srcVer].id_;
+    	        	path.second = map_[dstVer].id_;
+    	        }
+    	        else
+    	        {
+    	        	path.first =  map_[dstVer].id_;
+    	        	path.second = map_[srcVer].id_;
+    	        }
+    	        return path;
+    	    }
+    	}
+    }
+
     for (tie(ei, eend) = edges(map_); ei != eend; ++ei) {
         // get src node id
         if ( map_[*ei].id_ == srcRoad.id_) {
             vertex_descriptor srcVer = source(*ei, map_);
             vertex_descriptor dstVer = target(*ei, map_);
             double srclen = msvr_cal_dist(map_[srcVer].x_,
-                                map_[srcVer].y_, x1, y1);
+                                map_[srcVer].y_, x2, y2);
             double dstlen = msvr_cal_dist(map_[dstVer].x_,
-                                map_[dstVer].y_, x1, y1);
+                                map_[dstVer].y_, x2, y2);
 
             /*if (srclen > dstlen)*/
-            if (srclen < dstlen) {
+            if (srclen < dstlen)
                 path.first = map_[srcVer].id_;
-                x = map_[srcVer].x_;
-                y = map_[srcVer].y_;
-            } else {
+            else
                 path.first = map_[dstVer].id_;
-                x = map_[dstVer].x_;
-                y = map_[dstVer].y_;
-            }
-            //temp = 1;
-            //tie(ei,eend)=edges(map_);
             break;
         }
     }
@@ -477,30 +500,31 @@ MsvrMap::getSrcAndDst(double x1, double y1, double x2, double y2)
         if ( map_[*ei].id_ == dstRoad.id_) {
             vertex_descriptor srcVer = source(*ei, map_);
             vertex_descriptor dstVer = target(*ei, map_);
-            if(x > 2000 || x < 0 || y > 2000 || y < 0)
-            {
-            	fprintf(stderr , "getSrcAndDst x: %lf--y:%lf\n",x,y);
-                exit(0);
-            }
+//            if(x > 2000 || x < 0 || y > 2000 || y < 0)
+//            {
+//            	fprintf(stderr , "getSrcAndDst x: %lf--y:%lf\n",x,y);
+//                exit(0);
+//            }
 //            double srclen = msvr_cal_dist(map_[srcVer].x_, map_[srcVer].y_, x, y);
 //            double dstlen = msvr_cal_dist(map_[dstVer].x_, map_[dstVer].y_, x, y);
 
-              double srclen = msvr_cal_dist(map_[srcVer].x_, map_[srcVer].y_, x2, y2);
-              double dstlen = msvr_cal_dist(map_[dstVer].x_, map_[dstVer].y_, x2, y2);
+            double srclen = msvr_cal_dist(map_[srcVer].x_, map_[srcVer].y_, x1, y1);
+            double dstlen = msvr_cal_dist(map_[dstVer].x_, map_[dstVer].y_, x1, y1);
             // check src and dst node is in the same roadid
             // if so, save src and dst id respectly
             // if no so, check distance to save node id
-            if (path.first == map_[srcVer].id_)
-                path.second = map_[dstVer].id_;
-            else if (path.first == map_[dstVer].id_)
+            if (srclen < dstlen)
                 path.second = map_[srcVer].id_;
-//            else if (srclen > dstlen)
-            else if (srclen < dstlen)
-                //path.second = map_[dstVer].id_;
-				path.second = map_[srcVer].id_;
             else
-                //path.second = map_[srcVer].id_;
-				path.second = map_[dstVer].id_;
+            	path.second = map_[dstVer].id_;
+
+            if (path.first == path.second)
+            {
+            	if(path.second == map_[srcVer].id_)
+            		path.second = map_[dstVer].id_;
+            	else
+            		path.second = map_[srcVer].id_;
+            }
             break;
         }
     }

@@ -21,16 +21,19 @@ public:
   virtual void Deserialize (TagBuffer i);
   virtual void Print (std::ostream &os) const;
 
-	char* GetPath() {
-		return m_path;
+	void GetPath(uint8_t** path) {
+	  *path = (uint8_t*)malloc(m_path_vector.size() + 1);
+	  for (uint32_t i=0; i< m_path_vector.size(); i++)
+	    (*path)[i] = (uint8_t)(m_path_vector[i]);
 	}
 
-	void SetPath(char* path) {
+	void SetPath(uint8_t* path) {
 		m_path = path;
 	}
 
 private:
-    char *m_path;
+uint8_t *m_path;
+  std::vector<int> m_path_vector;
 };
 
 }

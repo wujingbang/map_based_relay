@@ -19,6 +19,7 @@
 #include <limits>
 #include <iostream>
 #include <stdio.h>
+#include <string>
 
 
 #define GEOSVR_LS_GOD 0
@@ -703,20 +704,19 @@ RoutingProtocol::AddHeaders (Ptr<Packet> p, Ipv4Address source, Ipv4Address dest
     dstPos.y = 0;
   }
   uint32_t length, m = 1, t = 2, c = 1;
-  char *enpaths = NULL;
+  uint8_t  *enpaths = NULL;
   geoSVR::geoSVRTag tag;
-  bool findtag = p->PeekPacketTag(tag);
+  bool findtag = p->FindFirstMatchingByteTag(tag);
   if(findtag)
   {
-    enpaths = tag.GetPath();
-    p->RemovePacketTag(tag);
+    tag.GetPath(&enpaths);
+    p->RemoveAllByteTags();
   }
-  if(enpaths == NULL)
-	  length = 0;
+  if (enpaths == NULL) //MBR
+    length = 0;
   else
-  {
-	  length = enpaths[0];
-  }
+    length = (uint32_t)(enpaths[0]);
+
   DatapacketHeader hdr (length, m, t, c, srcPos.x, srcPos.y, dstPos.x, dstPos.y, enpaths);
   p->AddHeader (hdr);
   TypeHeader tHeader (GEOSVRTYPE_DATAPACKET);
@@ -789,6 +789,9 @@ RoutingProtocol::Forwarding (Ptr<const Packet> packet, const Ipv4Header & header
       std::vector<int> paths;
       hdr.decode_path(paths);
 
+      if (paths.size() > 2 &&  m_map.getRoadByPos(relayPos.x, relayPos.y).id_ ==  m_map.getRoadByNode(paths[0], paths[1]))
+           paths.erase(paths.begin());
+
       if (paths.size() < 2)
       {
 	NS_LOG_DEBUG ("path size is less than 2!");
@@ -819,9 +822,6 @@ RoutingProtocol::Forwarding (Ptr<const Packet> packet, const Ipv4Header & header
 //              m_map.getRoadByPos(nextPos.x, nextPos.y).id_ &&
 //              m_map.getRoadByPos(relayPos.x, relayPos.y).id_ ==
 //              m_map.getRoadByNode(paths[0], paths[1]))
-
-          if (paths.size() > 2 &&  m_map.getRoadByPos(relayPos.x, relayPos.y).id_ ==  m_map.getRoadByNode(paths[0], paths[1]))
-               paths.erase(paths.begin());
 
           hdr.encode_path(paths);
           p->AddHeader (hdr);
@@ -905,7 +905,7 @@ RoutingProtocol::RouteOutput (Ptr<Packet> p, const Ipv4Header &header,
     {
       geoSVR::geoSVRTag tag;
       tag.SetPath(NULL);
-      p->AddPacketTag(tag);
+      p->AddByteTag(tag);
 
       route->SetDestination (dst);
       if (header.GetSource () == Ipv4Address ("102.102.102.102"))
@@ -950,7 +950,7 @@ RoutingProtocol::RouteOutput (Ptr<Packet> p, const Ipv4Header &header,
 
   //srcPos = m_locationService->GetPosition (src);
   DatapacketHeader hdr;
-  char *enpaths = NULL;
+  uint8_t *enpaths = NULL;
   std::vector<int> paths;
 
   if(m_neighbors.isNeighbor (dst))
@@ -961,6 +961,10 @@ RoutingProtocol::RouteOutput (Ptr<Packet> p, const Ipv4Header &header,
   else
     {
       paths = m_map.getPaths(srcPos.x, srcPos.y, dstPos.x, dstPos.y);
+
+      if (paths.size() > 2 &&  m_map.getRoadByPos(relayPos.x, relayPos.y).id_ ==  m_map.getRoadByNode(paths[0], paths[1]))
+           paths.erase(paths.begin());
+
       int roadid1 = m_map.getRoadByNode(paths[0], paths[1]), roadid2;
       int myroad = m_map.getRoadByPos(relayPos.x, relayPos.y).id_;
       if(myroad == roadid1 && paths.size() > 2)
@@ -983,9 +987,6 @@ RoutingProtocol::RouteOutput (Ptr<Packet> p, const Ipv4Header &header,
       {
 
         NS_LOG_DEBUG ("Destination: " << dst);
-
-        if (paths.size() > 2 &&  m_map.getRoadByPos(relayPos.x, relayPos.y).id_ ==  m_map.getRoadByNode(paths[0], paths[1]))
-                    paths.erase(paths.begin());
 //        if (m_map.getRoadByNode(paths[0], paths[1]) !=
 //            m_map.getRoadByPos(nextPos.x, nextPos.y).id_ &&
 //            m_map.getRoadByPos(relayPos.x, relayPos.y).id_ ==
@@ -993,7 +994,7 @@ RoutingProtocol::RouteOutput (Ptr<Packet> p, const Ipv4Header &header,
 //            paths.erase(paths.begin());
 
             hdr.encode_path(paths); 
-            enpaths = hdr.GetPath();  
+            enpaths = hdr.GetPath();
       }
     }
 
@@ -1002,7 +1003,7 @@ RoutingProtocol::RouteOutput (Ptr<Packet> p, const Ipv4Header &header,
 
       geoSVR::geoSVRTag tag;
       tag.SetPath(enpaths);
-      p->AddPacketTag(tag);
+      p->AddByteTag(tag);
 
       route->SetDestination (dst);
       if (header.GetSource () == Ipv4Address ("102.102.102.102"))

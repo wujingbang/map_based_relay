@@ -203,7 +203,7 @@ HelloHeader::operator== (HelloHeader const & o) const
 //-----------------------------------------------------------------------------
 DatapacketHeader::DatapacketHeader (uint32_t length, uint32_t m1, uint32_t t1, uint32_t c1,
                                     //uint32_t  m_seq,
-                                    double sx, double sy, double dx, double dy, char  *path) :
+                                    double sx, double sy, double dx, double dy, uint8_t  *path) :
                                     m_length (length), m (m1), t (t1), c (c1), m_sx (sx), m_sy (sy), m_dx (dx), m_dy (dy), m_path (path)
 {
 }
@@ -252,7 +252,7 @@ DatapacketHeader::Serialize (Buffer::Iterator i) const
   for(uint32_t j = 1; j <= m_length; ++j)
 	  i.WriteU8 (m_path[j]);
 
-  free(m_path);
+  free(m_path); //malloc in geoSVRTag::GetPath
 
 }
 
@@ -275,8 +275,8 @@ DatapacketHeader::Deserialize (Buffer::Iterator start)
   memcpy(&m_dy, &dy, 8);
   if(m_length != 0)
   {
-	  m_path = (char *)malloc((m_length+1) * sizeof(char));
-	  m_path[0] = m_length;
+	  m_path = (uint8_t*)malloc((m_length+1) * sizeof(uint8_t));
+	  m_path[0] = (uint8_t)m_length;
 	  for(uint32_t j = 1; j <= m_length; ++j)
 		  m_path[j] = i.ReadU8();
   }
@@ -291,20 +291,19 @@ DatapacketHeader::Deserialize (Buffer::Iterator start)
 bool
 DatapacketHeader::encode_path(const std::vector<int>& paths)
 {
-    char *enpath = NULL;
+    uint8_t *enpath = NULL;
 
-    enpath = (char *)malloc(sizeof(char) * paths.size() * 2);
+    enpath = (uint8_t *)malloc(sizeof(uint8_t) * (paths.size() + 1 ) );
 
-    enpath[0] = paths.size() * 2 - 1;
+    enpath[0] = (uint8_t)paths.size();
 
-    m_length = enpath[0];
+    m_length = (uint32_t)enpath[0];
 
     int i;
     std::vector<int>::const_iterator iter;
     for (i = 1, iter = paths.begin();
-         iter != paths.end(); ++iter, i += 2) {
-        enpath[i] = *iter;
-        enpath[i + 1] = ',';
+         iter != paths.end(); ++iter, ++i) {
+        enpath[i] = (uint8_t)(*iter);
     }
 
     if(m_path != NULL)
@@ -320,14 +319,14 @@ DatapacketHeader::encode_path(const std::vector<int>& paths)
 bool
 DatapacketHeader::decode_path(std::vector<int>& paths)
 {
-    char *enpaths = m_path;
+    uint8_t *enpaths = m_path;
     if(enpaths == NULL)
     	return false;
 
-    int len = enpaths[0];
+    uint32_t len = (uint32_t)enpaths[0];
 
-    for (int i = 1; i <= len; i += 2) {
-        paths.push_back(enpaths[i]);
+    for (uint32_t i = 1; i <= len; ++i) {
+        paths.push_back((int)(enpaths[i]));
     }
 
     return true;

@@ -18,25 +18,53 @@ geoSVRTag::GetInstanceTypeId (void) const
 {
   return GetTypeId ();
 }
+
 uint32_t
 geoSVRTag::GetSerializedSize (void) const
 {
-  return 4;
+  if (m_path == NULL)
+    return 4;
+  else
+    return 4 + m_path[0] * 4;
 }
 void
 geoSVRTag::Serialize (TagBuffer i) const
 {
-  uint32_t path;
-  memcpy(&path, &m_path, 4);
-  i.WriteU32 (path);
+  if (m_path == NULL)
+    {
+      i.WriteU32(0);
+      return;
+    }
+  uint32_t temp = (uint32_t)(m_path[0]);
+  i.WriteU32 (temp);
+  if (m_path[0] != 0)
+    {
+      for (uint32_t j=1; j <= m_path[0]; j++)
+	{
+	  temp = (uint32_t)(m_path[j]);
+	  i.WriteU32 (temp);
+	}
+    }
+  free (m_path);//malloc in the encode_path function.
 }
 void
 geoSVRTag::Deserialize (TagBuffer i)
 {
-	uint32_t path;
-  path = i.ReadU32 ();
-	memcpy(&m_path, &path, 4);
+  uint32_t len = i.ReadU32 ();
+  m_path_vector.clear();
+  m_path_vector.push_back(len);
+  if(len != 0)
+  {
+      for (uint32_t j=1; j<= len; j++)
+	{
+	  uint32_t temp = i.ReadU32 ();
+	  m_path_vector.push_back(temp);
+	}
+
+  }
+
 }
+
 void
 geoSVRTag::Print (std::ostream &os) const
 {

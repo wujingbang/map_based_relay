@@ -259,130 +259,129 @@ Neighbors::find_furthest_nhop(int edgeid1, int edgeid2, double x1, double y1)
 Ipv4Address
 Neighbors::find_next_hop(int edgeid1, int edgeid2, int edgeid3, double x1, double y1, double x2, double y2)
 {
-    Purge();
-    struct msvr_nbentry *res = NULL;
-    double len1 = 200.0;
-    double len2 = msvr_cal_dist(x1, y1, x2, y2);
-    double goal = 200.0;
-    int i;
-    if (m_nbFromMbr)
-      {
-	MsvrMap map;
-	Ipv4Address ipfound = Ipv4Address::GetZero ();
-        Ptr<mbr::MbrNeighborApp> nbapp;
-        for (uint32_t j = 0; j < m_node->GetNApplications (); j++)
-  	{
-  	  nbapp = DynamicCast<mbr::MbrNeighborApp> (m_node->GetApplication(j));
-  	  if (nbapp)
-  	    break;
-  	}
-        NS_ASSERT(nbapp);
-	for (i = 1; i < nbapp->getNb()->GetTableSize(); i++)
-	  {
-	    Vector v = nbapp->getNb()->GetCartesianPosition(i);
-	    int edgeid = map.getRoadByPos(v.x, v.y).id_;
-
-	    if (edgeid == edgeid1) {
-		double tmplen = msvr_cal_dist(x1, y1,
-			v.x, v.y);
-		double dstlen = msvr_cal_dist(x2, y2,
-			v.x, v.y);
-		//printf("teplen: %f dstlen: %f  len1: %f len2: %f\n" , tmplen, dstlen, len1, len2 );
-		if (abs(tmplen - goal) < len1 &&
-		    dstlen < len2) {
-		    len1 = abs(tmplen - goal);
-		    ipfound = nbapp->getNb()->GetIp(i);
-		}
-	    } else if (edgeid2 != -1 &&
-		       edgeid == edgeid2) {
-		double tmplen = msvr_cal_dist(x1, y1,
-			v.x, v.y);
-		double dstlen = msvr_cal_dist(x2, y2,
-			v.x, v.y);
-		//printf("teplen: %f dstlen: %f  len1: %f len2: %f\n" , tmplen, dstlen, len1, len2 );
-		if (abs(tmplen - goal) < len1 &&
-		    dstlen < len2) {
-		    len1 = abs(tmplen - goal);
-		    ipfound = nbapp->getNb()->GetIp(i);
-		}
-	    } else if (edgeid == edgeid3) {
-		double tmplen = msvr_cal_dist(x1, y1,
-			v.x, v.y);
-		double dstlen = msvr_cal_dist(x2, y2,
-			v.x, v.y);
-		//printf("teplen: %f dstlen: %f  len1: %f len2: %f\n" , tmplen, dstlen, len1, len2 );
-		if (abs(tmplen - goal) < len1 &&
-		    dstlen < len2) {
-		    len1 = abs(tmplen - goal);
-		    ipfound = nbapp->getNb()->GetIp(i);
-		}
+  double len1 = 200.0;
+  double len2 = msvr_cal_dist(x1, y1, x2, y2);
+  double goal = 100.0;
+  if (m_nbFromMbr)
+    {
+      MsvrMap map;
+      Ipv4Address ipfound = Ipv4Address::GetZero ();
+      Ptr<mbr::MbrNeighborApp> nbapp;
+      for (uint32_t j = 0; j < m_node->GetNApplications (); j++)
+	{
+	  nbapp = DynamicCast<mbr::MbrNeighborApp> (m_node->GetApplication(j));
+	  if (nbapp)
+	    break;
+	}
+      NS_ASSERT(nbapp);
+      for (int i = 1; i < nbapp->getNb()->GetTableSize(); i++)
+	{
+	  Vector v = nbapp->getNb()->GetCartesianPosition(i);
+	  int edgeid = map.getRoadByPos(v.x, v.y).id_;
+	  if (edgeid == edgeid1)
+	    {
+	      double tmplen = msvr_cal_dist(x1, y1, v.x, v.y);
+	      double dstlen = msvr_cal_dist(x2, y2, v.x, v.y);
+	      if (abs(tmplen - goal) < len1 &&
+		  dstlen < len2) {
+		  len1 = abs(tmplen - goal);
+		  ipfound = nbapp->getNb()->GetIp(i);
+	      }
 	    }
+	   else if (edgeid2 != -1 && edgeid == edgeid2)
+	     {
+		double tmplen = msvr_cal_dist(x1, y1, v.x, v.y);
+		double dstlen = msvr_cal_dist(x2, y2, v.x, v.y);
+		if (abs(tmplen - goal) < len1 && dstlen < len2)
+		  {
+		    len1 = abs(tmplen - goal);
+		    ipfound = nbapp->getNb()->GetIp(i);
+		  }
+	     }
+	   else if (edgeid == edgeid3)
+	     {
+		double tmplen = msvr_cal_dist(x1, y1,
+			v.x, v.y);
+		double dstlen = msvr_cal_dist(x2, y2,
+			v.x, v.y);
+		if (abs(tmplen - goal) < len1 &&  dstlen < len2)
+		  {
+		    len1 = abs(tmplen - goal);
+		    ipfound = nbapp->getNb()->GetIp(i);
+		  }
+	     }
 	  }
 	  return ipfound;
+    }
+  else
+    {
 
-      }
-    else
-      {
-	for (std::list<msvr_nbentry>::iterator iter = nbl.begin();
-	     iter != nbl.end(); ++iter) {
+      Purge();
+      struct msvr_nbentry *res = NULL;
 
-	    if (iter->nbe_ninfo.edgeid == edgeid1) {
-		double tmplen = msvr_cal_dist(x1, y1,
-			iter->nbe_ninfo.x, iter->nbe_ninfo.y);
-		double dstlen = msvr_cal_dist(x2, y2,
-			iter->nbe_ninfo.x, iter->nbe_ninfo.y);
-		//printf("teplen: %f dstlen: %f  len1: %f len2: %f\n" , tmplen, dstlen, len1, len2 );
-		if (abs(tmplen - goal) < len1 &&
-		    dstlen < len2) {
-		    len1 = abs(tmplen - goal);
-		    res = &(*iter);
-		}
-	    } else if (edgeid2 != -1 &&
-		       iter->nbe_ninfo.edgeid == edgeid2) {
-		double tmplen = msvr_cal_dist(x1, y1,
-			iter->nbe_ninfo.x, iter->nbe_ninfo.y);
-		double dstlen = msvr_cal_dist(x2, y2,
-			iter->nbe_ninfo.x, iter->nbe_ninfo.y);
-		//printf("teplen: %f dstlen: %f  len1: %f len2: %f\n" , tmplen, dstlen, len1, len2 );
-		if (abs(tmplen - goal) < len1 &&
-		    dstlen < len2) {
-		    len1 = abs(tmplen - goal);
-		    res = &(*iter);
-		}
-	    } else if (iter->nbe_ninfo.edgeid == edgeid3) {
-		double tmplen = msvr_cal_dist(x1, y1,
-			iter->nbe_ninfo.x, iter->nbe_ninfo.y);
-		double dstlen = msvr_cal_dist(x2, y2,
-			iter->nbe_ninfo.x, iter->nbe_ninfo.y);
-		//printf("teplen: %f dstlen: %f  len1: %f len2: %f\n" , tmplen, dstlen, len1, len2 );
-		if (abs(tmplen - goal) < len1 &&
-		    dstlen < len2) {
-		    len1 = abs(tmplen - goal);
-		    res = &(*iter);
-		}
-	    }
-	}
-	if (res == NULL)
-	    return Ipv4Address::GetZero ();
-	else
-	    return res->nbe_ninfo.dst;
+      //msvr_nbl_print(nbl);//added by yyq
+      for (std::list<msvr_nbentry>::iterator iter = nbl.begin();
+	   iter != nbl.end(); ++iter) {
+
+	  if (iter->nbe_ninfo.edgeid == edgeid1) {
+	      double tmplen = msvr_cal_dist(x1, y1,
+		      iter->nbe_ninfo.x, iter->nbe_ninfo.y);
+	      double dstlen = msvr_cal_dist(x2, y2,
+		      iter->nbe_ninfo.x, iter->nbe_ninfo.y);
+	      //printf("teplen: %f dstlen: %f  len1: %f len2: %f\n" , tmplen, dstlen, len1, len2 );
+	      if (abs(tmplen - goal) < len1 &&
+		  dstlen < len2) {
+		  len1 = abs(tmplen - goal);
+		  res = &(*iter);
+	      }
+	  } else if (edgeid2 != -1 &&
+		     iter->nbe_ninfo.edgeid == edgeid2) {
+	      double tmplen = msvr_cal_dist(x1, y1,
+		      iter->nbe_ninfo.x, iter->nbe_ninfo.y);
+	      double dstlen = msvr_cal_dist(x2, y2,
+		      iter->nbe_ninfo.x, iter->nbe_ninfo.y);
+	      //printf("teplen: %f dstlen: %f  len1: %f len2: %f\n" , tmplen, dstlen, len1, len2 );
+	      if (abs(tmplen - goal) < len1 &&
+		  dstlen < len2) {
+		  len1 = abs(tmplen - goal);
+		  res = &(*iter);
+	      }
+	  } else if (iter->nbe_ninfo.edgeid == edgeid3) {
+	      double tmplen = msvr_cal_dist(x1, y1,
+		      iter->nbe_ninfo.x, iter->nbe_ninfo.y);
+	      double dstlen = msvr_cal_dist(x2, y2,
+		      iter->nbe_ninfo.x, iter->nbe_ninfo.y);
+	      //printf("teplen: %f dstlen: %f  len1: %f len2: %f\n" , tmplen, dstlen, len1, len2 );
+	      if (abs(tmplen - goal) < len1 &&
+		  dstlen < len2) {
+		  len1 = abs(tmplen - goal);
+		  res = &(*iter);
+	      }
+	  }
       }
-  return Ipv4Address::GetZero ();
+      if (res == NULL)
+	  return Ipv4Address::GetZero ();
+      else
+	  return res->nbe_ninfo.dst;
+
+    }
 }
 
 void
 Neighbors::Print()
 {
-  NS_LOG_DEBUG("====");
-  for (std::list<msvr_nbentry>::iterator iter = nbl.begin();
-       iter != nbl.end(); ++iter) {
-      NS_LOG_DEBUG("("<<iter->nbe_ninfo.x<<","<< iter->nbe_ninfo.y<<"):("
-		   << iter->nbe_ninfo.speed<<" "<< iter->nbe_ninfo.heading<<") edgeid "
-		   << iter->nbe_ninfo.edgeid);
-      NS_LOG_DEBUG(iter->nbe_ninfo.dst);
-
-  }
-  NS_LOG_DEBUG("====");
+//    fprintf(stderr, "====\n");
+//    for (std::list<msvr_nbentry>::iterator iter = nbl.begin();
+//         iter != nbl.end(); ++iter) {
+//        fprintf(stderr, "(%f, %f):(%f %f) edgeid %d ",
+//                iter->nbe_ninfo.x, iter->nbe_ninfo.y,
+//                iter->nbe_ninfo.speed, iter->nbe_ninfo.heading,
+//                iter->nbe_ninfo.edgeid);
+//        (iter->nbe_ninfo.dst).Print(std::cout);
+//        std::cout << std::endl;
+//        fflush(stdout);
+//    }
+//    fprintf(stderr, "====\n");
 }
 
 void Neighbors::ProcessTxError (WifiMacHeader const & hdr)
