@@ -16,8 +16,8 @@ NS_LOG_COMPONENT_DEFINE ("MbrRoute");
 
 uint32_t mbr::MbrRoute::m_relayedPktNum = 0;
 uint32_t mbr::MbrRoute::m_noNeighborPktNum = 0;
-uint32_t mbr::MbrRoute::m_mind = 10;
-uint32_t mbr::MbrRoute::m_maxd = 35;
+uint32_t mbr::MbrRoute::m_mind = 7;
+uint32_t mbr::MbrRoute::m_maxd = 20;
 
 MbrRoute::MbrRoute()
 {
@@ -147,8 +147,8 @@ int MbrRoute::mbr_forward(Ipv4Address dest, uint8_t * to_mac, uint8_t * relay_ma
 		    NS_LOG_LOGIC ("optimize: InRANGE! " << d1 << ", "<<d2);
 		    return -1;
 		  }
-		d3 = (1.0 + (m_maxd-d1)/(d1-m_mind))*(m_maxd-d1);
-		d4 = (1.0 + (m_maxd-d2)/(d2-m_mind))*(m_maxd-d2);
+		d3 = (1.0 + (m_maxd-d1)/(d1-m_mind))*(m_maxd-d1) + m_maxd;
+		d4 = (1.0 + (m_maxd-d2)/(d2-m_mind))*(m_maxd-d2) + m_maxd;
 		if (d1 > m_mind && d1 < m_maxd && d2 < d3)
 		  {
 		    NS_LOG_LOGIC ("optimize: InRANGE2! " << d3 );
@@ -189,4 +189,5 @@ int MbrRoute::mbr_forward(Ipv4Address dest, uint8_t * to_mac, uint8_t * relay_ma
 //	  return -2;
 	return -1;
 }
+
 
