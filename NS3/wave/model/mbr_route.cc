@@ -14,10 +14,12 @@ using namespace mbr;
 
 NS_LOG_COMPONENT_DEFINE ("MbrRoute");
 
+#define DBE	26
 uint32_t mbr::MbrRoute::m_relayedPktNum = 0;
 uint32_t mbr::MbrRoute::m_noNeighborPktNum = 0;
 uint32_t mbr::MbrRoute::m_mind = 7;
-uint32_t mbr::MbrRoute::m_maxd = 20;
+uint32_t mbr::MbrRoute::m_maxd = 0.707 * DBE + 14;
+
 
 MbrRoute::MbrRoute()
 {
@@ -138,6 +140,7 @@ int MbrRoute::mbr_forward(Ipv4Address dest, uint8_t * to_mac, uint8_t * relay_ma
 		 * Check the distances
 		 */
 		double d1,d2,d3,d4;
+		double d = m_mind;
 
 		d1 = get_distance(y_this, x_this, temp->v->y, temp->v->x);
 		d2 = get_distance(y_dst, x_dst, temp->v->y, temp->v->x);
@@ -147,26 +150,18 @@ int MbrRoute::mbr_forward(Ipv4Address dest, uint8_t * to_mac, uint8_t * relay_ma
 		    NS_LOG_LOGIC ("optimize: InRANGE! " << d1 << ", "<<d2);
 		    return -1;
 		  }
-		d3 = (1.0 + (m_maxd-d1)/(d1-m_mind))*(m_maxd-d1) + m_maxd;
-		d4 = (1.0 + (m_maxd-d2)/(d2-m_mind))*(m_maxd-d2) + m_maxd;
-		if (d1 > m_mind && d1 < m_maxd && d2 < d3)
-		  {
-		    NS_LOG_LOGIC ("optimize: InRANGE2! " << d3 );
-		    return -1;
-		  }
-		else if (d2 > m_mind && d2 < m_maxd && d1 < d4)
-		  {
-		    NS_LOG_LOGIC ("optimize: InRANGE3! " << d4 );
-		    return -1;
-		  }
 
-//		ret = nbapp->getNb()->GetnbFromsetBest(&relaymac, &geohashset);
-//		if(ret == 0)
-//		{
-//		    dropFlag = true;
-//		    temp = temp->next;
-//		    continue;
-//		} //unmatched!
+		if (!(d1 > m_maxd && d2 > m_maxd))
+		  {
+		    d3 = d2 - d - d*d2/d1;
+		    d4 = d1 - d - d*d1/d2;
+		    double dbetemp = sqrt(d3*d3 + d4*d4);
+		    if (dbetemp < DBE)
+		      {
+			NS_LOG_LOGIC ("optimize: InRANGE2! " << d3 );
+			return -1;
+		      }
+		  }
 
 		NS_LOG_LOGIC ("node="<< thisnode->GetId() <<
 					", This Area " << this_vertex->idStr <<
