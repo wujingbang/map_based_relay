@@ -122,8 +122,6 @@ private:
   double m_startTime;
   bool m_sub1g;
   bool m_rsu;
-  uint32_t m_maxd;
-  uint32_t m_mind;
 
   NodeContainer m_nodesContainer;
   NetDeviceContainer beaconDevices;
@@ -208,9 +206,7 @@ GpsrExample::GpsrExample () :
   m_relayedPktNum(0),
   m_startTime(0.0),
   m_sub1g(0),
-  m_rsu(0),
-  m_maxd(40),
-  m_mind(10)
+  m_rsu(0)
 {
 }
 
@@ -250,8 +246,6 @@ GpsrExample::Configure (int argc, char **argv)
 
   cmd.AddValue ("sub1g", "Open sub1G mode.", m_sub1g);
   cmd.AddValue ("rsu", "Install RSUs", m_rsu);
-  cmd.AddValue ("mind", "distance between building and road", m_mind);
-  cmd.AddValue ("maxd", "good relay distance", m_maxd);
 
   cmd.Parse (argc, argv);
 
@@ -410,8 +404,6 @@ GpsrExample::Run ()
 
   mbr::MbrRoute::setRelayedPktNum(0);
   mbr::MbrRoute::setNoNeighborPktNum(0);
-  mbr::MbrRoute::setMaxd(m_maxd);
-  mbr::MbrRoute::setMind(m_mind);
 
   CheckThroughput();
 
@@ -661,8 +653,8 @@ GpsrExample::InstallApplications ()
 			      Seconds(((m_startTime-4)<0)?0:(m_startTime-4)),//Seconds(10),//
 			      Seconds (totalTime),//Seconds(4),//
 			      100,//m_wavePacketSize,
-			      Seconds (0.25),//m_waveInterval
-			      Seconds (1),//m_waveExpire
+			      Seconds (3),//m_waveInterval
+			      Seconds (7),//m_waveExpire
 			      // GPS accuracy (i.e, clock drift), in number of ns
 			      40,//m_gpsAccuracyNs,
 			      // tx max delay before transmit, in ms
@@ -938,6 +930,77 @@ GpsrExample::SetupScenario()
       if (m_startTime < 1)
 	m_startTime = 1;
     }
+  else if (m_scenario == 9)
+    {
+      m_traceFile = "src/wave/examples/9gong/9gong.ns2";
+
+      char snodes[5];
+      sprintf(snodes, "%d", m_nNodes);
+      m_flowOutFile = m_outputPrefix;
+      m_flowOutFile.append(m_routingProtocolStr);
+      if(m_openRelay)
+	{
+	  m_flowOutFile.append("-relay-");
+	}
+      else
+	{
+	  m_flowOutFile.append("-norelay-");
+	}
+      m_flowOutFile.append(snodes);
+      m_flowOutFile.append("nodes-r");
+      m_flowOutFile.append(m_round);
+      m_flowOutFile.append("-flow.xml");
+
+
+      m_throughputOutFile = m_outputPrefix;
+      m_throughputOutFile.append(m_routingProtocolStr);
+       if(m_openRelay)
+ 	{
+	   m_throughputOutFile.append("-relay-");
+ 	}
+       else
+ 	{
+	   m_throughputOutFile.append("-norelay-");
+ 	}
+      m_throughputOutFile.append(snodes);
+      m_throughputOutFile.append("nodes-r");
+      m_throughputOutFile.append(m_round);
+      m_throughputOutFile.append(".txt");
+
+      m_distanceOutFile = m_outputPrefix;
+      m_distanceOutFile.append(m_routingProtocolStr);
+       if(m_openRelay)
+ 	{
+	   m_distanceOutFile.append("-relay-");
+ 	}
+       else
+ 	{
+	   m_distanceOutFile.append("-norelay-");
+ 	}
+       m_distanceOutFile.append(snodes);
+       m_distanceOutFile.append("nodes-r");
+       m_distanceOutFile.append(m_round);
+       m_distanceOutFile.append("-distance.txt");
+
+
+      m_mobility = 1;
+      //m_nNodes = 50;
+      //totalTime = 30;
+      //m_nSinks = 25;
+      m_lossModel = 3; // two-ray ground
+      //m_mbr = true;
+      m_netFileString = "src/wave/examples/9gong/output.net.xml";
+      m_osmFileString = "";
+      if (m_loadBuildings != 0)
+        {
+          std::string bldgFile = "src/wave/examples/9gong/buildings.xml";
+          NS_LOG_UNCOND ("Loading buildings file " << bldgFile);
+          Topology::LoadBuildings(bldgFile);
+        }
+
+      if (m_startTime < 1)
+	m_startTime = 1;
+    }
 }
 void
 GpsrExample::SetupAdhocMobilityNodes ()
@@ -1058,7 +1121,19 @@ GpsrExample::SetupRoutingMessages (NodeContainer & c,
   Ptr<UniformRandomVariable> var = CreateObject<UniformRandomVariable> ();
   int64_t stream = 2;
   var->SetStream (stream);
-  if (m_scenario == 6)
+  if (m_scenario == 9)
+    {
+      Ptr<Socket> sink = SetupRoutingPacketReceive (adhocTxInterfaces.GetAddress (158), c.Get (158));
+      AddressValue remoteAddress (InetSocketAddress (adhocTxInterfaces.GetAddress (158), m_port));
+      onoff1.SetAttribute ("Remote", remoteAddress);
+      onoff1.SetAttribute ("PacketSize", UintegerValue (m_pktSize));
+      onoff1.SetAttribute ("DataRate", DataRateValue(DataRate ("50kb/s")));
+
+      ApplicationContainer temp = onoff1.Install (c.Get (208));
+      temp.Start (Seconds (m_startTime));//temp.Start (Seconds (var->GetValue (1.0,2.0)));
+      temp.Stop (Seconds (totalTime));
+    }
+  else if (m_scenario == 6)
     {
       for (uint32_t i = atoi(m_round.c_str()); i < m_nSinks + atoi(m_round.c_str()); i++)
 	{
@@ -1231,3 +1306,4 @@ GpsrExample::ReceiveRoutingPacket (Ptr<Socket> socket)
 //      NS_LOG_UNCOND (PrintReceivedPacket (socket, packet, senderAddress));
     }
 }
+
