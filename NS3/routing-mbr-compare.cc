@@ -653,8 +653,8 @@ GpsrExample::InstallApplications ()
 			      Seconds(((m_startTime-4)<0)?0:(m_startTime-4)),//Seconds(10),//
 			      Seconds (totalTime),//Seconds(4),//
 			      100,//m_wavePacketSize,
-			      Seconds (3),//m_waveInterval
-			      Seconds (7),//m_waveExpire
+			      Seconds (0.25),//m_waveInterval
+			      Seconds (1),//m_waveExpire
 			      // GPS accuracy (i.e, clock drift), in number of ns
 			      40,//m_gpsAccuracyNs,
 			      // tx max delay before transmit, in ms
