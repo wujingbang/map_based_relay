@@ -414,7 +414,7 @@ GpsrExample::Run ()
   Simulator::Run ();
 
   flowMonitor->SerializeToXmlFile(m_flowOutFile,true,true);
-
+/*
   for (std::map<int,int>::iterator it = m_distanceMap.begin(); it != m_distanceMap.end(); it++)
     {
       std::ofstream out (m_distanceOutFile, std::ios::app);
@@ -424,7 +424,7 @@ GpsrExample::Run ()
           << std::endl;
       out.close ();
     }
-
+*/
 
   Simulator::Destroy ();
 }
@@ -503,8 +503,13 @@ GpsrExample::CreateDevices ()
       wifiChannel2.AddPropagationLoss (m_lossModelName, "Frequency", DoubleValue (freq));
     }
 
+  uint32_t rdis;
+  if (m_routingProtocol == GEOSVR)
+    rdis = 500; //geoSVR will restrict the communication distance to 200 m.
+  else
+    rdis = 200;
   if (m_loadBuildings == 1) {
-    wifiChannel2.AddPropagationLoss ("ns3::ObstacleShadowingPropagationLossModel", "ForBeacon", UintegerValue(0), "MaxDistance", UintegerValue(200));
+    wifiChannel2.AddPropagationLoss ("ns3::ObstacleShadowingPropagationLossModel", "ForBeacon", UintegerValue(0), "MaxDistance", UintegerValue(rdis));
     //wifiChannel2.AddPropagationLoss ("ns3::NakagamiPropagationLossModel");
   }
   else
@@ -547,7 +552,11 @@ GpsrExample::CreateDevices ()
       wifiChannel.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
       // two-ray requires antenna height (else defaults to Friss)
       wifiChannel.AddPropagationLoss (m_lossModelName, "Frequency", DoubleValue (freq), "HeightAboveZ", DoubleValue (1.5));
-      wifiChannel.AddPropagationLoss ("ns3::ObstacleShadowingPropagationLossModel", "ForBeacon", UintegerValue(m_sub1g), "MaxDistance", UintegerValue(200));
+      if (m_sub1g)
+	rdis = 270; //
+      else
+	rdis = 200;
+      wifiChannel.AddPropagationLoss ("ns3::ObstacleShadowingPropagationLossModel", "ForBeacon", UintegerValue(m_sub1g), "MaxDistance", UintegerValue(rdis));
       Ptr<YansWifiChannel> channel0 = wifiChannel.Create ();
       YansWifiPhyHelper wifiPhy =  YansWifiPhyHelper::Default ();
       wifiPhy.SetChannel (channel0);
@@ -1306,4 +1315,3 @@ GpsrExample::ReceiveRoutingPacket (Ptr<Socket> socket)
 //      NS_LOG_UNCOND (PrintReceivedPacket (socket, packet, senderAddress));
     }
 }
-

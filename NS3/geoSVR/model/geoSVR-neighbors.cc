@@ -260,6 +260,7 @@ Ipv4Address
 Neighbors::find_next_hop(int edgeid1, int edgeid2, int edgeid3, double x1, double y1, double x2, double y2)
 {
   double len1 = 200.0;
+  double rlen = 200.0;
   double len2 = msvr_cal_dist(x1, y1, x2, y2);
   double goal = 100.0;
   if (m_nbFromMbr)
@@ -283,7 +284,7 @@ Neighbors::find_next_hop(int edgeid1, int edgeid2, int edgeid3, double x1, doubl
 	      double tmplen = msvr_cal_dist(x1, y1, v.x, v.y);
 	      double dstlen = msvr_cal_dist(x2, y2, v.x, v.y);
 	      if (abs(tmplen - goal) < len1 &&
-		  dstlen < len2) {
+		  dstlen < len2 && tmplen < rlen) {
 		  len1 = abs(tmplen - goal);
 		  ipfound = nbapp->getNb()->GetIp(i);
 	      }
@@ -292,7 +293,7 @@ Neighbors::find_next_hop(int edgeid1, int edgeid2, int edgeid3, double x1, doubl
 	     {
 		double tmplen = msvr_cal_dist(x1, y1, v.x, v.y);
 		double dstlen = msvr_cal_dist(x2, y2, v.x, v.y);
-		if (abs(tmplen - goal) < len1 && dstlen < len2)
+		if (abs(tmplen - goal) < len1 && dstlen < len2 && tmplen < rlen)
 		  {
 		    len1 = abs(tmplen - goal);
 		    ipfound = nbapp->getNb()->GetIp(i);
@@ -304,7 +305,7 @@ Neighbors::find_next_hop(int edgeid1, int edgeid2, int edgeid3, double x1, doubl
 			v.x, v.y);
 		double dstlen = msvr_cal_dist(x2, y2,
 			v.x, v.y);
-		if (abs(tmplen - goal) < len1 &&  dstlen < len2)
+		if (abs(tmplen - goal) < len1 &&  dstlen < len2 && tmplen < rlen)
 		  {
 		    len1 = abs(tmplen - goal);
 		    ipfound = nbapp->getNb()->GetIp(i);
@@ -330,7 +331,7 @@ Neighbors::find_next_hop(int edgeid1, int edgeid2, int edgeid3, double x1, doubl
 		      iter->nbe_ninfo.x, iter->nbe_ninfo.y);
 	      //printf("teplen: %f dstlen: %f  len1: %f len2: %f\n" , tmplen, dstlen, len1, len2 );
 	      if (abs(tmplen - goal) < len1 &&
-		  dstlen < len2) {
+		  dstlen < len2 && tmplen < rlen) {
 		  len1 = abs(tmplen - goal);
 		  res = &(*iter);
 	      }
@@ -342,7 +343,7 @@ Neighbors::find_next_hop(int edgeid1, int edgeid2, int edgeid3, double x1, doubl
 		      iter->nbe_ninfo.x, iter->nbe_ninfo.y);
 	      //printf("teplen: %f dstlen: %f  len1: %f len2: %f\n" , tmplen, dstlen, len1, len2 );
 	      if (abs(tmplen - goal) < len1 &&
-		  dstlen < len2) {
+		  dstlen < len2 && tmplen < rlen) {
 		  len1 = abs(tmplen - goal);
 		  res = &(*iter);
 	      }
@@ -353,7 +354,7 @@ Neighbors::find_next_hop(int edgeid1, int edgeid2, int edgeid3, double x1, doubl
 		      iter->nbe_ninfo.x, iter->nbe_ninfo.y);
 	      //printf("teplen: %f dstlen: %f  len1: %f len2: %f\n" , tmplen, dstlen, len1, len2 );
 	      if (abs(tmplen - goal) < len1 &&
-		  dstlen < len2) {
+		  dstlen < len2 && tmplen < rlen) {
 		  len1 = abs(tmplen - goal);
 		  res = &(*iter);
 	      }

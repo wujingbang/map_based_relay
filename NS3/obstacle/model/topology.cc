@@ -409,8 +409,8 @@ Topology::GetObstructedLossBetween(const Point &p1, const Point &p2, double r, b
                   double gamma = obstacle.GetGamma();
                   if (forbeacon)
                     {
-			  beta = beta * 0.7;
-			  gamma = gamma * 0.7;
+			  beta = beta * 0.75;
+			  gamma = gamma * 0.75;
                     }
                   if (obstructedDistanceBetween < 2)
                     intersections = 1;
