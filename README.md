@@ -11,7 +11,7 @@
  echo 1 > /sys/kernel/debug/mbr/mbr_start
  ```
  
-## MBR in NS-3: [NS3](NS-3)
+## MBR in NS-3: [NS3](NS3)
 ### About GeoSVR
  1. Source code comes from https://github.com/gnehzuil/GeoSVR
  1. We transplant the source code from ns-2 to ns-3. 
