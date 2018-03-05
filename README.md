@@ -5,7 +5,7 @@
  1. Patch [relaying_patch](Linux/20170306-0001-map-based-relay-encapsulate-the-relay-mac-addr-into-.patch) for the kernel and build.
  1. Set the radio into OCB mode (802.11p mode).
  1. Build and insmod MBR module.
- 1. Install digital map and maintain neighbor list as shown in [test_readme](Linux\test\README.md)
+ 1. Install digital map and maintain neighbor list as shown in [test_readme](Linux/test/README.md)
  1. Manually open the relaying function:
  ```
  echo 1 > /sys/kernel/debug/mbr/mbr_start
@@ -16,7 +16,7 @@
  1. Source code comes from https://github.com/gnehzuil/GeoSVR
  1. We transplant the source code from ns-2 to ns-3. 
 ### About the obstacle shadowing model (OBM)
- Source code comes from S. E. Carpenter and M. L. Sichitiu, ¡°An obstacle model implementation for evaluating radio shadowing with ns-3,¡± in Proc. WNS3, 2015, pp.17¨C24.
+ Source code comes from S. E. Carpenter and M. L. Sichitiu, Â¡Â°An obstacle model implementation for evaluating radio shadowing with ns-3,Â¡Â± in Proc. WNS3, 2015, pp.17Â¨C24.
 #### Dependency of the obstacle shadowing model
 ```
 sudo apt-get install libcgal-dev
