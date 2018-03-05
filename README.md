@@ -1,6 +1,16 @@
 # map_based_relay
 ## MBR in Linux: [Linux](Linux)
- 1. (to be added)
+ Based on Linux kernel version 3.18
+### Usage (MBR-S case):
+ 1. Patch [relaying_patch](Linux/20170306-0001-map-based-relay-encapsulate-the-relay-mac-addr-into-.patch) for the kernel and build.
+ 1. Set the radio into OCB mode (802.11p mode).
+ 1. Build and insmod MBR module.
+ 1. Install digital map and maintain neighbor list as shown in [test_readme](Linux\test\README.md)
+ 1. Manually open the relaying function:
+ ```
+ echo 1 > /sys/kernel/debug/mbr/mbr_start
+ ```
+ 
 ## MBR in NS-3: [NS3](NS-3)
 ### About GeoSVR
  1. Source code comes from https://github.com/gnehzuil/GeoSVR

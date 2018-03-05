@@ -1,0 +1,164 @@
+From 51353f77fcda2c90673c510279e31736036a38cd Mon Sep 17 00:00:00 2001
+From: wujingbang <wujingbang@gmail.com>
+Date: Mon, 6 Mar 2017 16:21:13 +0800
+Subject: [PATCH] map-based-relay: encapsulate the relay mac addr into 802.11
+ frame.
+
+---
+ include/uapi/linux/if_ether.h |  1 +
+ net/mac80211/rx.c             | 24 ++++++++++++++++++++++++
+ net/mac80211/tx.c             | 10 ++++++++++
+ net/wireless/util.c           | 28 +++++++++++++++++++++++++---
+ 4 files changed, 60 insertions(+), 3 deletions(-)
+
+diff --git a/include/uapi/linux/if_ether.h b/include/uapi/linux/if_ether.h
+index aa63ed0..36640da 100644
+--- a/include/uapi/linux/if_ether.h
++++ b/include/uapi/linux/if_ether.h
+@@ -38,6 +38,7 @@
+ /*
+  *	These are the defined Ethernet Protocol ID's.
+  */
++#define ETH_P_MAPRELAY	0x6559		/* Map based relay protocol	*/
+ 
+ #define ETH_P_LOOP	0x0060		/* Ethernet Loopback packet	*/
+ #define ETH_P_PUP	0x0200		/* Xerox PUP packet		*/
+diff --git a/net/mac80211/rx.c b/net/mac80211/rx.c
+index 49c23bd..bf7a5ca 100644
+--- a/net/mac80211/rx.c
++++ b/net/mac80211/rx.c
+@@ -2018,6 +2018,10 @@ ieee80211_deliver_skb(struct ieee80211_rx_data *rx)
+ 	struct ethhdr *ehdr = (struct ethhdr *) rx->skb->data;
+ 	struct sta_info *dsta;
+ 	struct ieee80211_rx_status *status = IEEE80211_SKB_RXCB(rx->skb);
++	
++	u16 ethertype;
++	u8 *ethertype_p;
++	//struct ethhdr *ehdr = (struct ethhdr *) rx->skb->data;
+ 
+ 	skb = rx->skb;
+ 	xmit_skb = NULL;
+@@ -2050,6 +2054,26 @@ ieee80211_deliver_skb(struct ieee80211_rx_data *rx)
+ 			}
+ 		}
+ 	}
++	
++	/**
++	 * Map based relay protocol
++	 */
++	ethertype_p = (void*)&(ehdr->h_proto);
++	ethertype = (ethertype_p[0] << 8) | ethertype_p[1];
++	if (ethertype == ETH_P_MAPRELAY) {
++		xmit_skb = skb;
++		skb = NULL;
++		/* replace the mac type */
++		ethertype = ETH_P_IP;
++		ethertype_p = (void*)&ethertype;
++		ehdr->h_proto = (ethertype_p[0] << 8) | ethertype_p[1];
++		printk(KERN_ALERT "MAPRELAY, type: 0x%x, smac: %x:%x:%x:%x:%x:%x,  dmac: %x:%x:%x:%x:%x:%x\n",
++			ehdr->h_proto,
++			ehdr->h_source[0], ehdr->h_source[1], ehdr->h_source[2],
++			ehdr->h_source[3], ehdr->h_source[4], ehdr->h_source[5],
++			ehdr->h_dest[0],ehdr->h_dest[1],ehdr->h_dest[2],
++			ehdr->h_dest[3],ehdr->h_dest[4],ehdr->h_dest[5]);
++	}
+ 
+ #ifndef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
+ 	if (skb) {
+diff --git a/net/mac80211/tx.c b/net/mac80211/tx.c
+index 058686a..8dbf589 100644
+--- a/net/mac80211/tx.c
++++ b/net/mac80211/tx.c
+@@ -1825,6 +1825,8 @@ static struct sk_buff *ieee80211_build_hdr(struct ieee80211_sub_if_data *sdata,
+ 	enum ieee80211_band band;
+ 	int ret;
+ 
++	u8 relay_addr[ETH_ALEN];
++
+ 	/* convert Ethernet header to proper 802.11 header (based on
+ 	 * operation mode) */
+ 	ethertype = (skb->data[12] << 8) | skb->data[13];
+@@ -2142,6 +2144,14 @@ static struct sk_buff *ieee80211_build_hdr(struct ieee80211_sub_if_data *sdata,
+ 		encaps_data = bridge_tunnel_header;
+ 		encaps_len = sizeof(bridge_tunnel_header);
+ 		skip_header_bytes -= 2;
++	} else if (ethertype == ETH_P_MAPRELAY) {//Map Based Raley
++		memcpy(relay_addr, (skb->data - ETH_ALEN), ETH_ALEN); 	
++		encaps_data = relay_addr;
++		encaps_len = ETH_ALEN;
++		skip_header_bytes -= 2;
++		printk(KERN_ALERT "relay addr: dmac: %x:%x:%x:%x:%x:%x\n", 
++			encaps_data[0], encaps_data[1], encaps_data[2],
++			encaps_data[3], encaps_data[4], encaps_data[5]);
+ 	} else if (ethertype >= ETH_P_802_3_MIN) {
+ 		encaps_data = rfc1042_header;
+ 		encaps_len = sizeof(rfc1042_header);
+diff --git a/net/wireless/util.c b/net/wireless/util.c
+index d0ac795..666c38a 100644
+--- a/net/wireless/util.c
++++ b/net/wireless/util.c
+@@ -367,7 +367,7 @@ int ieee80211_data_to_8023(struct sk_buff *skb, const u8 *addr,
+ 	u8 *payload;
+ 	u8 dst[ETH_ALEN];
+ 	u8 src[ETH_ALEN] __aligned(2);
+-
++	u8 relay_mac[ETH_ALEN];
+ 	if (unlikely(!ieee80211_is_data_present(hdr->frame_control)))
+ 		return -1;
+ 
+@@ -454,14 +454,27 @@ int ieee80211_data_to_8023(struct sk_buff *skb, const u8 *addr,
+ 	payload = skb->data + hdrlen;
+ 	ethertype = (payload[6] << 8) | payload[7];
+ 
+-	if (likely((ether_addr_equal(payload, rfc1042_header) &&
++	if ((ether_addr_equal(payload, rfc1042_header) &&
+ 		    ethertype != ETH_P_AARP && ethertype != ETH_P_IPX) ||
+-		   ether_addr_equal(payload, bridge_tunnel_header))) {
++		   ether_addr_equal(payload, bridge_tunnel_header)) {
+ 		/* remove RFC1042 or Bridge-Tunnel encapsulation and
+ 		 * replace EtherType */
+ 		skb_pull(skb, hdrlen + 6);
+ 		memcpy(skb_push(skb, ETH_ALEN), src, ETH_ALEN);
+ 		memcpy(skb_push(skb, ETH_ALEN), dst, ETH_ALEN);
++	} else if (ethertype == ETH_P_MAPRELAY) {
++		memcpy(relay_mac, payload, ETH_ALEN);
++
++		/* remove relay addr */		
++		skb_pull(skb, hdrlen + 6);
++		/* reconstruct the frame head with "this node mac", "relay mac", "type". */
++		memcpy(skb_push(skb, ETH_ALEN), dst, ETH_ALEN); //dst stores mac of this node
++		memcpy(skb_push(skb, ETH_ALEN), relay_mac, ETH_ALEN);
++
++		printk(KERN_ALERT "recv relay addr.: %x:%x:%x:%x:%x:%x\n", 
++			relay_mac[0], relay_mac[1], relay_mac[2],
++			relay_mac[3], relay_mac[4], relay_mac[5]);
++
+ 	} else {
+ 		struct ethhdr *ehdr;
+ 		__be16 len;
+@@ -488,6 +501,7 @@ int ieee80211_data_from_8023(struct sk_buff *skb, const u8 *addr,
+ 	int encaps_len, skip_header_bytes;
+ 	int nh_pos, h_pos;
+ 	int head_need;
++	u8 relay_addr[ETH_ALEN];
+ 
+ 	if (unlikely(skb->len < ETH_HLEN))
+ 		return -EINVAL;
+@@ -546,6 +560,14 @@ int ieee80211_data_from_8023(struct sk_buff *skb, const u8 *addr,
+ 		encaps_data = bridge_tunnel_header;
+ 		encaps_len = sizeof(bridge_tunnel_header);
+ 		skip_header_bytes -= 2;
++	} else if (ethertype == ETH_P_MAPRELAY) {//Map Based Raley
++		memcpy(relay_addr, (skb->data - ETH_ALEN), ETH_ALEN); 	
++		encaps_data = relay_addr;
++		encaps_len = ETH_ALEN;
++		skip_header_bytes -= 2;
++		printk(KERN_ALERT "relay addr: dmac: %x:%x:%x:%x:%x:%x\n", 
++			encaps_data[0], encaps_data[1], encaps_data[2],
++			encaps_data[3], encaps_data[4], encaps_data[5]);
+ 	} else if (ethertype >= ETH_P_802_3_MIN) {
+ 		encaps_data = rfc1042_header;
+ 		encaps_len = sizeof(rfc1042_header);
+-- 
+1.9.1
+
