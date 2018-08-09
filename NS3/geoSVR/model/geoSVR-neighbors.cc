@@ -262,7 +262,7 @@ Neighbors::find_next_hop(int edgeid1, int edgeid2, int edgeid3, double x1, doubl
   double len1 = 200.0;
   double rlen = 200.0;
   double len2 = msvr_cal_dist(x1, y1, x2, y2);
-  double goal = 100.0;
+  double goal = 195.0;
   if (m_nbFromMbr)
     {
       MsvrMap map;
