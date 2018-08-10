@@ -167,28 +167,34 @@ MsvrMap::getRoadByPos(double x, double y)
 
     r.id_ = -1;
 
-    for (tie(vi, vend) = vertices(map_); vi != vend; ++vi) {
-        graph_traits<Map>::adjacency_iterator ai, aend;
-        for (tie(ai, aend) = adjacent_vertices(*vi, map_);//循环扫描某个点的所有 相邻的点
-             ai != aend; ++ai) {
-            if (std::min(map_[*vi].x_, map_[*ai].x_) - MSVR_ROAD_PAD <= x &&
-                x <= std::max(map_[*vi].x_, map_[*ai].x_) + MSVR_ROAD_PAD &&
-                std::min(map_[*vi].y_, map_[*ai].y_) - MSVR_ROAD_PAD <= y &&
-                y <= std::max(map_[*vi].y_, map_[*ai].y_) + MSVR_ROAD_PAD) {
-
-                graph_traits<Map>::edge_iterator ei, eend;
-                for (tie(ei, eend) = edges(map_); ei != eend; ++ei) {
-                    if (source(*ei, map_) == *vi &&
-                        target(*ei, map_) == *ai) {
-                        r.id_ = map_[*ei].id_;
-                        r.type_ = map_[*ei].type_;
-                        return r;
-                    } 
+    double msvr_road_pad = MSVR_ROAD_PAD;
+    while(true)
+    {
+        for (tie(vi, vend) = vertices(map_); vi != vend; ++vi) 
+        {
+            graph_traits<Map>::adjacency_iterator ai, aend;
+            for (tie(ai, aend) = adjacent_vertices(*vi, map_); ai != aend; ++ai) //循环扫描某个点的所有 相邻的点
+            {
+                if (std::min(map_[*vi].x_, map_[*ai].x_) - msvr_road_pad <= x &&
+                    x <= std::max(map_[*vi].x_, map_[*ai].x_) + msvr_road_pad &&
+                    std::min(map_[*vi].y_, map_[*ai].y_) - msvr_road_pad <= y &&
+                    y <= std::max(map_[*vi].y_, map_[*ai].y_) + msvr_road_pad) 
+                {
+                    graph_traits<Map>::edge_iterator ei, eend;
+                    for (tie(ei, eend) = edges(map_); ei != eend; ++ei) 
+                    {
+                        if (source(*ei, map_) == *vi && target(*ei, map_) == *ai) 
+                        {
+                            r.id_ = map_[*ei].id_;
+                            r.type_ = map_[*ei].type_;
+                            return r;
+                        }
+                    }
                 }
             }
         }
+        msvr_road_pad += 5;
     }
-
     return r;
 }
 
@@ -375,8 +381,15 @@ MsvrMap::getPaths(double x1, double y1, double x2, double y2)
     }
 
     int index = findMeanMin(types_vec, means_vec);
-    res = paths_vec[index];
-
+    if(paths_vec.size() > 0)
+    	res = paths_vec[index];
+    else // src and dst aren't on the same road.
+    {
+        res.push_back(path.first);
+        if(path.second != path.first)
+            res.push_back(path.second);
+    }
+        
     graph_traits<Map>::vertex_iterator src_iter, dst_iter;
     graph_traits<Map>::vertex_iterator vi, vend;
     for (tie(vi, vend) = vertices(map_); vi != vend; ++vi) {
@@ -403,29 +416,35 @@ MsvrMap::getPaths(double x1, double y1, double x2, double y2)
         }
     }
 
-    int path_point1, path_point2, dst_point1, dst_point2, temp, flag = 0;
+    int path_point1, path_point2, dst_point1=-1, dst_point2=-1, temp, flag = 0;
     path_point1 = res.at(res.size()-1);
     res.pop_back();
     path_point2 = res.at(res.size()-1);
     res.push_back(path_point1);
-    for (tie(vi, vend) = vertices(map_); vi != vend; ++vi)
+
+    double msvr_road_pad = MSVR_ROAD_PAD;
+    while(true)
     {
-    	graph_traits<Map>::adjacency_iterator ai, aend;
-        for (tie(ai, aend) = adjacent_vertices(*vi, map_); ai != aend; ++ai)
+        for (tie(vi, vend) = vertices(map_); vi != vend; ++vi)
         {
-        	if (std::min(map_[*vi].x_, map_[*ai].x_) - MSVR_ROAD_PAD <= x2 &&
-            x2 <= std::max(map_[*vi].x_, map_[*ai].x_) + MSVR_ROAD_PAD &&
-            std::min(map_[*vi].y_, map_[*ai].y_) - MSVR_ROAD_PAD <= y2 &&
-            y2 <= std::max(map_[*vi].y_, map_[*ai].y_) + MSVR_ROAD_PAD)
+            graph_traits<Map>::adjacency_iterator ai, aend;
+            for (tie(ai, aend) = adjacent_vertices(*vi, map_); ai != aend; ++ai)
             {
-                dst_point1 = map_[*vi].id_;
-                dst_point2 = map_[*ai].id_;
-                flag = 1;
-                break;
+                if (std::min(map_[*vi].x_, map_[*ai].x_) - msvr_road_pad <= x2 &&
+                x2 <= std::max(map_[*vi].x_, map_[*ai].x_) + msvr_road_pad &&
+                std::min(map_[*vi].y_, map_[*ai].y_) - msvr_road_pad <= y2 &&
+                y2 <= std::max(map_[*vi].y_, map_[*ai].y_) + msvr_road_pad)
+                {
+                    dst_point1 = map_[*vi].id_;
+                    dst_point2 = map_[*ai].id_;
+                    flag = 1;
+                    break;
+                }
             }
+            if(flag) break;
         }
-        if(flag)
-        	break;
+        if(flag) break;
+        msvr_road_pad += 5;
     }
     if((path_point1 == dst_point1 && path_point2 == dst_point2) || (path_point1 == dst_point2 && path_point2 == dst_point1))
     	return res;
