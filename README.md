@@ -1,4 +1,13 @@
 # map_based_relay
+
+Paper title: MBR: A Map-Based Relaying Algorithm For Reliable Data Transmission Through Intersection in VANETs
+
+IEEE Transactions on Intelligent Transportation Systems
+
+Digital version: https://ieeexplore.ieee.org/document/8527669
+
+This repository contains codes for both simulation and real world system. If you have any questions, please feel free to leave a message. 
+
 ## MBR in Linux: [Linux](Linux)
  Based on Linux kernel version 3.18
 ### Usage (MBR-S case):
