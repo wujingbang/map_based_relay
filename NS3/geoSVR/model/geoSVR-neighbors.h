@@ -55,9 +55,9 @@ void Update(struct msvr_ninfo *ip);
 void Purge();
 
 struct msvr_nbentry *find_entry_via_ipaddress(Ipv4Address dst);
-bool isNeighbor(Ipv4Address dst);
+bool isNeighbor(Ipv4Address dst, Vector srcpos, double range);
 
-Ipv4Address find_furthest_nhop(int roadid1,int roadid2, double x1, double y1);
+Ipv4Address find_furthest_nhop(int roadid1,int roadid2, int edgeid3, double x1, double y1, double x2, double y2, double range);
 Ipv4Address find_next_hop(int roadid1, int roadid2, int roadid3, double x1, double y1, double x2, double y2);
 
 void Print();

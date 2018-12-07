@@ -82,6 +82,7 @@ public:
   void PrintNBTable();
   /// Check that node with address addr  is neighbor
   bool IsNeighbor (Ipv4Address addr);
+  bool IsNeighbor (Ipv4Address addr, Vector &resloc);
   /// Update expire time for entry with address addr, if it exists, else add new entry
   void Update (Ipv4Address addr, Time expire, const uint8_t *mac, uint64_t geohash, uint16_t direction, double x, double y);
   /// Remove all expired entries
@@ -98,6 +99,7 @@ public:
 
   Vector GetGPSPositionFromIp(Ipv4Address ip);
   Vector GetCartesianPositionFromIp(Ipv4Address ip);
+  void GetMacFromIp(Ipv4Address ip, Mac48Address &res, bool &succ);
   bool NeighborEmpty();
   Time GetEntryUpdateTime (Ipv4Address ip);
   int GetTableSize();

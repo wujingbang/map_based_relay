@@ -18,6 +18,25 @@ namespace ns3 {
 namespace geoSVR {
 
 
+double
+msvr_cal_dist(struct point p1, struct point p2)
+{
+    return sqrt(pow((p1.x - p2.x), 2) + pow((p1.y - p2.y), 2));
+}
+
+double
+msvr_cal_dist(double x1, double y1, double x2, double y2)
+{
+    point p1, p2;
+
+    p1.x = x1;
+    p1.y = y1;
+    p2.x = x2;
+    p2.y = y2;
+
+    return msvr_cal_dist(p1, p2);
+}
+
 Neighbors::Neighbors ()
 {
   m_nbFromMbr = false;
@@ -121,7 +140,7 @@ Neighbors::find_entry_via_ipaddress(Ipv4Address dst)
 }
 
 bool
-Neighbors::isNeighbor(Ipv4Address dst)
+Neighbors::isNeighbor(Ipv4Address dst, Vector srcpos, double range)
 {
   if (m_nbFromMbr)
     {
@@ -129,7 +148,22 @@ Neighbors::isNeighbor(Ipv4Address dst)
 	{
 	  Ptr<mbr::MbrNeighborApp> nbapp = DynamicCast<mbr::MbrNeighborApp> (m_node->GetApplication(j));
 	  if (nbapp)
-	    return nbapp->getNb()->IsNeighbor(dst);
+	  {
+		  Vector nbloc;
+		  double dist;
+		  bool ret = nbapp->getNb()->IsNeighbor(dst, nbloc);
+		  if (ret == true)
+		  {
+			  dist = msvr_cal_dist(srcpos.x, srcpos.y, nbloc.x, nbloc.y);
+			  if (dist <= range)
+				  return true;
+			  else
+				  return false;
+		  }
+
+	    return false;
+
+	  }
 	}
 //      Ptr<Application> app = m_node->GetApplication(0);
 //      Ptr<mbr::MbrNeighborApp> nbapp = DynamicCast<mbr::MbrNeighborApp> (app);
@@ -147,113 +181,61 @@ Neighbors::isNeighbor(Ipv4Address dst)
     return false;
 }
 
-double
-msvr_cal_dist(struct point p1, struct point p2)
-{
-    return sqrt(pow((p1.x - p2.x), 2) + pow((p1.y - p2.y), 2));
-}
-
-double
-msvr_cal_dist(double x1, double y1, double x2, double y2)
-{
-    point p1, p2;
-
-    p1.x = x1;
-    p1.y = y1;
-    p2.x = x2;
-    p2.y = y2;
-
-    return msvr_cal_dist(p1, p2);
-}
-
 Ipv4Address
-Neighbors::find_furthest_nhop(int edgeid1, int edgeid2, double x1, double y1)
+Neighbors::find_furthest_nhop(int edgeid1, int edgeid2, int edgeid3, double x1, double y1, double x2, double y2, double range)
 {
-
-    double len = 0.0;
-    int i;
-    if (m_nbFromMbr)
-      {
-	MsvrMap map;
-	Ipv4Address ipfound = Ipv4Address::GetZero ();
-        Ptr<mbr::MbrNeighborApp> nbapp;
-        for (uint32_t j = 0; j < m_node->GetNApplications (); j++)
-  	{
-  	  nbapp = DynamicCast<mbr::MbrNeighborApp> (m_node->GetApplication(j));
-  	  if (nbapp)
-  	    break;
-  	}
-        NS_ASSERT(nbapp);
-        if (nbapp->getNb()->NeighborEmpty())
-  	{
-  	  NS_LOG_DEBUG ("find_furthest_nhop table is empty");
-  	  return Ipv4Address::GetZero ();
-  	}
-
-        for (i = 1; i < nbapp->getNb()->GetTableSize(); i++)
-          {
-            Vector v = nbapp->getNb()->GetCartesianPosition(i);
-            int edgeid = map.getRoadByPos(v.x, v.y).id_;
-            if (edgeid == edgeid1)
-              {
-                double tmplen = msvr_cal_dist(x1, y1,
-                        v.x, v.y);
-
-                // TODO: need to improved to select a better next hop
-                // here we just further next hop
-                if (tmplen >= len/* && tmplen <= 100.0*/)
-                  {
-                    len = tmplen;
-                    ipfound = nbapp->getNb()->GetIp(i);
-                  }
-              }
-            else if (edgeid2 != -1 && edgeid == edgeid2)
-              {
-		double tmplen = msvr_cal_dist(x1, y1,
-			v.x, v.y);
-		if (tmplen >= len) {
-		    len = tmplen;
-		    ipfound = nbapp->getNb()->GetIp(i);
-		}
-              }
-
-          }
-        return ipfound;
-      }
-    else
-      {
-	Purge();
-	struct msvr_nbentry *res = NULL;
-	for (std::list<msvr_nbentry>::iterator iter = nbl.begin();
-	     iter != nbl.end(); ++iter) {
-
-	    if (iter->nbe_ninfo.edgeid == edgeid1) {
-		double tmplen = msvr_cal_dist(x1, y1,
-			iter->nbe_ninfo.x, iter->nbe_ninfo.y);
-
-		// TODO: need to improved to select a better next hop
-		// here we just further next hop
-		if (tmplen >= len/* && tmplen <= 100.0*/) {
-		    len = tmplen;
-		    res = &(*iter);
-		}
-	    } else if (edgeid2 != -1 &&
-		       iter->nbe_ninfo.edgeid == edgeid2) {
-		double tmplen = msvr_cal_dist(x1, y1,
-			iter->nbe_ninfo.x, iter->nbe_ninfo.y);
-		if (tmplen >= len) {
-		    len = tmplen;
-		    res = &(*iter);
-		}
-	    }
+  double bestdistance = -1;
+  double this2nb_distance, this2nextroad_distance, nb2nextroad_distance, delta;
+  if (m_nbFromMbr)
+    {
+      MsvrMap map;
+      Ipv4Address ipfound = Ipv4Address::GetZero ();
+      Ptr<mbr::MbrNeighborApp> nbapp;
+      for (uint32_t j = 0; j < m_node->GetNApplications (); j++)
+	{
+	  nbapp = DynamicCast<mbr::MbrNeighborApp> (m_node->GetApplication(j));
+	  if (nbapp)
+	    break;
 	}
+      NS_ASSERT(nbapp);
+      for (int i = 1; i < nbapp->getNb()->GetTableSize(); i++)
+		{
+		  Vector v = nbapp->getNb()->GetCartesianPosition(i);
+		  this2nb_distance = msvr_cal_dist(x1, y1, v.x, v.y);
+		  if (this2nb_distance > range)
+			  continue;
 
-	if (res == NULL)
-	    return Ipv4Address::GetZero ();
-	else
-	    return res->nbe_ninfo.dst;
-      }
-    return Ipv4Address::GetZero ();
+		  this2nextroad_distance = msvr_cal_dist(x1, y1, x2, y2);
+		  nb2nextroad_distance = msvr_cal_dist(v.x, v.y, x2, y2);
+		  delta = this2nextroad_distance - nb2nextroad_distance;
+		  if (delta <= 20)
+			  continue;
+
+		  int edgeid = map.getRoadByPos(v.x, v.y).id_;
+		  if (edgeid == edgeid1) {
+			  if (delta > bestdistance) {
+				  bestdistance = delta;
+				  ipfound = nbapp->getNb()->GetIp(i);
+			  }
+		  } else if (edgeid2 != -1 && edgeid == edgeid2) {
+			  if (delta > bestdistance) {
+				  bestdistance = delta;
+				  ipfound = nbapp->getNb()->GetIp(i);
+			  }
+		  } else if (edgeid == edgeid3){
+			  if (delta > bestdistance) {
+				  bestdistance = delta;
+				  ipfound = nbapp->getNb()->GetIp(i);
+			  }
+		  }
+		}
+	  return ipfound;
+    }
+  else
+    {
+	  return find_next_hop(edgeid1, edgeid2, edgeid3, x1, y1, x2, y2);
+
+    }
 }
 
 Ipv4Address
@@ -283,10 +265,9 @@ Neighbors::find_next_hop(int edgeid1, int edgeid2, int edgeid3, double x1, doubl
 	    {
 	      double tmplen = msvr_cal_dist(x1, y1, v.x, v.y);
 	      double dstlen = msvr_cal_dist(x2, y2, v.x, v.y);
-	      if (abs(tmplen - goal) < len1 &&
-		  dstlen < len2 && tmplen < rlen) {
-		  len1 = abs(tmplen - goal);
-		  ipfound = nbapp->getNb()->GetIp(i);
+	      if (abs(tmplen - goal) < len1 &&  dstlen < len2 && tmplen < rlen) {
+			  len1 = abs(tmplen - goal);
+			  ipfound = nbapp->getNb()->GetIp(i);
 	      }
 	    }
 	   else if (edgeid2 != -1 && edgeid == edgeid2)

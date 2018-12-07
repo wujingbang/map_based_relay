@@ -40,6 +40,22 @@ Neighbors::IsNeighbor (Ipv4Address addr)
   return false;
 }
 
+bool
+Neighbors::IsNeighbor (Ipv4Address addr, Vector &resloc)
+{
+  Purge ();
+  for (std::vector<Neighbor>::const_iterator i = m_nb.begin ();
+       i != m_nb.end (); ++i)
+    {
+      if (i->m_ipAddress == addr)
+      {
+    	resloc = this->GetCartesianPositionFromIp(addr);
+        return true;
+      }
+    }
+  return false;
+}
+
 Time
 Neighbors::GetExpireTime (Ipv4Address addr)
 {
@@ -214,6 +230,22 @@ Neighbors::GetCartesianPositionFromIp (Ipv4Address ip)
 	}
     }
   return p;
+}
+
+void Neighbors::GetMacFromIp(Ipv4Address ip, Mac48Address &res, bool &succ)
+{
+	Purge();
+	for(int i = 0; i < (int)m_nb.size(); i++)
+	{
+	  if(ip == m_nb[i].m_ipAddress)
+		{
+		  res = m_nb[i].m_hardwareAddress;
+		  succ = true;
+		  return ;
+		}
+	}
+	succ = false;
+	return;
 }
 
 bool Neighbors::NeighborEmpty()

@@ -32,6 +32,7 @@
 
 #include "ns3/mbr_route.h"
 #include "ns3/mbr-packet-tag.h"
+#include "ns3/mbr-neighbor-app.h"
 
 namespace ns3 {
 
@@ -248,7 +249,7 @@ Ipv4Interface::Send (Ptr<Packet> p, const Ipv4Header & hdr, Ipv4Address dest)
 
   if (!dest.IsBroadcast () && !dest.IsMulticast ())
   {
-	  int ret = 0;
+	  int ret = 0, subbroadcast = 0;
 	  uint8_t relay_mac[6];
 	  uint8_t to_mac[6];
 //	  Mac48Address hardwareDest;
@@ -259,6 +260,7 @@ Ipv4Interface::Send (Ptr<Packet> p, const Ipv4Header & hdr, Ipv4Address dest)
 		if (dest.IsSubnetDirectedBroadcast ((*i).GetMask ()))
 		{
 			ret = -1;
+			subbroadcast = 1;
 			break;
 		}
 	  }
@@ -289,6 +291,25 @@ Ipv4Interface::Send (Ptr<Packet> p, const Ipv4Header & hdr, Ipv4Address dest)
 		 m_tc->Send (m_device, Create<Ipv4QueueDiscItem> (p, hardwareDestination, Ipv4L3Protocol::PROT_NUMBER, hdr));
 		 return;
 	  }
+
+	  for (uint32_t j = 0; subbroadcast == 0 && j < m_node->GetNApplications (); j++)
+		{
+		  Ptr<mbr::MbrNeighborApp> nbapp = DynamicCast<mbr::MbrNeighborApp> (m_node->GetApplication(j));
+		  if (nbapp){
+			  Mac48Address hardwareDestination;
+			  bool succ = false;
+//			  std::cout<<dest<<std::endl;
+			  nbapp->getNb()->GetMacFromIp(dest, hardwareDestination, succ);
+			  if (succ) {
+				  m_tc->Send (m_device, Create<Ipv4QueueDiscItem> (p, hardwareDestination, Ipv4L3Protocol::PROT_NUMBER, hdr));
+
+			  } else
+				  NS_FATAL_ERROR("Ipv4Interface::Send mbr-neighbor cannot find MAC from IP.");
+
+			  return;
+
+		  }
+		}
   }
 
   if (m_device->NeedsArp ())

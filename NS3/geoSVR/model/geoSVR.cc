@@ -20,6 +20,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <string>
+#include "ns3/double.h"
 
 
 #define GEOSVR_LS_GOD 0
@@ -116,6 +117,11 @@ RoutingProtocol::GetTypeId (void)
                    TimeValue (Seconds (1)),
                    MakeTimeAccessor (&RoutingProtocol::HelloInterval),
                    MakeTimeChecker ())
+	.AddAttribute ("Range", "communication range.",
+				   DoubleValue (150.0),
+				   MakeDoubleAccessor (&RoutingProtocol::m_comm_range),
+				   MakeDoubleChecker<double> ())
+
     .AddAttribute ("LocationServiceName", "Indicates wich Location Service is enabled",
                    EnumValue (GEOSVR_LS_GOD),
                    MakeEnumAccessor (&RoutingProtocol::LocationServiceName),
@@ -753,15 +759,14 @@ RoutingProtocol::Forwarding (Ptr<const Packet> packet, const Ipv4Header & header
       srcPos.y = hdr.GetSy ();
       dstPos.x = hdr.GetDx ();
       dstPos.y = hdr.GetDy ();
-      Ptr<MobilityModel> MM = m_ipv4->GetObject<MobilityModel> ();
-      relayPos.x = MM->GetPosition ().x;
-      relayPos.y = MM->GetPosition ().y;
-
     }
+  Ptr<MobilityModel> MM = m_ipv4->GetObject<MobilityModel> ();
+  relayPos.x = MM->GetPosition ().x;
+  relayPos.y = MM->GetPosition ().y;
 
   Ipv4Address nextHop;
 
-  if(m_neighbors.isNeighbor (dst))
+  if(m_neighbors.isNeighbor (dst, relayPos, m_comm_range))
     {
       NS_LOG_DEBUG(dst << " is neighbor !");
       nextHop = dst;
@@ -812,8 +817,8 @@ RoutingProtocol::Forwarding (Ptr<const Packet> packet, const Ipv4Header & header
         nextPos.y = m_map.getMap()[paths[1]].y_;
       }
       int roadid3 = m_map.getRoadByPos(relayPos.x, relayPos.y).id_;
-      nextHop = m_neighbors.find_next_hop (roadid1, roadid2, roadid3, relayPos.x, relayPos.y, nextPos.x, nextPos.y);
-//      nextHop = m_neighbors.find_furthest_nhop(roadid1, roadid2,relayPos.x, relayPos.y);
+//      nextHop = m_neighbors.find_next_hop (roadid1, roadid2, roadid3, relayPos.x, relayPos.y, nextPos.x, nextPos.y);
+      nextHop = m_neighbors.find_furthest_nhop(roadid1, roadid2, roadid3, relayPos.x, relayPos.y, nextPos.x, nextPos.y, m_comm_range);
       if (nextHop != Ipv4Address::GetZero ())
         {
           NS_LOG_DEBUG ("Destination: " << dst);
@@ -854,6 +859,26 @@ RoutingProtocol::Forwarding (Ptr<const Packet> packet, const Ipv4Header & header
 		       <<dstPos.x<<' '<<dstPos.y<<" relayPos: " << relayPos.x << relayPos.y);
       	  m_neighbors.Print();
       	  NS_LOG_DEBUG(origin << "  "<< dst << "  " << m_ipv4->GetAddress (1, 0).GetLocal ());
+
+      	  NS_LOG_FUNCTION (this << p << header);
+      	  NS_ASSERT (p != 0 && p != Ptr<Packet> ());
+
+      	  if (m_queue.GetSize () == 0)
+      	    {
+      	      CheckQueueTimer.Cancel ();
+      	      CheckQueueTimer.Schedule (Time ("500ms"));
+      	    }
+
+      	  QueueEntry newEntry (p, header, ucb, ecb);
+      	  bool result = m_queue.Enqueue (newEntry);
+
+      	  m_queuedAddresses.insert (m_queuedAddresses.begin (), header.GetDestination ());
+      	  m_queuedAddresses.unique ();
+
+      	  if (result)
+      	    {
+      	      NS_LOG_LOGIC ("Add packet " << p->GetUid () << " to queue. Protocol " << (uint16_t) header.GetProtocol ());
+      	    }
       }
     }
     return false;
@@ -953,7 +978,7 @@ RoutingProtocol::RouteOutput (Ptr<Packet> p, const Ipv4Header &header,
   uint8_t *enpaths = NULL;
   std::vector<int> paths;
 
-  if(m_neighbors.isNeighbor (dst))
+  if(m_neighbors.isNeighbor (dst, srcPos, m_comm_range))
     {
       nextHop = dst;
       NS_LOG_DEBUG (dst << " is neighbor!");
@@ -981,8 +1006,8 @@ RoutingProtocol::RouteOutput (Ptr<Packet> p, const Ipv4Header &header,
       }
 
       int roadid3 = m_map.getRoadByPos(relayPos.x, relayPos.y).id_;
-      nextHop = m_neighbors.find_next_hop (roadid1, roadid2, roadid3, srcPos.x, srcPos.y, nextPos.x, nextPos.y);
-      //nextHop = m_neighbors.find_furthest_nhop(roadid1, roadid2,srcPos.x, srcPos.y);
+//      nextHop = m_neighbors.find_next_hop (roadid1, roadid2, roadid3, srcPos.x, srcPos.y, nextPos.x, nextPos.y);
+      nextHop = m_neighbors.find_furthest_nhop(roadid1, roadid2, roadid3,srcPos.x, srcPos.y, nextPos.x, nextPos.y, m_comm_range);
       if (nextHop != Ipv4Address::GetZero ())
       {
 
