@@ -96,8 +96,8 @@ const uint32_t RoutingProtocol::GEOSVR_PORT = 666;
 
 RoutingProtocol::RoutingProtocol ()
   : HelloInterval (Seconds (1)),
-    MaxQueueLen (64),
-    MaxQueueTime (Seconds (30)),
+    MaxQueueLen (6400),
+    MaxQueueTime (Seconds (300)),
     m_queue (MaxQueueLen, MaxQueueTime),
     HelloIntervalTimer (Timer::CANCEL_ON_DESTROY),
     PerimeterMode (false),
@@ -127,9 +127,9 @@ RoutingProtocol::GetTypeId (void)
                    MakeEnumAccessor (&RoutingProtocol::LocationServiceName),
                    MakeEnumChecker (GEOSVR_LS_GOD, "GOD",
                                     GEOSVR_LS_RLS, "RLS"))
-    .AddAttribute ("PerimeterMode", "Indicates if PerimeterMode is enabled",
+    .AddAttribute ("DTN", "Indicates if DTN is enabled",
                    BooleanValue (false),
-                   MakeBooleanAccessor (&RoutingProtocol::PerimeterMode),
+                   MakeBooleanAccessor (&RoutingProtocol::m_dtn_enable),
                    MakeBooleanChecker ())
     .AddTraceSource ("RecoveryCount",
 		     "Fire when Packet go through RecoveryMode.",
@@ -141,6 +141,16 @@ RoutingProtocol::GetTypeId (void)
 		    "ns3::Packet::TracedCallback")
   ;
   return tid;
+}
+
+bool IsBoardcast(Ipv4Address ip)
+{
+  //FIXME: dirty way!
+  uint32_t tip = ip.Get() & 0xff;
+  if (tip == 0xff)
+    return true;
+  else
+    return false;
 }
 
 RoutingProtocol::~RoutingProtocol ()
@@ -246,17 +256,23 @@ RoutingProtocol::DeferredRouteOutput (Ptr<const Packet> p, const Ipv4Header & he
     }
 
 }
-
+static int ti = 0;
 void
 RoutingProtocol::CheckQueue ()
 {
-
+  std::cout<<ti++<<std::endl;
+  if (ti == 656)
+	  std::cout<<m_queuedAddresses.size()<<std::endl;
   CheckQueueTimer.Cancel ();
+
+  if (m_queuedAddresses.empty ())
+	  return;
 
   std::list<Ipv4Address> toRemove;
 
   for (std::list<Ipv4Address>::iterator i = m_queuedAddresses.begin (); i != m_queuedAddresses.end (); ++i)
     {
+	  NS_ASSERT(i->Get());
       if (SendPacketFromQueue (*i))
         {
           //Insert in a list to remove later
@@ -301,8 +317,95 @@ RoutingProtocol::SendPacketFromQueue (Ipv4Address dst)
     Ipv4Header header = queueEntry.GetIpv4Header ();
     UnicastForwardCallback ucb = queueEntry.GetUnicastForwardCallback ();
     ErrorCallback ecb = queueEntry.GetErrorCallback ();
-    if(!Forwarding (p, header, ucb, ecb))
-      return false;
+
+    Vector srcPos, dstPos, relayPos, nextPos;
+    Ipv4Address nextHop;
+    DatapacketHeader tmphdr, tmphdr2;
+    TypeHeader tHeadertmp (GEOSVRTYPE_HELLO);
+
+    uint8_t *enpaths = NULL;
+    std::vector<int> paths;
+    Ptr<MobilityModel> MM = m_ipv4->GetObject<MobilityModel> ();
+    srcPos.x = MM->GetPosition ().x;
+    srcPos.y = MM->GetPosition ().y;
+
+    dstPos = m_locationService->GetPosition (dst);
+
+    if(m_neighbors.isNeighbor (dst, srcPos, m_comm_range))
+      {
+        nextHop = dst;
+        NS_LOG_DEBUG (dst << " is neighbor!");
+      }
+    else
+      {
+        paths = m_map.getPaths(srcPos.x, srcPos.y, dstPos.x, dstPos.y);
+
+        if (paths.size() > 2 &&  m_map.getRoadByPos(relayPos.x, relayPos.y).id_ ==  m_map.getRoadByNode(paths[0], paths[1]))
+             paths.erase(paths.begin());
+
+        int roadid1 = m_map.getRoadByNode(paths[0], paths[1]), roadid2;
+        int myroad = m_map.getRoadByPos(relayPos.x, relayPos.y).id_;
+        if(myroad == roadid1 && paths.size() > 2)
+        {
+      	roadid2 = m_map.getRoadByNode(paths[1], paths[2]);
+          nextPos.x = m_map.getMap()[paths[2]].x_;
+          nextPos.y = m_map.getMap()[paths[2]].y_;
+        }
+        else
+        {
+      	roadid2 = -1;
+      	nextPos.x = m_map.getMap()[paths[1]].x_;
+      	nextPos.y = m_map.getMap()[paths[1]].y_;
+        }
+
+        int roadid3 = m_map.getRoadByPos(relayPos.x, relayPos.y).id_;
+  //      nextHop = m_neighbors.find_next_hop (roadid1, roadid2, roadid3, srcPos.x, srcPos.y, nextPos.x, nextPos.y);
+        nextHop = m_neighbors.find_furthest_nhop(roadid1, roadid2, roadid3,srcPos.x, srcPos.y, nextPos.x, nextPos.y, m_comm_range);
+        if (nextHop != Ipv4Address::GetZero ())
+        {
+
+          NS_LOG_DEBUG ("Destination: " << dst);
+  //        if (m_map.getRoadByNode(paths[0], paths[1]) !=
+  //            m_map.getRoadByPos(nextPos.x, nextPos.y).id_ &&
+  //            m_map.getRoadByPos(relayPos.x, relayPos.y).id_ ==
+  //            m_map.getRoadByNode(paths[0], paths[1]))
+  //            paths.erase(paths.begin());
+
+          tmphdr2.encode_path(paths);
+		  enpaths = tmphdr2.GetPath();
+		  uint32_t length, m = 1, t = 2, c = 1;
+		  length = (uint32_t)(enpaths[0]);
+	      p->RemoveHeader(tHeadertmp);
+	      if (tHeadertmp.Get() == GEOSVRTYPE_HELLO) {
+//	    	  std::cout << IsBoardcast(dst) << " " << dst <<std::endl;
+//	    	  m_neighbors.isNeighbor (dst, srcPos, m_comm_range);
+//	    	  return true;
+	      } else
+	    	  p->RemoveHeader(tmphdr);
+		  DatapacketHeader hdr (length, m, t, c, srcPos.x, srcPos.y, dstPos.x, dstPos.y, enpaths);
+		  p->AddHeader (hdr);
+		  TypeHeader tHeader (GEOSVRTYPE_DATAPACKET);
+		  p->AddHeader (tHeader);
+
+          Ptr<NetDevice> oif = m_ipv4->GetObject<NetDevice> ();
+          Ptr<Ipv4Route> route = Create<Ipv4Route> ();
+          route->SetDestination (dst);
+          route->SetSource (header.GetSource ());
+          route->SetGateway (nextHop);
+
+          // FIXME: Does not work for multiple interfaces
+          route->SetOutputDevice (m_ipv4->GetNetDevice (1));
+          route->SetDestination (header.GetDestination ());
+          NS_ASSERT (route != 0);
+          ucb (route, p, header);
+
+          return true;
+        } else {
+
+        	  return false;
+        }
+      }
+
   }
   return true;
 }
@@ -677,16 +780,6 @@ RoutingProtocol::GetProtocolNumber (void) const
   return GEOSVR_PORT;
 }
 
-bool IsBoardcast(Ipv4Address ip)
-{
-  //FIXME: dirty way!
-  uint32_t tip = ip.Get() & 0xff;
-  if (tip == 0xff)
-    return true;
-  else
-    return false;
-}
-
 void
 RoutingProtocol::AddHeaders (Ptr<Packet> p, Ipv4Address source, Ipv4Address destination, uint8_t protocol, Ptr<Ipv4Route> route)
 {
@@ -743,7 +836,7 @@ RoutingProtocol::Forwarding (Ptr<const Packet> packet, const Ipv4Header & header
 
   Vector srcPos, dstPos, relayPos, nextPos;
 
-  TypeHeader tHeader (GEOSVRTYPE_DATAPACKET);
+  TypeHeader tHeader (GEOSVRTYPE_HELLO);
   DatapacketHeader hdr;
   p->RemoveHeader (tHeader);
   if (!tHeader.IsValid ())
@@ -860,25 +953,29 @@ RoutingProtocol::Forwarding (Ptr<const Packet> packet, const Ipv4Header & header
       	  m_neighbors.Print();
       	  NS_LOG_DEBUG(origin << "  "<< dst << "  " << m_ipv4->GetAddress (1, 0).GetLocal ());
 
-      	  NS_LOG_FUNCTION (this << p << header);
-      	  NS_ASSERT (p != 0 && p != Ptr<Packet> ());
+      	  if (m_dtn_enable)
+      	  {
+			  NS_LOG_FUNCTION (this << p << header);
+			  NS_ASSERT (p != 0 && p != Ptr<Packet> ());
+			  NS_ASSERT (tHeader.Get() == GEOSVRTYPE_DATAPACKET);
 
-      	  if (m_queue.GetSize () == 0)
-      	    {
-      	      CheckQueueTimer.Cancel ();
-      	      CheckQueueTimer.Schedule (Time ("500ms"));
-      	    }
+			  if (m_queue.GetSize () == 0)
+				{
+				  CheckQueueTimer.Cancel ();
+				  CheckQueueTimer.Schedule (Time ("500ms"));
+				}
 
-      	  QueueEntry newEntry (p, header, ucb, ecb);
-      	  bool result = m_queue.Enqueue (newEntry);
+			  QueueEntry newEntry (p, header, ucb, ecb);
+			  bool result = m_queue.Enqueue (newEntry);
 
-      	  m_queuedAddresses.insert (m_queuedAddresses.begin (), header.GetDestination ());
-      	  m_queuedAddresses.unique ();
+			  m_queuedAddresses.insert (m_queuedAddresses.begin (), header.GetDestination ());
+			  m_queuedAddresses.unique ();
 
-      	  if (result)
-      	    {
-      	      NS_LOG_LOGIC ("Add packet " << p->GetUid () << " to queue. Protocol " << (uint16_t) header.GetProtocol ());
-      	    }
+			  if (result)
+				{
+				  NS_LOG_LOGIC ("Add packet " << p->GetUid () << " to queue. Protocol " << (uint16_t) header.GetProtocol ());
+				}
+      	  }
       }
     }
     return false;
@@ -959,6 +1056,7 @@ RoutingProtocol::RouteOutput (Ptr<Packet> p, const Ipv4Header &header,
   //环回包的处理
   if (CalculateDistance (dstPos, m_locationService->GetInvalidPosition ()) == 0 && m_locationService->IsInSearch (dst))
     {
+	  NS_ASSERT (!IsBoardcast(dst));
       DeferredRouteOutputTag tag;
       if (!p->PeekPacketTag (tag))
         {
@@ -985,6 +1083,7 @@ RoutingProtocol::RouteOutput (Ptr<Packet> p, const Ipv4Header &header,
     }
   else
     {
+	  NS_ASSERT (!IsBoardcast(dst));
       paths = m_map.getPaths(srcPos.x, srcPos.y, dstPos.x, dstPos.y);
 
       if (paths.size() > 2 &&  m_map.getRoadByPos(relayPos.x, relayPos.y).id_ ==  m_map.getRoadByNode(paths[0], paths[1]))

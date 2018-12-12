@@ -19,6 +19,7 @@
 #include "ns3/ptr.h"
 #include "ns3/node.h"
 #include "geoSVR-map.h"
+#include "geoSVR-packet.h"
 
 namespace ns3 {
 namespace geoSVR {

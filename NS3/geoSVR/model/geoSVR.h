@@ -149,6 +149,7 @@ private:
   bool m_nbFromMbr;
   bool m_start;
   double m_comm_range;
+  bool m_dtn_enable;
 
   TracedCallback<Ptr<Packet> > m_recCount;
   TracedCallback<Ptr<Packet> > m_dropPkt;

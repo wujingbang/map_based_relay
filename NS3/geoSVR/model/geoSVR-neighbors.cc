@@ -154,6 +154,9 @@ Neighbors::isNeighbor(Ipv4Address dst, Vector srcpos, double range)
 		  bool ret = nbapp->getNb()->IsNeighbor(dst, nbloc);
 		  if (ret == true)
 		  {
+//			  if (pkt_type == GEOSVRTYPE_HELLO)
+//				  return true;
+
 			  dist = msvr_cal_dist(srcpos.x, srcpos.y, nbloc.x, nbloc.y);
 			  if (dist <= range)
 				  return true;
