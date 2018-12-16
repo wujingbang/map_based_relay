@@ -50,7 +50,7 @@ public:
   }
   bool operator== (TypeHeader const & o) const;
 
-private:
+//private:
   MessageType m_type;
   bool m_valid;
 };

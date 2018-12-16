@@ -153,7 +153,7 @@ private:
 
   TracedCallback<Ptr<Packet> > m_recCount;
   TracedCallback<Ptr<Packet> > m_dropPkt;
-
+  TracedValue<uint32_t> m_queueNum;
 };
 
 }

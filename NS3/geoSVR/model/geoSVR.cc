@@ -102,7 +102,8 @@ RoutingProtocol::RoutingProtocol ()
     HelloIntervalTimer (Timer::CANCEL_ON_DESTROY),
     PerimeterMode (false),
     m_nbFromMbr (false),
-    m_start (false)
+    m_start (false),
+	m_queueNum(0)
 {
   m_neighbors = Neighbors (false);
 }
@@ -139,6 +140,10 @@ RoutingProtocol::GetTypeId (void)
 		   "Fire when Dropping Packet.",
 		   MakeTraceSourceAccessor (&RoutingProtocol::m_dropPkt),
 		    "ns3::Packet::TracedCallback")
+	  .AddTraceSource ("QueueNum",
+					   "current packets in the queue",
+					   MakeTraceSourceAccessor (&RoutingProtocol::m_queueNum),
+			                   "ns3::TracedValueCallback::Uint32")
   ;
   return tid;
 }
@@ -180,7 +185,6 @@ bool RoutingProtocol::RouteInput (Ptr<const Packet> p, const Ipv4Header &header,
                                   UnicastForwardCallback ucb, MulticastForwardCallback mcb,
                                   LocalDeliverCallback lcb, ErrorCallback ecb)
 {
-
 NS_LOG_FUNCTION (this << p->GetUid () << header.GetDestination () << idev->GetAddress ());
   if (m_socketAddresses.empty ())
     {
@@ -206,7 +210,6 @@ NS_LOG_FUNCTION (this << p->GetUid () << header.GetDestination () << idev->GetAd
 
   if (m_ipv4->IsDestinationAddress (dst, iif))
     {
-
       Ptr<Packet> packet = p->Copy ();
       TypeHeader tHeader (GEOSVRTYPE_DATAPACKET);
       packet->RemoveHeader (tHeader);
@@ -256,13 +259,10 @@ RoutingProtocol::DeferredRouteOutput (Ptr<const Packet> p, const Ipv4Header & he
     }
 
 }
-static int ti = 0;
+
 void
 RoutingProtocol::CheckQueue ()
 {
-  std::cout<<ti++<<std::endl;
-  if (ti == 656)
-	  std::cout<<m_queuedAddresses.size()<<std::endl;
   CheckQueueTimer.Cancel ();
 
   if (m_queuedAddresses.empty ())
@@ -298,6 +298,7 @@ RoutingProtocol::SendPacketFromQueue (Ipv4Address dst)
   NS_LOG_FUNCTION (this);
   //bool recovery = false;
   QueueEntry queueEntry;
+  uint32_t length=0, m = 1, t = 2, c = 1;
 
   if (m_locationService->IsInSearch (dst))
     {
@@ -311,17 +312,25 @@ RoutingProtocol::SendPacketFromQueue (Ipv4Address dst)
       return true;
     }
 
-  while(m_queue.Dequeue (dst, queueEntry))
+  while(m_queue.Peek (dst, queueEntry))
   {
+	  m_queueNum = m_queue.GetSize();
+
     Ptr<Packet> p = ConstCast<Packet> (queueEntry.GetPacket ());
+
     Ipv4Header header = queueEntry.GetIpv4Header ();
     UnicastForwardCallback ucb = queueEntry.GetUnicastForwardCallback ();
     ErrorCallback ecb = queueEntry.GetErrorCallback ();
 
     Vector srcPos, dstPos, relayPos, nextPos;
     Ipv4Address nextHop;
-    DatapacketHeader tmphdr, tmphdr2;
+    DatapacketHeader tmphdr,tmphdr2;
     TypeHeader tHeadertmp (GEOSVRTYPE_HELLO);
+    tHeadertmp.m_valid = false;
+
+    p->RemoveHeader(tHeadertmp);
+    NS_ASSERT(tHeadertmp.IsValid() );
+    p->RemoveHeader(tmphdr);
 
     uint8_t *enpaths = NULL;
     std::vector<int> paths;
@@ -333,8 +342,32 @@ RoutingProtocol::SendPacketFromQueue (Ipv4Address dst)
 
     if(m_neighbors.isNeighbor (dst, srcPos, m_comm_range))
       {
+        NS_LOG_DEBUG(dst << " is neighbor !");
         nextHop = dst;
-        NS_LOG_DEBUG (dst << " is neighbor!");
+
+//		p->RemoveHeader(tHeadertmp);
+//		NS_ASSERT(tHeadertmp.IsValid());
+//
+//		p->RemoveHeader(tmphdr);
+        DatapacketHeader hdr (length, m, t, c, srcPos.x, srcPos.y, dstPos.x, dstPos.y, enpaths);
+		p->AddHeader (hdr);
+		TypeHeader tHeader (GEOSVRTYPE_DATAPACKET);
+		p->AddHeader (tHeader);
+
+        Ptr<NetDevice> oif = m_ipv4->GetObject<NetDevice> ();
+        Ptr<Ipv4Route> route = Create<Ipv4Route> ();
+        route->SetDestination (dst);
+        route->SetSource (header.GetSource ());
+        route->SetGateway (nextHop);
+
+        // FIXME: Does not work for multiple interfaces
+        route->SetOutputDevice (m_ipv4->GetNetDevice (1));
+        route->SetDestination (header.GetDestination ());
+        NS_ASSERT (route != 0);
+
+        ucb(route, p, header);
+
+        m_queue.Dequeue (dst, queueEntry);
       }
     else
       {
@@ -373,15 +406,12 @@ RoutingProtocol::SendPacketFromQueue (Ipv4Address dst)
 
           tmphdr2.encode_path(paths);
 		  enpaths = tmphdr2.GetPath();
-		  uint32_t length, m = 1, t = 2, c = 1;
 		  length = (uint32_t)(enpaths[0]);
-	      p->RemoveHeader(tHeadertmp);
-	      if (tHeadertmp.Get() == GEOSVRTYPE_HELLO) {
-//	    	  std::cout << IsBoardcast(dst) << " " << dst <<std::endl;
-//	    	  m_neighbors.isNeighbor (dst, srcPos, m_comm_range);
-//	    	  return true;
-	      } else
-	    	  p->RemoveHeader(tmphdr);
+//	      p->RemoveHeader(tHeadertmp);
+//
+//	      NS_ASSERT(tHeadertmp.IsValid() );
+//
+//		  p->RemoveHeader(tmphdr);
 		  DatapacketHeader hdr (length, m, t, c, srcPos.x, srcPos.y, dstPos.x, dstPos.y, enpaths);
 		  p->AddHeader (hdr);
 		  TypeHeader tHeader (GEOSVRTYPE_DATAPACKET);
@@ -397,12 +427,16 @@ RoutingProtocol::SendPacketFromQueue (Ipv4Address dst)
           route->SetOutputDevice (m_ipv4->GetNetDevice (1));
           route->SetDestination (header.GetDestination ());
           NS_ASSERT (route != 0);
-          ucb (route, p, header);
 
-          return true;
+          ucb(route, p, header);
+
+          m_queue.Dequeue (dst, queueEntry);
         } else {
-
-        	  return false;
+  		  DatapacketHeader hdr (length, m, t, c, srcPos.x, srcPos.y, dstPos.x, dstPos.y, enpaths);
+  		  p->AddHeader (hdr);
+  		  TypeHeader tHeader (GEOSVRTYPE_DATAPACKET);
+  		  p->AddHeader (tHeader);
+          return false;
         }
       }
 
@@ -830,6 +864,7 @@ RoutingProtocol::Forwarding (Ptr<const Packet> packet, const Ipv4Header & header
                              UnicastForwardCallback ucb, ErrorCallback ecb)
 {
   Ptr<Packet> p = packet->Copy ();
+
   NS_LOG_FUNCTION (this);
   Ipv4Address dst = header.GetDestination ();
   Ipv4Address origin = header.GetSource ();
@@ -839,11 +874,9 @@ RoutingProtocol::Forwarding (Ptr<const Packet> packet, const Ipv4Header & header
   TypeHeader tHeader (GEOSVRTYPE_HELLO);
   DatapacketHeader hdr;
   p->RemoveHeader (tHeader);
-  if (!tHeader.IsValid ())
-    {
-      NS_LOG_DEBUG ("geoSVR message " << p->GetUid () << " with unknown type received: " << tHeader.Get () << ". Drop");
-      return false;     // drop
-    }
+
+  NS_ASSERT(tHeader.IsValid ());
+
   if (tHeader.Get () == GEOSVRTYPE_DATAPACKET)
     {
 
@@ -924,6 +957,7 @@ RoutingProtocol::Forwarding (Ptr<const Packet> packet, const Ipv4Header & header
           hdr.encode_path(paths);
           p->AddHeader (hdr);
           p->AddHeader (tHeader);
+          NS_ASSERT(tHeader.IsValid());
 
           Ptr<NetDevice> oif = m_ipv4->GetObject<NetDevice> ();
           Ptr<Ipv4Route> route = Create<Ipv4Route> ();
@@ -958,6 +992,10 @@ RoutingProtocol::Forwarding (Ptr<const Packet> packet, const Ipv4Header & header
 			  NS_LOG_FUNCTION (this << p << header);
 			  NS_ASSERT (p != 0 && p != Ptr<Packet> ());
 			  NS_ASSERT (tHeader.Get() == GEOSVRTYPE_DATAPACKET);
+
+	          hdr.encode_path(paths);
+	          p->AddHeader (hdr);
+	          p->AddHeader (tHeader); // to be removed in the checkqueue.
 
 			  if (m_queue.GetSize () == 0)
 				{
@@ -1152,7 +1190,7 @@ RoutingProtocol::RouteOutput (Ptr<Packet> p, const Ipv4Header &header,
         }
       return route;
     }
-  else
+  else if (m_dtn_enable)
     {
       NS_LOG_DEBUG("there is no nexthop");
       DeferredRouteOutputTag tag;
@@ -1163,14 +1201,15 @@ RoutingProtocol::RouteOutput (Ptr<Packet> p, const Ipv4Header &header,
 
       NS_LOG_DEBUG( "output fail!");
       for(std::vector<int>::iterator iter = paths.begin(); iter != paths.end(); ++iter)
-	NS_LOG_DEBUG(*iter << ' ');
+    	  NS_LOG_DEBUG(*iter << ' ');
 
       NS_LOG_DEBUG("srcPos: "<<srcPos.x<<' '<< srcPos.y<<" dstPos: "
 		       <<dstPos.x<<' '<<dstPos.y<<" relayPos: " << relayPos.x << relayPos.y);
       m_neighbors.Print();
       NS_LOG_DEBUG(m_ipv4->GetAddress (1, 0).GetLocal () << "  "<< dst);
       return LoopbackRoute (header, oif);
-    }
+    } else
+    	return NULL;
 
 }
 

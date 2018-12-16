@@ -77,6 +77,20 @@ RequestQueue::Dequeue (Ipv4Address dst, QueueEntry & entry)
 }
 
 bool
+RequestQueue::Peek (Ipv4Address dst, QueueEntry & entry)
+{
+  for (std::vector<QueueEntry>::iterator i = m_queue.begin (); i != m_queue.end (); ++i)
+    {
+      if (i->GetIpv4Header ().GetDestination () == dst)
+        {
+          entry = *i;
+          return true;
+        }
+    }
+  return false;
+}
+
+bool
 RequestQueue::Find (Ipv4Address dst)
 {
   for (std::vector<QueueEntry>::const_iterator i = m_queue.begin (); i

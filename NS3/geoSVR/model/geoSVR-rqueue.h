@@ -114,6 +114,7 @@ public:
   bool Enqueue (QueueEntry & entry);
   /// Return first found (the earliest) entry for given destination
   bool Dequeue (Ipv4Address dst, QueueEntry & entry);
+  bool Peek (Ipv4Address dst, QueueEntry & entry);
   /// Remove all packets with destination IP address dst
   void DropPacketWithDst (Ipv4Address dst);
   /// Finds whether a packet with destination dst exists in the queue
