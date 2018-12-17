@@ -32,6 +32,7 @@
 #include "ns3/mbr_route.h"
 
 #include "ns3/geoSVR-helper.h"
+#include "ns3/analyze-tag.h"
 
 #include <iostream>
 #include <cmath>
@@ -80,6 +81,7 @@ public:
 
 private:
   uint32_t bytesTotal;
+  uint64_t deltaDelayTotal_us;
   uint32_t packetsReceived;
   ///\name parameters
   //\{
@@ -122,6 +124,8 @@ private:
   double m_startTime;
   bool m_sub1g;
   bool m_rsu;
+  bool m_tdma_enable;
+  bool m_dtn_enable;
 
   NodeContainer m_nodesContainer;
   NetDeviceContainer beaconDevices;
@@ -177,6 +181,7 @@ int main (int argc, char **argv)
 //-----------------------------------------------------------------------------
 GpsrExample::GpsrExample () :
   bytesTotal(0),
+  deltaDelayTotal_us(0),
   packetsReceived(0),
   // Number of Nodes
   m_nNodes (100),
@@ -206,7 +211,9 @@ GpsrExample::GpsrExample () :
   m_relayedPktNum(0),
   m_startTime(0.0),
   m_sub1g(0),
-  m_rsu(0)
+  m_rsu(0),
+  m_tdma_enable(0),
+  m_dtn_enable(0)
 {
 }
 
@@ -247,6 +254,9 @@ GpsrExample::Configure (int argc, char **argv)
   cmd.AddValue ("sub1g", "Open sub1G mode.", m_sub1g);
   cmd.AddValue ("rsu", "Install RSUs", m_rsu);
 
+  cmd.AddValue ("tdma", "enable tdma", m_tdma_enable);
+  cmd.AddValue ("dtn", "enable dtn", m_dtn_enable);
+
   cmd.Parse (argc, argv);
 
   if (m_routingProtocolStr == "aodv")
@@ -268,11 +278,17 @@ GpsrExample::Configure (int argc, char **argv)
 }
 
 uint32_t rreqTimeoutCount = 0;
+
 void
 IntTrace (uint32_t oldValue, uint32_t newValue)
 {
 //  std::cout << "Traced " << oldValue << " to " << newValue << std::endl;
   rreqTimeoutCount++;
+
+//  if (oldValue == 27 && newValue == 26)
+//	  std::cout << "Traced " << oldValue << " to " << newValue << std::endl;
+//  std::cout << "Traced " << oldValue << " to " << newValue << std::endl;
+
 }
 uint32_t gpsrRecPktTrace = 0;
 void
@@ -400,7 +416,8 @@ GpsrExample::Run ()
 
   Config::ConnectWithoutContext ("/NodeList/*/$ns3::gpsr::RoutingProtocol/RecoveryCount", MakeCallback (&GpsrRecPktTrace));
   Config::ConnectWithoutContext ("/NodeList/*/$ns3::gpsr::RoutingProtocol/DropPkt", MakeCallback (&GpsrDropPktTrace));
-  Config::ConnectWithoutContext ("/NodeList/*/$ns3::aodv::RoutingProtocol/RreqTimeoutCount", MakeCallback (&IntTrace));
+//  Config::ConnectWithoutContext ("/NodeList/*/$ns3::aodv::RoutingProtocol/RreqTimeoutCount", MakeCallback (&IntTrace));
+//  Config::ConnectWithoutContext ("/NodeList/*/$ns3::geoSVR::RoutingProtocol/QueueNum", MakeCallback (&IntTrace));
 
   mbr::MbrRoute::setRelayedPktNum(0);
   mbr::MbrRoute::setNoNeighborPktNum(0);
@@ -504,10 +521,7 @@ GpsrExample::CreateDevices ()
     }
 
   uint32_t rdis;
-  if (m_routingProtocol == GEOSVR)
-    rdis = 500; //geoSVR will restrict the communication distance to 200 m.
-  else
-    rdis = 200;
+  rdis = 200;
   if (m_loadBuildings == 1) {
     wifiChannel2.AddPropagationLoss ("ns3::ObstacleShadowingPropagationLossModel", "ForBeacon", UintegerValue(0), "MaxDistance", UintegerValue(rdis));
     //wifiChannel2.AddPropagationLoss ("ns3::NakagamiPropagationLossModel");
@@ -521,8 +535,14 @@ GpsrExample::CreateDevices ()
   NqosWaveMacHelper wifi80211pMac = NqosWaveMacHelper::Default ();
   Wifi80211pHelper wifi80211p = Wifi80211pHelper::Default ();
 
+  if (m_tdma_enable)
   // Setup 802.11p stuff
-  wifi80211p.SetRemoteStationManager ("ns3::ConstantRateWifiManager",
+	  wifi80211p.SetRemoteStationManager ("ns3::ConstantRateWifiManager",
+                                       "DataMode",StringValue (m_phyMode),
+                                       "ControlMode",StringValue (m_phyMode),
+				       "NonUnicastMode", StringValue ("OfdmRate12MbpsBW10MHz"));
+  else
+	  wifi80211p.SetRemoteStationManager ("ns3::ConstantRateWifiManager",
                                        "DataMode",StringValue (m_phyMode),
                                        "ControlMode",StringValue (m_phyMode),
 				       "NonUnicastMode", StringValue ("OfdmRate3MbpsBW10MHz"));
@@ -530,7 +550,7 @@ GpsrExample::CreateDevices ()
   wifiPhy2.Set ("TxPowerStart",DoubleValue (m_txp));
   wifiPhy2.Set ("TxPowerEnd", DoubleValue (m_txp));
 
-  dataDevices = wifi80211p.Install (wifiPhy2, wifi80211pMac, m_nodesContainer);
+  dataDevices = wifi80211p.Install (wifiPhy2, wifi80211pMac, m_nodesContainer, m_tdma_enable);
 
 //  WifiHelper wifi;
 //  WifiMacHelper wifiMac;
@@ -632,6 +652,10 @@ GpsrExample::InstallInternetStack ()
     {
       GeosvrHelper geosvr;
       //geosvr.Set("HelloInterval", TimeValue (Seconds (0.25)));
+      geosvr.Set("Range", DoubleValue(200));
+
+//      std::cout << "NOTICE!!! DTN attribute is diabled!!!!!!!!!!!!!!!"<< std::endl;
+      geosvr.Set("DTN", BooleanValue(m_dtn_enable));
       // you can configure GPSR attributes here using gpsr.Set(name, value)
       stack.SetRoutingHelper (geosvr);
       stack.Install (m_nodesContainer);
@@ -698,7 +722,7 @@ GpsrExample::SetupScenario()
   else if (m_scenario == 2)
     {
       m_mobility = 2; //static relay
-      m_nNodes = 2;
+      m_nNodes = 4;
       totalTime = 10;
       m_nSinks = 1;
       m_lossModel = 3; // two-ray ground
@@ -774,7 +798,7 @@ GpsrExample::SetupScenario()
     }
   else if (m_scenario == 6)
     {
-      m_traceFile = "src/wave/examples/9gong/9gong.ns2";
+      m_traceFile = "src/wave/examples/9gong/9gong-30mps.ns2";
 
       char snodes[5];
       sprintf(snodes, "%d", m_nNodes);
@@ -1024,8 +1048,10 @@ GpsrExample::SetupAdhocMobilityNodes ()
     {
       MobilityHelper mobility;
       Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator> ();
-      positionAlloc->Add (Vector (601, 314, 0));
-      positionAlloc->Add (Vector (531, 313, 0));
+      positionAlloc->Add (Vector (0, 100, 0));
+      positionAlloc->Add (Vector (0, 150, 0));
+      positionAlloc->Add (Vector (0, 100, 0));
+      positionAlloc->Add (Vector (0, 150, 0));
 
 
 
@@ -1145,20 +1171,20 @@ GpsrExample::SetupRoutingMessages (NodeContainer & c,
   else if (m_scenario == 6)
     {
       for (uint32_t i = atoi(m_round.c_str()); i < m_nSinks + atoi(m_round.c_str()); i++)
-	{
+		{
 
-	  Ptr<Socket> sink = SetupRoutingPacketReceive (adhocTxInterfaces.GetAddress (i), c.Get (i));
+		  Ptr<Socket> sink = SetupRoutingPacketReceive (adhocTxInterfaces.GetAddress (i), c.Get (i));
 
 
-	  AddressValue remoteAddress (InetSocketAddress (adhocTxInterfaces.GetAddress (i), m_port));
-	  onoff1.SetAttribute ("Remote", remoteAddress);
-	  onoff1.SetAttribute ("PacketSize", UintegerValue (m_pktSize));
-	  onoff1.SetAttribute ("DataRate", DataRateValue(DataRate ("50kb/s")));
+		  AddressValue remoteAddress (InetSocketAddress (adhocTxInterfaces.GetAddress (i), m_port));
+		  onoff1.SetAttribute ("Remote", remoteAddress);
+		  onoff1.SetAttribute ("PacketSize", UintegerValue (m_pktSize));
+		  onoff1.SetAttribute ("DataRate", DataRateValue(DataRate ("50kb/s")));
 
-	  ApplicationContainer temp = onoff1.Install (c.Get (i + m_nSinks));
-	  temp.Start (Seconds (m_startTime));//var->GetValue (1.0,2.0)));
-	  temp.Stop (Seconds (totalTime));
-	}
+		  ApplicationContainer temp = onoff1.Install (c.Get (i + m_nSinks));
+		  temp.Start (Seconds (m_startTime));//var->GetValue (1.0,2.0)));
+		  temp.Stop (Seconds (totalTime));
+		}
     }
   else if (m_scenario != 4 && m_scenario!=2)
     {
@@ -1180,16 +1206,46 @@ GpsrExample::SetupRoutingMessages (NodeContainer & c,
     }
   else
     {
-//      for (uint32_t i = 1; i <= m_nSinks; i++)
-//	{
-//	  Ptr<Socket> sink = SetupRoutingPacketReceive (adhocTxInterfaces.GetAddress (i), c.Get (i));
-//	  AddressValue remoteAddress (InetSocketAddress (adhocTxInterfaces.GetAddress (i), m_port));
-//	  onoff1.SetAttribute ("Remote", remoteAddress);
-//	  onoff1.SetAttribute ("PacketSize", UintegerValue (m_pktSize));
-//	  ApplicationContainer temp = onoff1.Install (c.Get (0));
-//	  temp.Start (Seconds (var->GetValue (1.0,2.0)));
-//	  temp.Stop (Seconds (totalTime));
-//	}
+
+		  Ptr<Socket> sink = SetupRoutingPacketReceive (adhocTxInterfaces.GetAddress (0), c.Get (0));
+		  AddressValue remoteAddress (InetSocketAddress (adhocTxInterfaces.GetAddress (0), m_port));
+		  onoff1.SetAttribute ("Remote", remoteAddress);
+		  onoff1.SetAttribute ("PacketSize", UintegerValue (m_pktSize));
+		  onoff1.SetAttribute ("DataRate", DataRateValue(DataRate ("5000kb/s")));
+		  ApplicationContainer temp = onoff1.Install (c.Get (1));
+		  temp.Start (Seconds (m_startTime));//var->GetValue (1.0,2.0)));
+		  temp.Stop (Seconds (totalTime));
+
+		  OnOffHelper onoff2 ("ns3::UdpSocketFactory",Address (),true, dataDevices);;
+		  Ptr<Socket> sink2 = SetupRoutingPacketReceive (adhocTxInterfaces.GetAddress (2), c.Get (2));
+		  AddressValue remoteAddress2 (InetSocketAddress (adhocTxInterfaces.GetAddress (2), m_port));
+		  onoff2.SetAttribute ("Remote", remoteAddress2);
+		  onoff2.SetAttribute ("PacketSize", UintegerValue (m_pktSize));
+		  onoff2.SetAttribute ("DataRate", DataRateValue(DataRate ("10000kb/s")));
+		  ApplicationContainer temp2 = onoff2.Install (c.Get (3));
+		  temp2.Start (Seconds (m_startTime));//var->GetValue (1.0,2.0)));
+		  temp2.Stop (Seconds (totalTime));
+
+		  OnOffHelper onoff3 ("ns3::UdpSocketFactory",Address (),true, dataDevices);;
+		  SetupRoutingPacketReceive (adhocTxInterfaces.GetAddress (1), c.Get (1));
+		  AddressValue remoteAddress3 (InetSocketAddress (adhocTxInterfaces.GetAddress (1), m_port));
+		  onoff1.SetAttribute ("Remote", remoteAddress3);
+		  onoff1.SetAttribute ("PacketSize", UintegerValue (m_pktSize));
+		  onoff1.SetAttribute ("DataRate", DataRateValue(DataRate ("5000kb/s")));
+		  ApplicationContainer temp3 = onoff1.Install (c.Get (0));
+		  temp3.Start (Seconds (m_startTime));//var->GetValue (1.0,2.0)));
+		  temp3.Stop (Seconds (totalTime));
+
+		  OnOffHelper onoff4 ("ns3::UdpSocketFactory",Address (),true, dataDevices);;
+		  Ptr<Socket> sink4 = SetupRoutingPacketReceive (adhocTxInterfaces.GetAddress (3), c.Get (3));
+		  AddressValue remoteAddress4 (InetSocketAddress (adhocTxInterfaces.GetAddress (3), m_port));
+		  onoff4.SetAttribute ("Remote", remoteAddress4);
+		  onoff4.SetAttribute ("PacketSize", UintegerValue (m_pktSize));
+		  onoff4.SetAttribute ("DataRate", DataRateValue(DataRate ("10000kb/s")));
+		  ApplicationContainer temp4 = onoff4.Install (c.Get (2));
+		  temp4.Start (Seconds (m_startTime));//var->GetValue (1.0,2.0)));
+		  temp4.Stop (Seconds (totalTime));
+
 
 /*	Ptr<Socket> sink = SetupRoutingPacketReceive (adhocTxInterfaces.GetAddress (m_nSinks), c.Get (m_nSinks));
 	AddressValue remoteAddress (InetSocketAddress (adhocTxInterfaces.GetAddress (m_nSinks), m_port));
@@ -1239,6 +1295,7 @@ GpsrExample::CheckThroughput ()
 
   out << (Simulator::Now ()).GetSeconds () << " "
       <<std::setw(6)<< kbs << " "
+	  << std::setw(6) << deltaDelayTotal_us/1000 << " "
       <<std::setw(6)<< packetsReceived << " "
       <<std::setw(4)<< mbr::MbrRoute::getRelayedPktNum()  << " "
       << "noNb:" << mbr::MbrRoute::getNoNeighborPktNum()<< ","
@@ -1253,6 +1310,7 @@ GpsrExample::CheckThroughput ()
   mbr::MbrRoute::setNoNeighborPktNum(0);
   mbr::MbrRoute::setRelayedPktNum(0);
   packetsReceived = 0;
+  deltaDelayTotal_us = 0;
   gpsrRecPktTrace = 0;
   rreqTimeoutCount = 0;
   Simulator::Schedule (Seconds (1.0), &GpsrExample::CheckThroughput, this);
@@ -1303,6 +1361,12 @@ GpsrExample::ReceiveRoutingPacket (Ptr<Socket> socket)
       InetSocketAddress ss(adr);
       ss.ConvertFrom(srcAddress);
       adr = ss.GetIpv4();
+
+      AnalyzeTag ttag;
+      bool res = packet->PeekPacketTag(ttag);
+      NS_ASSERT(res);
+      uint64_t delay = Simulator::Now ().GetMicroSeconds() - ttag.getTimemarkMs();
+	  deltaDelayTotal_us += delay;
 
       bytesTotal += packet->GetSize ();
       packetsReceived += 1;
