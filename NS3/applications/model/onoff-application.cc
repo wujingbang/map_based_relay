@@ -42,6 +42,8 @@
 #include "ns3/string.h"
 #include "ns3/pointer.h"
 
+#include "ns3/analyze-tag.h"
+
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("OnOffApplication");
@@ -283,9 +285,19 @@ void OnOffApplication::SendPacket ()
 
   NS_ASSERT (m_sendEvent.IsExpired ());
   Ptr<Packet> packet = Create<Packet> (m_pktSize);
+  AnalyzeTag ttag(Simulator::Now ().GetMicroSeconds());
+  packet->AddPacketTag(ttag);
   m_txTrace (packet);
   m_socket->Send (packet);
   m_totBytes += m_pktSize;
+
+//  std::cout << "At time " << Simulator::Now ().GetSeconds ()
+//                           << "s on-off application sent "
+//                           <<  packet->GetSize () << " bytes to "
+//                           << InetSocketAddress::ConvertFrom(m_peer).GetIpv4 ()
+//                           << " port " << InetSocketAddress::ConvertFrom (m_peer).GetPort ()
+//                           << " total Tx " << m_totBytes << " bytes" << std::endl;
+
   if (InetSocketAddress::IsMatchingType (m_peer))
     {
       NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds ()
